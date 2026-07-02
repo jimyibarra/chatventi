@@ -218,6 +218,18 @@ Adaptar Stripe a cobro **por software** (unidad: por número conectado y/o plan 
 - Pendiente heredado: `META_APP_SECRET` en env para cerrar Embedded Signup.
 - **Aplicar en**: Fases 1, 2, 3, 5.
 
+### 2026-07-02: Fase 0 COMPLETADA (bootstrap + tenancy + channels + onboarding)
+- **Estado**: ✅ Repo compila (`build` + `typecheck` verdes) · alta de negocio crea org+sucursal+owner · `channels` con RLS · aislamiento multi-tenant verificado E2E con Playwright.
+- **Migraciones**: `supabase/migrations/20260702000000_fase0_baseline.sql` + `..._harden_function_grants.sql`. Tablas: `organizations`, `branches`, `profiles`, `channels` (todas RLS).
+- **Tenancy limpio (mejora vs SastrePro2)**: helpers `get_my_org()/get_my_role()/get_my_branch()` como `SECURITY DEFINER` que leen de `profiles` → evitan recursión RLS SIN la frágil sincronización `app_meta`/`user_meta` de SastrePro2. Las políticas RLS los usan; `authenticated` conserva EXECUTE (revocado a `anon`).
+- **Onboarding self-service**: RPC `create_organization_with_owner(org, owner, branch)` `SECURITY DEFINER` transaccional. El signup guarda `pending_org_name` en `user_metadata`; el dashboard tiene un **safety-net** que ejecuta el RPC al primer acceso autenticado (soporta confirmación de correo activada, que ESTÁ ON en este proyecto).
+- **Gotcha resuelto — read-after-write lag**: un `SELECT` inmediato tras un RPC de escritura puede pegar en réplica y no ver el dato → tras onboarding hacer `redirect()` (lectura fresca en el siguiente request), no re-`SELECT`. **Aplicar en**: cualquier RPC de escritura seguido de lectura.
+- **Gotcha resuelto — versión @supabase/ssr**: `ssr` 0.6.x importa `GenericSchema` de una ruta que `supabase-js` 2.110 eliminó → el genérico `Database` se rompe y las queries tipan `never`. Fix: `@supabase/ssr@^0.12`. **Aplicar en**: cualquier proyecto nuevo del template.
+- **Gotcha resuelto — Tailwind v3 vs v4**: el scaffold traía `globals.css` con `@import 'tailwindcss'` (v4) pero tailwind 3.4 instalado → sin utilidades. Fix: `@tailwind base/components/utilities`.
+- **Next 16**: la convención `middleware.ts` está **deprecada** → usar `src/proxy.ts` con `export function proxy()` (coincide con SastrePro2).
+- **Alcance**: el motor profundo (webhook multi-tenant, agente IA, media, Stripe) NO se implementó en Fase 0 — se porta en sus fases (1/3/7). Fase 0 dejó los **patrones base**: 4 clientes Supabase (`server`/`client`/`service`/`webhook`), proxy, RLS+RPC.
+- **Pendiente de config (dashboard Supabase)**: activar "Leaked Password Protection"; decidir si dejar confirmación de correo ON (afecta UX de signup).
+
 ---
 
 ## Gotchas

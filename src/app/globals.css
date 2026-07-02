@@ -1,6 +1,8 @@
-@import 'tailwindcss';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /*
- * Personaliza tu tema aquí
+ * Personaliza tu tema en tailwind.config.ts
  * Documentación: https://tailwindcss.com/docs/theme
  */
