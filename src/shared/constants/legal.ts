@@ -9,8 +9,8 @@ export const LEGAL = {
   legalName: 'ChatVenti',
   domain: 'chatventi.com',
   siteUrl: 'https://chatventi.com',
-  // TODO(confirmar): correo de contacto real (debe funcionar para la revisión de Meta).
+  // Correo real (buzón hola@ con alias soporte@ en Hostinger). Funciona para Meta.
   contactEmail: 'soporte@chatventi.com',
-  privacyEmail: 'privacidad@chatventi.com',
+  privacyEmail: 'soporte@chatventi.com',
   lastUpdated: '3 de julio de 2026',
 } as const
