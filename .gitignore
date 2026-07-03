@@ -55,6 +55,9 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
+# Capturas locales (nunca subir)
+_Screen/
+
 # Claude Code
 .claude/skills/**/node_modules
 .claude/plugins
