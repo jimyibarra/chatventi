@@ -264,6 +264,13 @@ Adaptar Stripe a cobro **por software** (unidad: por número conectado y/o plan 
 - **UI**: `/dashboard/agente` (config + base de conocimiento) y `/dashboard/conversaciones` (+ `/[id]`): hilo de mensajes, historial de aprobaciones, toggle IA / pausar / cerrar.
 - **PENDIENTE para vivo**: (1) `OPENROUTER_API_KEY` en `.env.local` (local) y en Vercel Production (deploy); (2) que el dueño escriba al bot desde su chat de Telegram y ponga ese `chat_id` en la config para recibir aprobaciones; (3) redeploy tras cargar envs.
 
+### 2026-07-04: Fase 3 VALIDADA EN VIVO (con OPENROUTER_API_KEY) — commits `d218bc9` + `e57062d` (push a main)
+- **E2E real del agente** (webhook Telegram simulado → `after()` → LLM `openai/gpt-4o-mini` vía OpenRouter): "quiero un corte el lunes 6 jul a las 10" → el agente llamó `check_availability` (disponibilidad real, tz correcta) → "tenemos las 10:00, ¿confirmas?" → "sí" → `book_appointment` → **cita creada** (`appointments`, source `telegram`, 10:00–10:30 local) + respuesta natural de confirmación. Ambos turnos registrados con `log_outbound_message`.
+- **Aprobación en vivo** (`approval_mode='always'`): el agente redactó la respuesta pero creó `ai_approval` **pending**, dejó la conversación `pending` y `should_respond=false` (NO envió al cliente). El envío real de botones necesita un chat de Telegram válido (el bot solo mensajea a chats que le escribieron primero); el callback resolve→envío ya se validó por SQL.
+- **🔴 GOTCHA — id del servicio en el prompt (fix `e57062d`)**: las tools requieren el uuid del servicio, pero `buildSystemPrompt` solo listaba nombres → el modelo no podía llamar `check_availability`. Fix: incluir `id: <uuid>` en la lista de servicios + instrucción. **Aplicar en**: cualquier tool que reciba ids — exponer los ids en el contexto del modelo.
+- **🔴 GOTCHA — caché de turbopack tras instalar deps**: tras `npm install` de `ai`/`@openrouter`, el dev server servía **404 en TODAS las rutas /api** (Next las mandaba a `/_not-found`) aunque `build` compilaba bien. Fix: **parar dev, borrar `.next`, reiniciar**. **Aplicar en**: siempre que se agreguen dependencias con dev server corriendo.
+- **Nota de entorno**: la prueba usó la org de prueba de Fase 1 (`7ab0c2ea`) equipada con sucursal/servicio/horario/staff/agente; al terminar se **desactivó el agente** (`enabled=false`) porque su bot `8947338327` apunta a prod. Esa org + sus datos de prueba (incluida la cita 700700700 y las conversaciones 700700702) siguen marcados para limpiar antes de prod real (no se pudo DELETE por el clasificador; hacerlo manualmente o con confirmación).
+
 ---
 
 ## Gotchas
