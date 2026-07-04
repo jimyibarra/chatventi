@@ -289,6 +289,12 @@ Adaptar Stripe a cobro **por software** (unidad: por número conectado y/o plan 
 - **🔴 GOTCHA — Vercel Hobby crons**: Hobby limita los crons a ~1/día. `vercel.json` fija `"0 14 * * *"` (diario, seguro para no romper el deploy). Para recordatorios reales (cada 15 min / hora) se necesita **Vercel Pro** o un **scheduler externo** (p. ej. cron-job.org) que haga `GET /api/cron/appointment-reminders` con `Authorization: Bearer <CRON_SECRET>` (Vercel Cron añade ese header automáticamente cuando existe la env `CRON_SECRET`). El endpoint procesa TODAS las ventanas en cada corrida, así que un scheduler cada 15 min basta.
 - **Gotcha heredado — ventana 24h de WhatsApp**: fuera de la ventana de 24h, WhatsApp solo entrega **plantillas aprobadas**; los recordatorios por WA a clientes fuera de ventana fallarán hasta configurar plantillas (atado a App Review). Telegram no tiene esta restricción. **TODO Fase futura**: enviar recordatorios WA por plantilla UTILITY.
 
+### 2026-07-04: Fase 6 COMPLETADA — CRM (contactos + etiquetas + historial)
+- **Estado**: ✅ `typecheck` + `build` verdes. Playwright E2E (con un owner creado sobre la org de prueba `7ab0c2ea`, 6 clientes): crear etiqueta "VIP" → etiquetar un cliente + guardar nota → ver su **historial de citas** ("6 jul, 10:00 · Corte — Agendada") → ver sus **conversaciones** y **abrir el chat** (hilo completo agente+recordatorios) → aislamiento por org (el owner solo ve sus 6 clientes). `get_advisors` sin ERROR.
+- **Migración**: `20260704050000_fase6_crm.sql`. Reutiliza `clients` (Fase 1); añade `clients.notes`, tablas `tags` (org, name, color, `unique(org,name)`) y `client_tags` (client_id, tag_id) con RLS por org (directo / vía cliente). Sin RPCs nuevas → sin gotcha de grants (tablas RLS accedidas por el cliente autenticado).
+- **UI** (`src/features/crm/`): `/dashboard/clientes` (lista con búsqueda por nombre/teléfono via `?q=`, gestor de etiquetas, chips por cliente) y `/dashboard/clientes/[id]` (editar nombre/notas, alternar etiquetas con estado optimista, historial de citas con estado, conversaciones con enlace a `/dashboard/conversaciones/[id]`). Server Components + Server Actions (`createTag`/`deleteTag`/`tagClient`/`untagClient`/`updateClient`). Vínculo cliente ↔ citas ↔ conversaciones reutiliza las tablas existentes (todo RLS-org).
+- **Nota**: se creó un owner de prueba (`zztest-crm@example.com`) atado a `7ab0c2ea` para poder ver el CRM con datos; forma parte de los datos de prueba a limpiar de esa org antes de prod.
+
 ---
 
 ## Gotchas
