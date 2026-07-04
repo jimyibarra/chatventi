@@ -24,9 +24,9 @@ function buildSystemPrompt(ctx: AgentContext): string {
     ? ctx.services
         .map(
           (s) =>
-            `- ${s.name} (${s.duration_minutes} min${s.price != null ? `, $${s.price}` : ''})${
-              s.description ? `: ${s.description}` : ''
-            }`
+            `- ${s.name} — id: ${s.id} (${s.duration_minutes} min${
+              s.price != null ? `, $${s.price}` : ''
+            })${s.description ? `: ${s.description}` : ''}`
         )
         .join('\n')
     : '(sin servicios configurados)'
@@ -42,7 +42,7 @@ function buildSystemPrompt(ctx: AgentContext): string {
     'REGLAS IMPORTANTES:',
     '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige.',
     '- Habla en español, con tono cálido y breve (es un chat de WhatsApp/Telegram).',
-    '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad.',
+    '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto.',
     '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise.',
     `- Hoy es ${today} (zona horaria ${tz}).`,
