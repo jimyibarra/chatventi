@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_configs: {
+        Row: {
+          approval_mode: string
+          approval_telegram_chat_id: string | null
+          created_at: string
+          enabled: boolean
+          id: string
+          model: string
+          organization_id: string
+          system_prompt: string | null
+          updated_at: string
+        }
+        Insert: {
+          approval_mode?: string
+          approval_telegram_chat_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          model?: string
+          organization_id: string
+          system_prompt?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approval_mode?: string
+          approval_telegram_chat_id?: string | null
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          model?: string
+          organization_id?: string
+          system_prompt?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_configs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_approvals: {
+        Row: {
+          action: Json | null
+          conversation_id: string
+          created_at: string
+          draft: string
+          id: string
+          organization_id: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          action?: Json | null
+          conversation_id: string
+          created_at?: string
+          draft: string
+          id?: string
+          organization_id: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          action?: Json | null
+          conversation_id?: string
+          created_at?: string
+          draft?: string
+          id?: string
+          organization_id?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_approvals_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_approvals_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_services: {
         Row: {
           appointment_id: string
@@ -344,6 +436,38 @@ export type Database = {
           },
         ]
       }
+      knowledge_base: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          organization_id: string
+          source: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          source?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          source?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_base_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           agent_id: string | null
@@ -597,6 +721,10 @@ export type Database = {
     }
     Functions: {
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
+      create_ai_approval: {
+        Args: { p_action?: Json; p_conversation_id: string; p_draft: string }
+        Returns: Json
+      }
       create_appointment: {
         Args: {
           p_branch_id: string
@@ -629,6 +757,14 @@ export type Database = {
         }
         Returns: string
       }
+      get_agent_context: {
+        Args: {
+          p_channel_type: string
+          p_external_id: string
+          p_from_handle: string
+        }
+        Returns: Json
+      }
       get_available_slots: {
         Args: {
           p_branch_id: string
@@ -646,6 +782,19 @@ export type Database = {
       get_my_branch: { Args: never; Returns: string }
       get_my_org: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
+      log_outbound_message: {
+        Args: {
+          p_body: string
+          p_conversation_id: string
+          p_external_id?: string
+          p_sender?: string
+        }
+        Returns: string
+      }
+      pause_ai: {
+        Args: { p_conversation_id: string; p_minutes?: number }
+        Returns: undefined
+      }
       reschedule_appointment: {
         Args: {
           p_appointment_id: string
@@ -653,6 +802,10 @@ export type Database = {
           p_new_starts_at: string
         }
         Returns: undefined
+      }
+      resolve_ai_approval: {
+        Args: { p_approval_id: string; p_approved: boolean }
+        Returns: Json
       }
       route_inbound_message: {
         Args: {
@@ -665,8 +818,16 @@ export type Database = {
         }
         Returns: string
       }
+      set_ai_enabled: {
+        Args: { p_conversation_id: string; p_enabled: boolean }
+        Returns: undefined
+      }
       set_appointment_status: {
         Args: { p_appointment_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_conversation_status: {
+        Args: { p_conversation_id: string; p_status: string }
         Returns: undefined
       }
     }

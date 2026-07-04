@@ -1,7 +1,10 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { NextResponse, type NextRequest } from 'next/server'
+import { after, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createWebhookClient } from '@/lib/supabase/webhook'
+import { createServiceClient } from '@/lib/supabase/service'
+import { runAgent } from '@/features/agente-ia/agent'
+import { waSendMessage, getWaToken, tgSendApproval } from '@/features/agente-ia/senders'
 
 // Meta exige firma HMAC-SHA256 sobre el body CRUDO -> runtime Node (no Edge).
 export const runtime = 'nodejs'
@@ -101,6 +104,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true }, { status: 200 })
   }
 
+  // Mensajes de texto a responder por el agente (fuera del ciclo de la request).
+  const toAnswer: { phoneNumberId: string; from: string }[] = []
+
   try {
     const supabase = createWebhookClient()
     for (const entry of parsed.entry ?? []) {
@@ -118,12 +124,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           })
           if (error) {
             console.error('[whatsapp-webhook] route_inbound_message error', error.message)
+          } else if (msg.text) {
+            toAnswer.push({ phoneNumberId, from: msg.from })
           }
         }
       }
     }
   } catch (err) {
     console.error('[whatsapp-webhook] error procesando', err)
+  }
+
+  // El agente IA responde tras devolver el 200 (evita timeouts/reintentos de Meta).
+  if (toAnswer.length > 0) {
+    after(async () => {
+      const supabase = createWebhookClient()
+      const service = createServiceClient()
+      for (const { phoneNumberId, from } of toAnswer) {
+        try {
+          await runAgent({
+            channelType: 'whatsapp',
+            externalId: phoneNumberId,
+            fromHandle: from,
+            supabase,
+            senders: {
+              sendToCustomer: async (text) => {
+                const token = await getWaToken(service, phoneNumberId)
+                if (!token) return null
+                return waSendMessage(phoneNumberId, token, from, text)
+              },
+              sendApproval: (chatId, draft, approvalId) =>
+                tgSendApproval(chatId, draft, approvalId),
+            },
+          })
+        } catch (err) {
+          console.error('[whatsapp-webhook] error del agente', err)
+        }
+      }
+    })
   }
 
   return NextResponse.json({ ok: true }, { status: 200 })

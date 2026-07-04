@@ -97,6 +97,18 @@ export default async function DashboardPage() {
         >
           Configurar servicios y horarios
         </a>
+        <a
+          href="/dashboard/agente"
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Recepcionista IA
+        </a>
+        <a
+          href="/dashboard/conversaciones"
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Conversaciones
+        </a>
       </div>
 
       <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600">
