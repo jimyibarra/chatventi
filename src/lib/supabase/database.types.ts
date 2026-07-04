@@ -7,11 +7,123 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
+      appointment_services: {
+        Row: {
+          appointment_id: string
+          service_id: string
+        }
+        Insert: {
+          appointment_id: string
+          service_id: string
+        }
+        Update: {
+          appointment_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointment_services_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointment_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      appointments: {
+        Row: {
+          branch_id: string
+          client_id: string | null
+          created_at: string
+          ends_at: string
+          followup_sent_at: string | null
+          id: string
+          notes: string | null
+          organization_id: string
+          reminder_24h_sent_at: string | null
+          reminder_2h_sent_at: string | null
+          source: string
+          staff_id: string | null
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          branch_id: string
+          client_id?: string | null
+          created_at?: string
+          ends_at: string
+          followup_sent_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id: string
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
+          source?: string
+          staff_id?: string | null
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          branch_id?: string
+          client_id?: string | null
+          created_at?: string
+          ends_at?: string
+          followup_sent_at?: string | null
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          reminder_24h_sent_at?: string | null
+          reminder_2h_sent_at?: string | null
+          source?: string
+          staff_id?: string | null
+          starts_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -21,6 +133,7 @@ export type Database = {
           name: string
           organization_id: string
           status: string
+          timezone: string
         }
         Insert: {
           address?: string | null
@@ -30,6 +143,7 @@ export type Database = {
           name: string
           organization_id: string
           status?: string
+          timezone?: string
         }
         Update: {
           address?: string | null
@@ -39,6 +153,7 @@ export type Database = {
           name?: string
           organization_id?: string
           status?: string
+          timezone?: string
         }
         Relationships: [
           {
@@ -46,6 +161,41 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      business_hours: {
+        Row: {
+          branch_id: string
+          close_time: string
+          id: string
+          is_closed: boolean
+          open_time: string
+          weekday: number
+        }
+        Insert: {
+          branch_id: string
+          close_time: string
+          id?: string
+          is_closed?: boolean
+          open_time: string
+          weekday: number
+        }
+        Update: {
+          branch_id?: string
+          close_time?: string
+          id?: string
+          is_closed?: boolean
+          open_time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_hours_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
             referencedColumns: ["id"]
           },
         ]
@@ -90,6 +240,157 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          organization_id: string
+          phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          organization_id: string
+          phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          organization_id?: string
+          phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          ai_enabled: boolean
+          ai_paused_until: string | null
+          assigned_agent_id: string | null
+          channel_id: string
+          client_id: string | null
+          created_at: string
+          id: string
+          last_message_at: string | null
+          organization_id: string
+          status: string
+        }
+        Insert: {
+          ai_enabled?: boolean
+          ai_paused_until?: string | null
+          assigned_agent_id?: string | null
+          channel_id: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          organization_id: string
+          status?: string
+        }
+        Update: {
+          ai_enabled?: boolean
+          ai_paused_until?: string | null
+          assigned_agent_id?: string | null
+          channel_id?: string
+          client_id?: string | null
+          created_at?: string
+          id?: string
+          last_message_at?: string | null
+          organization_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_assigned_agent_id_fkey"
+            columns: ["assigned_agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          agent_id: string | null
+          body: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          external_id: string | null
+          id: string
+          media_path: string | null
+          sender: string
+        }
+        Insert: {
+          agent_id?: string | null
+          body?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: string
+          external_id?: string | null
+          id?: string
+          media_path?: string | null
+          sender: string
+        }
+        Update: {
+          agent_id?: string | null
+          body?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          external_id?: string | null
+          id?: string
+          media_path?: string | null
+          sender?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
             referencedColumns: ["id"]
           },
         ]
@@ -175,11 +476,151 @@ export type Database = {
           },
         ]
       }
+      service_catalogs: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          duration_minutes: number
+          id: string
+          name: string
+          organization_id: string
+          price: number | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          name: string
+          organization_id: string
+          price?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          name?: string
+          organization_id?: string
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_catalogs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_schedules: {
+        Row: {
+          branch_id: string
+          end_time: string
+          id: string
+          staff_id: string
+          start_time: string
+          weekday: number
+        }
+        Insert: {
+          branch_id: string
+          end_time: string
+          id?: string
+          staff_id: string
+          start_time: string
+          weekday: number
+        }
+        Update: {
+          branch_id?: string
+          end_time?: string
+          id?: string
+          staff_id?: string
+          start_time?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_schedules_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_schedules_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_time_off: {
+        Row: {
+          ends_at: string
+          id: string
+          reason: string | null
+          staff_id: string
+          starts_at: string
+        }
+        Insert: {
+          ends_at: string
+          id?: string
+          reason?: string | null
+          staff_id: string
+          starts_at: string
+        }
+        Update: {
+          ends_at?: string
+          id?: string
+          reason?: string | null
+          staff_id?: string
+          starts_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_time_off_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      assert_org_access: { Args: { p_org: string }; Returns: undefined }
+      create_appointment: {
+        Args: {
+          p_branch_id: string
+          p_client_id?: string
+          p_notes?: string
+          p_service_ids: string[]
+          p_source?: string
+          p_staff_id?: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
+      create_appointment_from_chat: {
+        Args: {
+          p_branch_id?: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+          p_service_ids: string[]
+          p_staff_id?: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
       create_organization_with_owner: {
         Args: {
           p_branch_name?: string
@@ -188,9 +629,46 @@ export type Database = {
         }
         Returns: string
       }
-      get_my_branch: { Args: Record<PropertyKey, never>; Returns: string }
-      get_my_org: { Args: Record<PropertyKey, never>; Returns: string }
-      get_my_role: { Args: Record<PropertyKey, never>; Returns: string }
+      get_available_slots: {
+        Args: {
+          p_branch_id: string
+          p_date: string
+          p_service_ids: string[]
+          p_slot_interval?: number
+          p_staff_id?: string
+        }
+        Returns: {
+          slot_end: string
+          slot_start: string
+          staff_id: string
+        }[]
+      }
+      get_my_branch: { Args: never; Returns: string }
+      get_my_org: { Args: never; Returns: string }
+      get_my_role: { Args: never; Returns: string }
+      reschedule_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_new_staff_id?: string
+          p_new_starts_at: string
+        }
+        Returns: undefined
+      }
+      route_inbound_message: {
+        Args: {
+          p_body: string
+          p_channel_type: string
+          p_ext_msg_id?: string
+          p_external_id: string
+          p_from_handle: string
+          p_media_path?: string
+        }
+        Returns: string
+      }
+      set_appointment_status: {
+        Args: { p_appointment_id: string; p_status: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -200,3 +678,126 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const

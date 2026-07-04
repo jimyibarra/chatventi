@@ -84,8 +84,23 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      <div className="mt-8 flex flex-wrap gap-3">
+        <a
+          href="/dashboard/agenda"
+          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Abrir agenda
+        </a>
+        <a
+          href="/dashboard/agenda/configuracion"
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Configurar servicios y horarios
+        </a>
+      </div>
+
       <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600">
-        <p className="font-medium text-gray-900">Siguientes pasos (Fase 1+)</p>
+        <p className="font-medium text-gray-900">Siguientes pasos</p>
         <ul className="mt-2 list-inside list-disc space-y-1">
           <li>Conectar WhatsApp por Embedded Signup</li>
           <li>Configurar tu agenda y disponibilidad</li>

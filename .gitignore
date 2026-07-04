@@ -67,3 +67,8 @@ _Screen/
 # Supabase
 supabase/.branches
 supabase/.temp
+.env*
+
+# Artefactos de testing / dev local
+.playwright-mcp/
+dev-server.log
