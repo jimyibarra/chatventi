@@ -109,6 +109,12 @@ export default async function DashboardPage() {
         >
           Conversaciones
         </a>
+        <a
+          href="/dashboard/reservas-web"
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Reservas Web
+        </a>
       </div>
 
       <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600">

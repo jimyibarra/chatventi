@@ -549,6 +549,47 @@ export type Database = {
         }
         Relationships: []
       }
+      products: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          organization_id: string
+          price: number | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          organization_id: string
+          price?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          organization_id?: string
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           assigned_branch_id: string | null
@@ -757,6 +798,16 @@ export type Database = {
         }
         Returns: string
       }
+      create_public_appointment: {
+        Args: {
+          p_client_name: string
+          p_client_phone: string
+          p_service_ids: string[]
+          p_slug: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
       get_agent_context: {
         Args: {
           p_channel_type: string
@@ -782,6 +833,7 @@ export type Database = {
       get_my_branch: { Args: never; Returns: string }
       get_my_org: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
+      get_public_booking_context: { Args: { p_slug: string }; Returns: Json }
       log_outbound_message: {
         Args: {
           p_body: string
