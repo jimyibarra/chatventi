@@ -789,6 +789,65 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          ai_tier: string
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          has_domain: boolean
+          id: string
+          organization_id: string
+          plan: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          team_seats: number
+          trial_end: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_tier?: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          has_domain?: boolean
+          id?: string
+          organization_id: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          team_seats?: number
+          trial_end?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_tier?: string
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          has_domain?: boolean
+          id?: string
+          organization_id?: string
+          plan?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          team_seats?: number
+          trial_end?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           color: string
@@ -827,6 +886,10 @@ export type Database = {
     }
     Functions: {
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
+      claim_reminder: {
+        Args: { p_appointment_id: string; p_kind: string }
+        Returns: boolean
+      }
       create_ai_approval: {
         Args: { p_action?: Json; p_conversation_id: string; p_draft: string }
         Returns: Json
@@ -895,6 +958,7 @@ export type Database = {
           staff_id: string
         }[]
       }
+      get_due_reminders: { Args: { p_kind: string }; Returns: Json }
       get_my_branch: { Args: never; Returns: string }
       get_my_org: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
@@ -908,6 +972,8 @@ export type Database = {
         }
         Returns: string
       }
+      org_has_ai: { Args: { p_org: string }; Returns: boolean }
+      org_is_active: { Args: { p_org: string }; Returns: boolean }
       pause_ai: {
         Args: { p_conversation_id: string; p_minutes?: number }
         Returns: undefined

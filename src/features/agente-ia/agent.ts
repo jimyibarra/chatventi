@@ -3,6 +3,7 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
+import { createServiceClient } from '@/lib/supabase/service'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -102,6 +103,20 @@ export async function runAgent(params: {
     return { handled: false, reason: 'no debe responder (pausa/desactivado/pendiente)' }
   }
   if (!ctx.branch) return { handled: false, reason: 'sin sucursal' }
+
+  // Gating del módulo IA: con el cobro activo, la org debe tener el módulo
+  // Recepcionista IA vigente (trial/activo). Con BILLING_ENFORCED apagado no
+  // bloquea nada (rollout suave). Se consulta con service_role (el cliente del
+  // webhook es anon y no puede ejecutar org_has_ai).
+  if (process.env.BILLING_ENFORCED === 'true') {
+    try {
+      const admin = createServiceClient()
+      const { data: hasAi } = await admin.rpc('org_has_ai', { p_org: ctx.org_id })
+      if (!hasAi) return { handled: false, reason: 'módulo IA no contratado' }
+    } catch (e) {
+      console.error('[agent] gating IA error', e)
+    }
+  }
 
   const tz = ctx.branch.timezone
   const branchId = ctx.branch.id

@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getMySubscription, subIsActive } from '@/features/billing/gating'
+import { STATUS_LABELS } from '@/features/billing/plans'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,12 +62,30 @@ export default async function DashboardPage() {
     .from('branches')
     .select('*', { count: 'exact', head: true })
 
+  const sub = await getMySubscription()
+  const active = subIsActive(sub)
+
   return (
     <div className="mx-auto max-w-4xl p-8">
       <h1 className="text-2xl font-bold text-gray-900">
         Bienvenido{profile?.full_name ? `, ${profile.full_name}` : ''}
       </h1>
       <p className="mt-1 text-gray-600">Panel de tu negocio</p>
+
+      {!active && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-sm text-blue-900">
+            {sub ? `Tu suscripción está: ${STATUS_LABELS[sub.status] ?? sub.status}. ` : ''}
+            Activa tu plan para desbloquear todo ChatVenti. 14 días de prueba gratis.
+          </p>
+          <a
+            href="/dashboard/facturacion"
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Ver planes
+          </a>
+        </div>
+      )}
 
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         <div className="rounded-2xl border border-gray-200 bg-white p-5">
@@ -120,6 +140,12 @@ export default async function DashboardPage() {
           className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
           Reservas Web
+        </a>
+        <a
+          href="/dashboard/facturacion"
+          className="rounded-xl border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Facturación
         </a>
       </div>
 
