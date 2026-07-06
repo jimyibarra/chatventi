@@ -2,11 +2,20 @@ import Stripe from 'stripe'
 import type { AiTierId } from '@/features/billing/plans'
 
 /**
- * Cliente Stripe (server-only). Se construye siempre; el SDK solo falla al
- * hacer una llamada real si la key es inválida/vacía, no al importar → seguro
- * en build. `.trim()` evita que espacios invisibles rompan la firma.
+ * Cliente Stripe (server-only), inicializado de forma PEREZOSA. El constructor
+ * del SDK LANZA ("Neither apiKey nor config.authenticator provided") si la key
+ * está vacía. Si se construyera al importar el módulo, `next build` rompería
+ * cuando STRIPE_SECRET_KEY no está en el entorno de build (colecta page data de
+ * las rutas que lo importan). Se crea en la primera llamada real, ya con la env
+ * presente. `.trim()` evita que espacios invisibles rompan la firma.
  */
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY?.trim() ?? '')
+let stripeSingleton: Stripe | null = null
+export function getStripe(): Stripe {
+  if (!stripeSingleton) {
+    stripeSingleton = new Stripe(process.env.STRIPE_SECRET_KEY?.trim() ?? '')
+  }
+  return stripeSingleton
+}
 
 /** Secreto para verificar la firma del webhook. .trim() obligatorio. */
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET?.trim() ?? ''

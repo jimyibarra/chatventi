@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
-  stripe,
+  getStripe,
   PRICE_STARTER,
   PRICE_DOMAIN,
   PRICE_TEAM,
@@ -41,6 +41,7 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
   if (!process.env.STRIPE_SECRET_KEY?.trim() || !PRICE_STARTER) {
     return { ok: false, error: 'Stripe no está configurado todavía (faltan claves o price IDs).' }
   }
+  const stripe = getStripe()
 
   const supabase = await createClient()
   const {
@@ -114,6 +115,7 @@ export async function createPortalSession(): Promise<CheckoutResult> {
   if (!process.env.STRIPE_SECRET_KEY?.trim()) {
     return { ok: false, error: 'Stripe no está configurado todavía.' }
   }
+  const stripe = getStripe()
   const supabase = await createClient()
   const {
     data: { user },

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
-import { stripe, STRIPE_WEBHOOK_SECRET, PRICE_TEAM, describeSubscriptionItems } from '@/lib/stripe'
+import { getStripe, STRIPE_WEBHOOK_SECRET, PRICE_TEAM, describeSubscriptionItems } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export const runtime = 'nodejs'
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET)
+    event = getStripe().webhooks.constructEvent(body, sig, STRIPE_WEBHOOK_SECRET)
   } catch (err) {
     console.error('[stripe] firma inválida', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: 'invalid signature' }, { status: 400 })
