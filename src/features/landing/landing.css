@@ -1,0 +1,282 @@
+/* =====================================================================
+   ChatVenti · Landing pública (diseño "ChatVenti Landing" de Claude Design)
+   TODO el CSS va scoped bajo .cv-landing para no filtrarse al dashboard
+   (los imports de CSS global en App Router aplican a toda la app).
+   ===================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+.cv-landing {
+  background: #fbfaf6;
+  color: #201b36;
+  font-family: var(--font-inter), 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.cv-landing a {
+  color: #5b4fe0;
+  text-decoration: none;
+}
+.cv-landing a:hover {
+  color: #3e33b5;
+}
+.cv-landing summary::-webkit-details-marker {
+  display: none;
+}
+.cv-landing :focus-visible {
+  outline: 3px solid #5b4fe0;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* ---------- animaciones ---------- */
+@keyframes cv-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+@keyframes cv-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 14px rgba(37, 211, 102, 0);
+  }
+}
+@keyframes cv-typing {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .cv-landing *,
+  .cv-float,
+  .cv-pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.cv-float {
+  animation: cv-float 7s ease-in-out infinite;
+}
+.cv-pulse {
+  animation: cv-pulse 2s infinite;
+}
+.cv-typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #5b4fe0;
+  animation: cv-typing 1.2s infinite;
+}
+
+/* ---------- layout ---------- */
+.cv-container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+.cv-section {
+  padding-top: 88px;
+  padding-bottom: 40px;
+}
+.cv-section-head {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 52px;
+}
+.cv-eyebrow {
+  color: #5b4fe0;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 14px;
+}
+.cv-h1,
+.cv-h2,
+.cv-h3 {
+  font-family: var(--font-manrope), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.cv-h2 {
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.15;
+  margin: 0 0 16px;
+}
+.cv-lead {
+  color: #5f5a75;
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---------- header ---------- */
+.cv-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(251, 250, 246, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid #ece9f5;
+}
+.cv-landing .cv-navlink {
+  color: #4a4560;
+  font-size: 15px;
+  font-weight: 500;
+}
+.cv-landing .cv-navlink:hover {
+  color: #5b4fe0;
+}
+
+/* ---------- botones ----------
+   OJO: van prefijados con .cv-landing para GANARLE en especificidad a la
+   regla base ".cv-landing a" (si no, los botones heredan el morado de link). */
+.cv-landing .cv-btn-primary {
+  display: inline-block;
+  background: linear-gradient(120deg, #5b4fe0, #4338ca);
+  color: #fff;
+  border-radius: 999px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(91, 79, 224, 0.4);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.cv-landing .cv-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(91, 79, 224, 0.5);
+  color: #fff;
+}
+.cv-landing .cv-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #201b36;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1.5px solid #d9d4ee;
+  background: #fff;
+  transition: border-color 0.15s ease;
+}
+.cv-landing .cv-btn-ghost:hover {
+  border-color: #5b4fe0;
+  color: #5b4fe0;
+}
+.cv-landing .cv-btn-green {
+  display: inline-block;
+  background: #25d366;
+  color: #0b3d22;
+  border-radius: 999px;
+  font-weight: 800;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+.cv-landing .cv-btn-green:hover {
+  transform: translateY(-2px);
+  color: #0b3d22;
+}
+
+/* ---------- cards ---------- */
+.cv-card {
+  background: #fff;
+  border: 1px solid #ece9f5;
+  border-radius: 24px;
+  padding: 32px 28px;
+  box-shadow: 0 8px 24px rgba(32, 27, 54, 0.05);
+}
+.cv-card-hover {
+  background: #fff;
+  border: 1px solid #ece9f5;
+  border-radius: 22px;
+  padding: 28px 26px;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.cv-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(62, 51, 181, 0.12);
+}
+.cv-step-card {
+  position: relative;
+  background: linear-gradient(160deg, #f4f2fe, #fff);
+  border: 1px solid #e2ddf6;
+  border-radius: 24px;
+  padding: 36px 28px;
+}
+.cv-icon-tile {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 16px;
+}
+
+/* ---------- FAQ ---------- */
+.cv-faq {
+  background: #fff;
+  border: 1px solid #ece9f5;
+  border-radius: 18px;
+  padding: 0 24px;
+  overflow: hidden;
+}
+.cv-faq summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 20px 0;
+  font-weight: 700;
+  font-size: 16.5px;
+  font-family: var(--font-manrope), sans-serif;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.cv-faq-plus {
+  color: #5b4fe0;
+  font-size: 22px;
+  font-weight: 400;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.cv-faq[open] .cv-faq-plus {
+  transform: rotate(45deg);
+}
+.cv-faq-a {
+  margin: 0;
+  padding: 0 0 22px;
+  color: #5f5a75;
+  font-size: 15.5px;
+  line-height: 1.65;
+}
+
+/* ---------- footer ---------- */
+.cv-landing .cv-footer a {
+  color: #b9b4d6;
+}
+.cv-landing .cv-footer a:hover {
+  color: #fff;
+}
