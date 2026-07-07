@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto'
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
@@ -24,12 +25,54 @@ const bodySchema = z.object({
 })
 
 const GRAPH_VERSION = 'v21.0'
+const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`
 
 const tokenResponseSchema = z.object({
   access_token: z.string(),
   token_type: z.string().optional(),
   expires_in: z.number().optional(),
 })
+
+/**
+ * Suscribe NUESTRA app a los webhooks de la WABA del cliente. Sin esto, los
+ * mensajes entrantes del número del cliente nunca llegan a nuestro webhook.
+ * POST /{waba_id}/subscribed_apps  (con el token del negocio o del System User).
+ */
+async function subscribeAppToWaba(wabaId: string, token: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${GRAPH}/${wabaId}/subscribed_apps`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+    })
+    if (!res.ok) return `subscribe ${res.status}: ${await res.text().catch(() => '')}`.slice(0, 300)
+    return null
+  } catch (err) {
+    return `subscribe_error: ${String(err)}`.slice(0, 300)
+  }
+}
+
+/**
+ * Registra (activa) el número en la Cloud API con un PIN de verificación en dos
+ * pasos. POST /{phone_number_id}/register. Idempotente: si el número ya estaba
+ * registrado Meta responde error benigno -> lo tratamos como no-fatal.
+ */
+async function registerPhoneNumber(
+  phoneNumberId: string,
+  token: string,
+  pin: string
+): Promise<string | null> {
+  try {
+    const res = await fetch(`${GRAPH}/${phoneNumberId}/register`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ messaging_product: 'whatsapp', pin }),
+    })
+    if (!res.ok) return `register ${res.status}: ${await res.text().catch(() => '')}`.slice(0, 300)
+    return null
+  } catch (err) {
+    return `register_error: ${String(err)}`.slice(0, 300)
+  }
+}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // 1. Autenticacion: solo un usuario con org (owner/manager) puede conectar.
@@ -88,24 +131,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'token_exchange_error' }, { status: 502 })
   }
 
-  // TODO(config_id): el flujo self-service moderno usa un `configuration_id`
-  //   (META_CONFIG_ID) en el FB.login del frontend; aqui no se consume, pero se
-  //   documenta como dependencia de credenciales pendiente.
-  // TODO(system-user-token): para llamar a la Graph API en nombre del cliente
-  //   (suscribir la WABA a nuestra app, registrar el numero, enviar plantillas),
-  //   se necesita el token del System User de nuestro Tech Provider
-  //   (META_SYSTEM_USER_TOKEN). Con el, hay que:
-  //     - POST /{waba_id}/subscribed_apps           (suscribir la app al webhook)
-  //     - POST /{phone_number_id}/register          (activar el numero, con PIN)
-  //   Esos pasos se completan cuando existan las credenciales.
+  // 4. Token de gestión para llamar a la Graph API en nombre del cliente.
+  //    Preferimos el token del System User de nuestro Tech Provider (permanente,
+  //    ámbito acotado a nuestros assets); si no existe, usamos el token del
+  //    negocio recién intercambiado (válido para su propia WABA).
+  const mgmtToken = process.env.META_SYSTEM_USER_TOKEN?.trim() || accessToken
 
-  // 4. Registrar/activar el canal (service_role: manejamos secretos server-side,
+  // 5. Suscribir nuestra app a la WABA del cliente (webhooks entrantes) y
+  //    registrar el número. No-fatales: si fallan, guardamos el canal como
+  //    'pending' con la nota del error para reintentar, en vez de perder la conexión.
+  const pin = String(randomInt(100000, 1000000)) // PIN de 2FA (6 dígitos).
+  const subscribeErr = await subscribeAppToWaba(body.wabaId, mgmtToken)
+  if (subscribeErr) console.error('[embedded-signup]', subscribeErr)
+  const registerErr = await registerPhoneNumber(body.phoneNumberId, mgmtToken, pin)
+  if (registerErr) console.error('[embedded-signup]', registerErr)
+
+  // 6. Registrar/activar el canal (service_role: manejamos secretos server-side,
   //    fuera del alcance de RLS de lectura del negocio).
   const service = createServiceClient()
   const credentials = {
-    access_token: accessToken, // TODO: rotar por token de System User cuando exista.
+    access_token: accessToken,
+    pin,
     obtained_at: new Date().toISOString(),
+    subscribe_error: subscribeErr,
+    register_error: registerErr,
   }
+  const status = subscribeErr ? 'pending' : 'active'
 
   const { data: channel, error } = await service
     .from('channels')
@@ -117,7 +168,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         waba_id: body.wabaId,
         display_name: body.displayName ?? null,
         credentials,
-        status: 'active',
+        status,
       },
       { onConflict: 'type,external_id' }
     )
@@ -129,5 +180,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'channel_persist_failed' }, { status: 500 })
   }
 
-  return NextResponse.json({ ok: true, channelId: channel.id, status: channel.status })
+  return NextResponse.json({
+    ok: true,
+    channelId: channel.id,
+    status: channel.status,
+    warnings: [subscribeErr, registerErr].filter(Boolean),
+  })
 }
