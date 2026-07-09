@@ -70,13 +70,13 @@ export default async function ClienteDetallePage({
 
   return (
     <>
-      <nav className="flex gap-4 border-b border-gray-200 bg-white px-6 py-2 text-sm">
-        <Link href="/dashboard/clientes" className="text-gray-500 hover:text-gray-900">
+      <div className="mx-auto max-w-3xl space-y-5 p-6">
+        <Link
+          href="/dashboard/clientes"
+          className="inline-block text-sm text-gray-500 hover:text-gray-900"
+        >
           ← Clientes
         </Link>
-      </nav>
-
-      <div className="mx-auto max-w-3xl space-y-5 p-6">
         <h1 className="text-xl font-bold text-gray-900">
           {client.name || client.phone || 'Cliente'}
         </h1>

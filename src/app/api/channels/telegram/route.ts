@@ -3,9 +3,11 @@ import { z } from 'zod'
 import { createWebhookClient } from '@/lib/supabase/webhook'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
+import { handleIncomingMedia } from '@/features/agente-ia/media'
 import {
   tgSendMessage,
   tgSendApproval,
+  tgSendChoiceButtons,
   tgAnswerCallback,
   tgEditMessageText,
   sendToCustomerByChannel,
@@ -24,7 +26,27 @@ const messageSchema = z.object({
     username: z.string().optional(),
   }),
   text: z.string().optional(),
+  // Media (solo detectamos presencia: aviso + escalamiento, sin descargar).
+  photo: z.array(z.object({ file_id: z.string() })).optional(),
+  voice: z.object({ file_id: z.string() }).optional(),
+  audio: z.object({ file_id: z.string() }).optional(),
+  document: z.object({ file_id: z.string() }).optional(),
+  video: z.object({ file_id: z.string() }).optional(),
 })
+
+/** Cuerpo del mensaje: texto o placeholder de media. */
+function tgExtractBody(msg: z.infer<typeof messageSchema>): string | null {
+  if (msg.text) return msg.text
+  if (msg.photo?.length) return '[image]'
+  if (msg.voice || msg.audio) return '[audio]'
+  if (msg.document) return '[document]'
+  if (msg.video) return '[video]'
+  return null
+}
+
+function tgHasMedia(msg: z.infer<typeof messageSchema>): boolean {
+  return Boolean(msg.photo?.length || msg.voice || msg.audio || msg.document || msg.video)
+}
 
 const callbackQuerySchema = z.object({
   id: z.string(),
@@ -65,6 +87,49 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // -------------------------------------------------------------------
   if (update.callback_query) {
     const cb = update.callback_query
+
+    // A.1) Botón de opción del CLIENTE pulsado ("say:<texto>"): entra al
+    // historial como mensaje y dispara al agente (mismo flujo que texto).
+    if ((cb.data ?? '').startsWith('say:')) {
+      const choiceText = (cb.data ?? '').slice('say:'.length)
+      const chatId = cb.message ? String(cb.message.chat.id) : null
+      const channelExternalId = process.env.TELEGRAM_BOT_EXTERNAL_ID
+      after(async () => {
+        try {
+          await tgAnswerCallback(cb.id, choiceText)
+          if (!chatId || !channelExternalId || !choiceText) return
+          const supabase = createWebhookClient()
+          const { error } = await supabase.rpc('route_inbound_message', {
+            p_channel_type: 'telegram',
+            p_external_id: channelExternalId,
+            p_from_handle: chatId,
+            p_body: choiceText,
+            p_media_path: null,
+            p_ext_msg_id: `tg_cb_${cb.id}`,
+          })
+          if (error) {
+            console.error('[telegram-webhook] route_inbound_message (say) error', error.message)
+            return
+          }
+          await runAgent({
+            channelType: 'telegram',
+            externalId: channelExternalId,
+            fromHandle: chatId,
+            supabase,
+            senders: {
+              sendToCustomer: (text) => tgSendMessage(chatId, text),
+              sendApproval: (approvalChatId, draft, approvalId) =>
+                tgSendApproval(approvalChatId, draft, approvalId),
+              sendButtons: (text, buttons) => tgSendChoiceButtons(chatId, text, buttons),
+            },
+          })
+        } catch (err) {
+          console.error('[telegram-webhook] error en callback say', err)
+        }
+      })
+      return NextResponse.json({ ok: true }, { status: 200 })
+    }
+
     after(async () => {
       try {
         const parts = (cb.data ?? '').split(':')
@@ -149,7 +214,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       p_channel_type: 'telegram',
       p_external_id: channelExternalId,
       p_from_handle: fromHandle,
-      p_body: msg.text ?? null,
+      p_body: tgExtractBody(msg),
       p_media_path: null,
       p_ext_msg_id: `tg_${update.update_id}_${msg.message_id}`,
     })
@@ -160,21 +225,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[telegram-webhook] error procesando', err)
   }
 
-  // El agente responde fuera del ciclo de la request (no bloquea el 200).
+  // El agente (o el escalamiento de media) corre fuera del ciclo de la request.
+  const isMedia = !msg.text && tgHasMedia(msg)
   after(async () => {
     try {
       const supabase = createWebhookClient()
-      await runAgent({
-        channelType: 'telegram',
-        externalId: channelExternalId,
-        fromHandle,
-        supabase,
-        senders: {
-          sendToCustomer: (text) => tgSendMessage(fromHandle, text),
-          sendApproval: (chatId, draft, approvalId) =>
-            tgSendApproval(chatId, draft, approvalId),
-        },
-      })
+      const senders = {
+        sendToCustomer: (text: string) => tgSendMessage(fromHandle, text),
+        sendApproval: (chatId: string, draft: string, approvalId: string) =>
+          tgSendApproval(chatId, draft, approvalId),
+        sendButtons: (text: string, buttons: { id: string; title: string }[]) =>
+          tgSendChoiceButtons(fromHandle, text, buttons),
+      }
+      if (isMedia) {
+        await handleIncomingMedia({
+          channelType: 'telegram',
+          externalId: channelExternalId,
+          fromHandle,
+          supabase,
+          senders,
+        })
+      } else if (msg.text) {
+        await runAgent({
+          channelType: 'telegram',
+          externalId: channelExternalId,
+          fromHandle,
+          supabase,
+          senders,
+        })
+      }
     } catch (err) {
       console.error('[telegram-webhook] error del agente', err)
     }

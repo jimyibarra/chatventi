@@ -890,6 +890,15 @@ export type Database = {
         Args: { p_appointment_id: string; p_kind: string }
         Returns: boolean
       }
+      cancel_appointment_from_chat: {
+        Args: {
+          p_appointment_id: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+        }
+        Returns: undefined
+      }
       create_ai_approval: {
         Args: { p_action?: Json; p_conversation_id: string; p_draft: string }
         Returns: Json
@@ -982,6 +991,16 @@ export type Database = {
         Args: {
           p_appointment_id: string
           p_new_staff_id?: string
+          p_new_starts_at: string
+        }
+        Returns: undefined
+      }
+      reschedule_appointment_from_chat: {
+        Args: {
+          p_appointment_id: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
           p_new_starts_at: string
         }
         Returns: undefined

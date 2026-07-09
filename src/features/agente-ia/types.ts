@@ -29,6 +29,15 @@ export type AgentContext = {
     description: string | null
   }[]
   knowledge: string[]
+  // Citas futuras activas del cliente (max 5). El agente cancela/reagenda
+  // SOLO por ids de esta lista (nunca ids inventados).
+  upcoming_appointments: {
+    id: string
+    starts_at: string
+    ends_at: string
+    status: string
+    services: string
+  }[]
   messages: {
     direction: 'inbound' | 'outbound'
     sender: 'contact' | 'agent' | 'ai' | 'system'
@@ -43,6 +52,12 @@ export type AgentSenders = {
   sendToCustomer: (text: string) => Promise<string | null>
   // Envía la propuesta a un chat de Telegram del negocio con botones Aprobar/Rechazar.
   sendApproval: (chatId: string, draft: string, approvalId: string) => Promise<void>
+  // Envía texto + botones de opción rápida al cliente (WA reply buttons /
+  // TG inline_keyboard). Máx 3 botones. Opcional: sin él se envía solo texto.
+  sendButtons?: (
+    text: string,
+    buttons: { id: string; title: string }[]
+  ) => Promise<string | null>
 }
 
 export type RunAgentResult =

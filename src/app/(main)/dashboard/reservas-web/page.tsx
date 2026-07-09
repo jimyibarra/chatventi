@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { WebConfigForm } from '@/features/reservas-web/components/web-config-form'
 import { ProductManager } from '@/features/reservas-web/components/product-manager'
@@ -22,19 +21,6 @@ export default async function ReservasWebPage() {
 
   return (
     <>
-      <nav className="flex gap-4 border-b border-gray-200 bg-white px-6 py-2 text-sm">
-        <Link href="/dashboard" className="text-gray-500 hover:text-gray-900">
-          Panel
-        </Link>
-        <Link href="/dashboard/agenda" className="text-gray-500 hover:text-gray-900">
-          Agenda
-        </Link>
-        <Link href="/dashboard/conversaciones" className="text-gray-500 hover:text-gray-900">
-          Conversaciones
-        </Link>
-        <span className="font-medium text-gray-900">Reservas Web</span>
-      </nav>
-
       <div className="mx-auto max-w-3xl space-y-5 p-6">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Reservas Web</h1>

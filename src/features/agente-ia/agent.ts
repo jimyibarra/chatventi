@@ -36,20 +36,36 @@ function buildSystemPrompt(ctx: AgentContext): string {
     ? ctx.knowledge.map((k) => `- ${k}`).join('\n')
     : '(sin información adicional)'
 
+  const upcoming = ctx.upcoming_appointments?.length
+    ? ctx.upcoming_appointments
+        .map(
+          (a) =>
+            `- ${a.services} — ${fmtDateTime(a.starts_at, tz)} (estado: ${a.status}, id: ${a.id})`
+        )
+        .join('\n')
+    : '(sin citas próximas)'
+
   return [
     ctx.config?.system_prompt?.trim() ||
       'Eres el recepcionista virtual de un negocio de servicios. Ayudas a los clientes a agendar, reagendar o cancelar citas y respondes dudas sobre el negocio.',
     '',
     'REGLAS IMPORTANTES:',
-    '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige.',
-    '- Habla en español, con tono cálido y breve (es un chat de WhatsApp/Telegram).',
-    '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
-    '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto.',
+    '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige. Si el cliente insiste con temas ajenos por segunda vez consecutiva, usa request_human_approval.',
+    '- Habla en español, con tono cálido y breve (es un chat de WhatsApp/Telegram). UNA sola pregunta por mensaje.',
+    '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
+    '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
+    '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
+    '- Para CANCELAR o REAGENDAR usa cancel_appointment / reschedule_appointment con el id EXACTO de la lista CITAS PRÓXIMAS DEL CLIENTE. Si tiene varias citas, pregunta cuál UNA sola vez. Si no tiene citas próximas, dilo con amabilidad. Para reagendar, primero consulta disponibilidad con check_availability.',
+    '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
+    '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
     '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise.',
     `- Hoy es ${today} (zona horaria ${tz}).`,
     '',
     `SERVICIOS DEL NEGOCIO${ctx.branch ? ` (sucursal ${ctx.branch.name})` : ''}:`,
     services,
+    '',
+    'CITAS PRÓXIMAS DEL CLIENTE:',
+    upcoming,
     '',
     'BASE DE CONOCIMIENTO:',
     knowledge,
@@ -74,6 +90,48 @@ function fmtTime(iso: string, tz: string): string {
     hourCycle: 'h23',
   }).format(new Date(iso))
 }
+
+// "jueves 10 de julio, 16:00" en la zona horaria de la sucursal.
+function fmtDateTime(iso: string, tz: string): string {
+  return new Intl.DateTimeFormat('es-MX', {
+    timeZone: tz,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(iso))
+}
+
+// -------------------------------------------------------------------
+// Confirmación estructurada: la construye el CÓDIGO (no el modelo) para
+// que fecha/hora/servicio sean siempre exactos y en la tz de la sucursal.
+// -------------------------------------------------------------------
+type ChatAction =
+  | { kind: 'booked'; services: string; startsAt: string }
+  | { kind: 'rescheduled'; services: string; startsAt: string }
+  | { kind: 'cancelled'; services: string; startsAt: string }
+
+function buildConfirmation(action: ChatAction, tz: string, branchName: string): string {
+  const when = fmtDateTime(action.startsAt, tz)
+  switch (action.kind) {
+    case 'booked':
+      return `✅ *Cita confirmada*\n📅 ${when}\n🔹 ${action.services}\n📍 ${branchName}`
+    case 'rescheduled':
+      return `🔄 *Cita reagendada*\n📅 Nueva fecha: ${when}\n🔹 ${action.services}\n📍 ${branchName}`
+    case 'cancelled':
+      return `❌ *Cita cancelada*\n📅 Era: ${when}\n🔹 ${action.services}`
+  }
+}
+
+// Respuesta estática si el modelo falla: el cliente NUNCA se queda en silencio.
+const FALLBACK_REPLY =
+  'Disculpa, tuve un problema técnico en este momento 🙏 Ya avisé a una persona del equipo para que te atienda en breve.'
+
+// Borrador que el humano puede aprobar (se envía al cliente tal cual).
+const FALLBACK_DRAFT =
+  'Hola 👋 Soy parte del equipo y ya estoy al pendiente de tu mensaje. ¿Me confirmas en qué te puedo ayudar?'
 
 // -------------------------------------------------------------------
 // Orquestador: obtiene contexto, corre el LLM con herramientas y decide
@@ -124,6 +182,17 @@ export async function runAgent(params: {
   // Bandera de escalamiento fijada por la tool request_human_approval.
   let approvalRequested = false
   let approvalDraft = ''
+  // Acciones ejecutadas con éxito en este turno -> confirmación estructurada.
+  const actions: ChatAction[] = []
+  // Últimos horarios ofrecidos por check_availability -> botones de opción.
+  let offeredSlots: { id: string; title: string }[] = []
+
+  const serviceNames = (ids: string[]): string =>
+    ids
+      .map((id) => ctx.services.find((s) => s.id === id)?.name ?? 'Servicio')
+      .join(' + ')
+  const upcomingById = (id: string) =>
+    (ctx.upcoming_appointments ?? []).find((a) => a.id === id)
 
   const openrouter = createOpenRouter({ apiKey })
   const model = openrouter(ctx.config?.model || 'openai/gpt-4o-mini')
@@ -131,7 +200,7 @@ export async function runAgent(params: {
   const tools = {
     check_availability: tool({
       description:
-        'Consulta los horarios disponibles para uno o más servicios en una fecha. Devuelve horas libres reales.',
+        'Consulta los horarios disponibles para uno o más servicios en una fecha. Devuelve horas libres reales (máx 3).',
       inputSchema: z.object({
         service_ids: z.array(z.string().uuid()).min(1),
         date: z.string().describe('Fecha en formato YYYY-MM-DD'),
@@ -145,9 +214,19 @@ export async function runAgent(params: {
         if (error) return { error: 'No pude consultar disponibilidad.' }
         const slots = (data ?? []) as { slot_start: string }[]
         if (slots.length === 0) return { available: [], note: 'Sin horarios ese día.' }
-        // Compactamos a horas locales legibles (máx 12 para no saturar).
-        const times = slots.slice(0, 12).map((s) => fmtTime(s.slot_start, tz))
-        return { date, available_times: times, iso: slots.slice(0, 12).map((s) => s.slot_start) }
+        // Máx 3 horarios por mensaje (anti-fatiga): mañana / mediodía / tarde
+        // cuando hay muchos, para dar opciones repartidas del día.
+        const pick =
+          slots.length <= 3
+            ? slots
+            : [slots[0], slots[Math.floor(slots.length / 2)], slots[slots.length - 1]]
+        const times = pick.map((s) => fmtTime(s.slot_start, tz))
+        // Botones de opción rápida para el mensaje final (anti-fatiga).
+        offeredSlots = pick.map((s) => ({
+          id: `slot:${s.slot_start}`,
+          title: fmtTime(s.slot_start, tz),
+        }))
+        return { date, available_times: times, iso: pick.map((s) => s.slot_start) }
       },
     }),
     book_appointment: tool({
@@ -170,7 +249,64 @@ export async function runAgent(params: {
             return { ok: false, error: 'Ese horario acaba de ocuparse. Ofrece otro.' }
           return { ok: false, error: 'No pude agendar. Intenta con otro horario.' }
         }
+        actions.push({ kind: 'booked', services: serviceNames(service_ids), startsAt: starts_at })
         return { ok: true, appointment_id: data, confirmed_at: fmtTime(starts_at, tz) }
+      },
+    }),
+    cancel_appointment: tool({
+      description:
+        'Cancela una cita del cliente actual. Usa SOLO un id de la lista CITAS PRÓXIMAS DEL CLIENTE, y solo cuando el cliente confirmó que quiere cancelar.',
+      inputSchema: z.object({
+        appointment_id: z.string().uuid().describe('Id de la cita (de CITAS PRÓXIMAS DEL CLIENTE)'),
+      }),
+      execute: async ({ appointment_id }) => {
+        const appt = upcomingById(appointment_id)
+        if (!appt) return { ok: false, error: 'Esa cita no está en la lista del cliente.' }
+        const { error } = await supabase.rpc('cancel_appointment_from_chat', {
+          p_channel_type: channelType,
+          p_external_id: externalId,
+          p_client_phone: fromHandle,
+          p_appointment_id: appointment_id,
+        })
+        if (error) {
+          if (error.message.includes('not_actionable'))
+            return { ok: false, error: 'Esa cita ya no se puede cancelar (pasada o ya cancelada).' }
+          return { ok: false, error: 'No pude cancelar la cita. Escala a un humano si persiste.' }
+        }
+        actions.push({ kind: 'cancelled', services: appt.services, startsAt: appt.starts_at })
+        return { ok: true }
+      },
+    }),
+    reschedule_appointment: tool({
+      description:
+        'Mueve una cita del cliente actual a un nuevo horario. Usa SOLO un id de CITAS PRÓXIMAS DEL CLIENTE y un horario ISO devuelto por check_availability que el cliente eligió.',
+      inputSchema: z.object({
+        appointment_id: z.string().uuid().describe('Id de la cita (de CITAS PRÓXIMAS DEL CLIENTE)'),
+        new_starts_at: z.string().describe('Nuevo inicio ISO 8601 (de check_availability)'),
+      }),
+      execute: async ({ appointment_id, new_starts_at }) => {
+        const appt = upcomingById(appointment_id)
+        if (!appt) return { ok: false, error: 'Esa cita no está en la lista del cliente.' }
+        const { error } = await supabase.rpc('reschedule_appointment_from_chat', {
+          p_channel_type: channelType,
+          p_external_id: externalId,
+          p_client_phone: fromHandle,
+          p_appointment_id: appointment_id,
+          p_new_starts_at: new_starts_at,
+        })
+        if (error) {
+          if (error.message.includes('slot_taken'))
+            return { ok: false, error: 'Ese horario acaba de ocuparse. Ofrece otro.' }
+          if (error.message.includes('not_actionable'))
+            return { ok: false, error: 'Esa cita ya no se puede mover (pasada o cancelada).' }
+          return { ok: false, error: 'No pude reagendar. Intenta con otro horario.' }
+        }
+        actions.push({
+          kind: 'rescheduled',
+          services: appt.services,
+          startsAt: new_starts_at,
+        })
+        return { ok: true, confirmed_at: fmtTime(new_starts_at, tz) }
       },
     }),
     request_human_approval: tool({
@@ -187,6 +323,8 @@ export async function runAgent(params: {
     }),
   }
 
+  const convId = ctx.conversation.id
+
   let text = ''
   try {
     const result = await generateText({
@@ -199,15 +337,43 @@ export async function runAgent(params: {
     text = result.text?.trim() ?? ''
   } catch (err) {
     console.error('[agent] generateText error', err)
-    return { handled: false, reason: 'error del modelo' }
+    // FALLBACK: el cliente NUNCA se queda en silencio. Respuesta estática,
+    // registro como 'system' y escalamiento a humano (pausa la IA).
+    try {
+      const extId = await senders.sendToCustomer(FALLBACK_REPLY)
+      await supabase.rpc('log_outbound_message', {
+        p_conversation_id: convId,
+        p_body: FALLBACK_REPLY,
+        p_sender: 'system',
+        p_external_id: extId ?? undefined,
+      })
+      const { data: appr } = await supabase.rpc('create_ai_approval', {
+        p_conversation_id: convId,
+        p_draft: FALLBACK_DRAFT,
+        p_action: null,
+      })
+      const info = appr as { approval_id?: string; approval_chat_id?: string } | null
+      if (info?.approval_chat_id && info.approval_id) {
+        await senders.sendApproval(info.approval_chat_id, FALLBACK_DRAFT, info.approval_id)
+      }
+    } catch (fallbackErr) {
+      console.error('[agent] fallback error', fallbackErr)
+    }
+    return { handled: true, mode: 'sent', reply: FALLBACK_REPLY }
   }
 
-  const convId = ctx.conversation.id
   const approvalMode = ctx.config?.approval_mode ?? 'low_confidence'
   const needsApproval =
     approvalMode === 'always' || (approvalMode === 'low_confidence' && approvalRequested)
 
-  const reply = (approvalRequested ? approvalDraft : text).trim()
+  // Confirmación estructurada determinista (fecha/hora exactas en tz de la
+  // sucursal) cuando hubo acciones; el texto del modelo va antes, como cierre.
+  const confirmations = actions
+    .map((a) => buildConfirmation(a, tz, ctx.branch?.name ?? ''))
+    .join('\n\n')
+  const composed = [text, confirmations].filter(Boolean).join('\n\n')
+
+  const reply = (approvalRequested ? approvalDraft : composed).trim()
   if (!reply) return { handled: false, reason: 'respuesta vacía' }
 
   if (needsApproval) {
@@ -223,7 +389,13 @@ export async function runAgent(params: {
     return { handled: true, mode: 'approval', reply }
   }
 
-  const extId = await senders.sendToCustomer(reply)
+  // Si este turno OFRECIÓ horarios (y no cerró una acción), se envían como
+  // botones de opción rápida; la pulsación vuelve como mensaje entrante.
+  const useButtons =
+    offeredSlots.length > 0 && actions.length === 0 && !!senders.sendButtons
+  const extId = useButtons
+    ? await senders.sendButtons!(reply, offeredSlots)
+    : await senders.sendToCustomer(reply)
   await supabase.rpc('log_outbound_message', {
     p_conversation_id: convId,
     p_body: reply,

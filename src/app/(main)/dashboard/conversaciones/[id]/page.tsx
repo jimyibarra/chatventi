@@ -49,13 +49,13 @@ export default async function ConversacionDetallePage({
 
   return (
     <>
-      <nav className="flex gap-4 border-b border-gray-200 bg-white px-6 py-2 text-sm">
-        <Link href="/dashboard/conversaciones" className="text-gray-500 hover:text-gray-900">
+      <div className="mx-auto max-w-2xl p-6">
+        <Link
+          href="/dashboard/conversaciones"
+          className="mb-3 inline-block text-sm text-gray-500 hover:text-gray-900"
+        >
           ← Conversaciones
         </Link>
-      </nav>
-
-      <div className="mx-auto max-w-2xl p-6">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">

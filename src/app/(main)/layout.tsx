@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/features/auth/components/logout-button'
+import { DashboardNav } from '@/shared/components/dashboard-nav'
 
 export default async function MainLayout({
   children,
@@ -26,7 +27,11 @@ export default async function MainLayout({
           <LogoutButton />
         </div>
       </header>
-      <main>{children}</main>
+      <div className="md:flex">
+        <DashboardNav />
+        {/* pb-16 en móvil: que la bottom-nav no tape el contenido */}
+        <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
+      </div>
     </div>
   )
 }

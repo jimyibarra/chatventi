@@ -51,6 +51,20 @@ export async function tgSendApproval(
   })
 }
 
+// Opciones rápidas para el CLIENTE (elegir horario, etc.). La pulsación
+// vuelve como callback_data "say:<texto>" y se enruta como mensaje entrante.
+export async function tgSendChoiceButtons(
+  chatId: string,
+  text: string,
+  buttons: { id: string; title: string }[]
+): Promise<string | null> {
+  return tgSendMessage(chatId, text, {
+    inline_keyboard: buttons.slice(0, 3).map((b) => [
+      { text: b.title, callback_data: `say:${b.title}`.slice(0, 64) },
+    ]),
+  })
+}
+
 export async function tgAnswerCallback(callbackQueryId: string, text?: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) return
@@ -106,6 +120,51 @@ export async function waSendMessage(
     | null
   if (!res.ok) {
     console.error('[senders] waSendMessage falló', await res.text().catch(() => ''))
+    return null
+  }
+  return json?.messages?.[0]?.id ?? null
+}
+
+// Reply buttons de WhatsApp (Cloud API): máx 3 botones, título ≤20 chars,
+// id ≤256. Solo válidos dentro de la ventana de servicio de 24h (siempre
+// respondemos a un mensaje entrante, así que aplica).
+export async function waSendInteractiveButtons(
+  phoneNumberId: string,
+  token: string,
+  to: string,
+  bodyText: string,
+  buttons: { id: string; title: string }[]
+): Promise<string | null> {
+  const res = await fetch(
+    `https://graph.facebook.com/${WA_GRAPH_VERSION}/${phoneNumberId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${token}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'interactive',
+        interactive: {
+          type: 'button',
+          body: { text: bodyText },
+          action: {
+            buttons: buttons.slice(0, 3).map((b) => ({
+              type: 'reply',
+              reply: { id: b.id.slice(0, 256), title: b.title.slice(0, 20) },
+            })),
+          },
+        },
+      }),
+    }
+  )
+  const json = (await res.json().catch(() => null)) as
+    | { messages?: { id: string }[] }
+    | null
+  if (!res.ok) {
+    console.error('[senders] waSendInteractiveButtons falló', await res.text().catch(() => ''))
     return null
   }
   return json?.messages?.[0]?.id ?? null
