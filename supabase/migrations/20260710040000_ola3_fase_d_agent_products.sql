@@ -1,0 +1,11 @@
+-- Ola 3 Fase D: el agente conoce los PRODUCTOS del negocio (consultas de
+-- precio/disponibilidad por chat). Se agrega la clave 'products' al jsonb de
+-- get_agent_context (misma función, ver el cuerpo completo aplicado en BD).
+-- NOTA: aplicada vía MCP el 2026-07-10; este archivo documenta el cambio.
+
+-- (cuerpo completo de get_agent_context con la clave nueva:)
+--   'products', coalesce((
+--     select jsonb_agg(jsonb_build_object(
+--       'name', p.name, 'price', p.price, 'description', p.description) order by p.name)
+--     from public.products p where p.organization_id = v_org and p.active
+--   ), '[]'::jsonb),

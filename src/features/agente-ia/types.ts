@@ -28,6 +28,12 @@ export type AgentContext = {
     price: number | null
     description: string | null
   }[]
+  // Productos activos del negocio (consultas de precio/disponibilidad).
+  products: {
+    name: string
+    price: number | null
+    description: string | null
+  }[]
   knowledge: string[]
   // Citas futuras activas del cliente (max 5). El agente cancela/reagenda
   // SOLO por ids de esta lista (nunca ids inventados).

@@ -36,6 +36,17 @@ function buildSystemPrompt(ctx: AgentContext): string {
     ? ctx.knowledge.map((k) => `- ${k}`).join('\n')
     : '(sin información adicional)'
 
+  const products = ctx.products?.length
+    ? ctx.products
+        .map(
+          (p) =>
+            `- ${p.name}${p.price != null ? ` — $${p.price}` : ''}${
+              p.description ? `: ${p.description}` : ''
+            }`
+        )
+        .join('\n')
+    : null
+
   const upcoming = ctx.upcoming_appointments?.length
     ? ctx.upcoming_appointments
         .map(
@@ -64,6 +75,13 @@ function buildSystemPrompt(ctx: AgentContext): string {
     `SERVICIOS DEL NEGOCIO${ctx.branch ? ` (sucursal ${ctx.branch.name})` : ''}:`,
     services,
     '',
+    ...(products
+      ? [
+          'PRODUCTOS DEL NEGOCIO (responde precio/detalles; para apartar uno, dile al cliente que lo confirmas con el equipo y usa request_human_approval con el pedido como borrador):',
+          products,
+          '',
+        ]
+      : []),
     'CITAS PRÓXIMAS DEL CLIENTE:',
     upcoming,
     '',

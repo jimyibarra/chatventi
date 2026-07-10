@@ -6,7 +6,12 @@ import { saveWebConfig } from '../actions'
 
 const BASE = 'https://www.chatventi.com'
 
-type Branding = { primary_color?: string; description?: string; logo_url?: string } | null
+type Branding = {
+  primary_color?: string
+  description?: string
+  logo_url?: string
+  whatsapp_number?: string
+} | null
 
 export function WebConfigForm({
   webSlug,
@@ -21,6 +26,7 @@ export function WebConfigForm({
   const [color, setColor] = useState(branding?.primary_color ?? '#2563eb')
   const [description, setDescription] = useState(branding?.description ?? '')
   const [logoUrl, setLogoUrl] = useState(branding?.logo_url ?? '')
+  const [whatsappNumber, setWhatsappNumber] = useState(branding?.whatsapp_number ?? '')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
 
@@ -37,6 +43,7 @@ export function WebConfigForm({
         primaryColor: color || undefined,
         description: description || undefined,
         logoUrl: logoUrl || undefined,
+        whatsappNumber: whatsappNumber || undefined,
       })
       if (res.ok) {
         setMsg({ ok: true, text: 'Guardado. Tu página pública está lista.' })
@@ -100,6 +107,22 @@ export function WebConfigForm({
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            WhatsApp del negocio (para pedidos de productos)
+          </label>
+          <input
+            value={whatsappNumber}
+            onChange={(e) => setWhatsappNumber(e.target.value)}
+            data-testid="web-whatsapp"
+            placeholder="5215512345678 (solo dígitos, con lada del país)"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          />
+          <p className="mt-1 text-xs text-gray-400">
+            Si lo configuras, cada producto de tu página mostrará un botón “Pedir por WhatsApp”.
+          </p>
         </div>
 
         <div>

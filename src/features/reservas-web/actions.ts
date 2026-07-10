@@ -19,6 +19,12 @@ const webConfigSchema = z.object({
     .optional(),
   description: z.string().trim().max(200).optional(),
   logoUrl: z.string().trim().url('URL de logo inválida.').optional().or(z.literal('')),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{10,15}$/, 'Número inválido: solo dígitos con lada, ej. 5215512345678.')
+    .optional()
+    .or(z.literal('')),
 })
 
 export async function saveWebConfig(raw: unknown): Promise<ActionResult> {
@@ -26,7 +32,7 @@ export async function saveWebConfig(raw: unknown): Promise<ActionResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { slug, primaryColor, description, logoUrl } = parsed.data
+  const { slug, primaryColor, description, logoUrl, whatsappNumber } = parsed.data
   const supabase = await createClient()
   const { data: orgId } = await supabase.rpc('get_my_org')
   if (!orgId) return { ok: false, error: 'No tienes una organización.' }
@@ -35,6 +41,7 @@ export async function saveWebConfig(raw: unknown): Promise<ActionResult> {
     primary_color: primaryColor || null,
     description: description || null,
     logo_url: logoUrl || null,
+    whatsapp_number: whatsappNumber || null,
   }
 
   const { error } = await supabase

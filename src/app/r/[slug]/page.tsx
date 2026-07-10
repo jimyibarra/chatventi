@@ -8,7 +8,16 @@ type Branding = {
   primary_color?: string
   description?: string
   logo_url?: string
+  whatsapp_number?: string
 } | null
+
+// Deep link de WhatsApp con el pedido prellenado (Ola 3: pedidos por chat).
+function waOrderLink(number: string, orgName: string, product: { name: string; price: number | null }): string {
+  const text = `Hola ${orgName} 👋 Quiero pedir: ${product.name}${
+    product.price != null ? ` ($${product.price})` : ''
+  }. Lo vi en su página de reservas.`
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`
+}
 
 type Ctx = {
   org: { name: string; branding: Branding }
@@ -100,6 +109,18 @@ export default async function PublicBookingPage({
                       <p className="mt-1 text-sm font-semibold" style={{ color: primary }}>
                         ${p.price}
                       </p>
+                    )}
+                    {ctx.org.branding?.whatsapp_number && (
+                      <a
+                        href={waOrderLink(ctx.org.branding.whatsapp_number, ctx.org.name, p)}
+                        target="_blank"
+                        rel="noopener"
+                        data-testid="pub-product-order"
+                        className="mt-2 inline-block rounded-lg px-3 py-1.5 text-xs font-medium text-white"
+                        style={{ background: '#25D366' }}
+                      >
+                        Pedir por WhatsApp
+                      </a>
                     )}
                   </div>
                 </div>
