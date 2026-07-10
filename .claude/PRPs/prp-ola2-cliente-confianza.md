@@ -1,6 +1,6 @@
 # PRP-OLA2: Cierre del ciclo con el cliente final + operación manual del dueño
 
-> **Estado**: 🔄 IMPLEMENTADA (2026-07-10, aprobada por Juan) — validación E2E en curso
+> **Estado**: ✅ COMPLETADA Y VALIDADA E2E (2026-07-10) — 18/19 criterios PASS, 0 bugs; el envío real del composer queda para la prueba en vivo con canal real. ⚠️ Verificar `NEXT_PUBLIC_SITE_URL=https://www.chatventi.com` en Vercel Production (los enlaces mágicos del agente/cron la usan).
 > **Commits**: A `9fd4b19` · B `7288a6f` · C `c8de4f4` · D `740ef08` (migraciones aplicadas)
 > **Fecha**: 2026-07-10
 > **Proyecto**: ChatVenti (chatventi.com)
