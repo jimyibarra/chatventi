@@ -1038,6 +1038,15 @@ export type Database = {
         }
         Returns: string
       }
+      confirm_appointment_from_chat: {
+        Args: {
+          p_channel_type: string
+          p_external_id: string
+          p_client_phone: string
+          p_appointment_id: string
+        }
+        Returns: Json
+      }
       route_inbound_message: {
         Args: {
           p_body: string

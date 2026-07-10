@@ -1,20 +1,32 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { sendToCustomerByChannel } from '@/features/agente-ia/senders'
+import {
+  sendToCustomerByChannel,
+  sendButtonsToCustomerByChannel,
+} from '@/features/agente-ia/senders'
 
 export const runtime = 'nodejs'
 
 type DueItem = {
   appointment_id: string
-  conversation_id: string
-  channel_type: string
-  channel_external_id: string
-  send_to: string
+  manage_token: string | null
+  // Nulos cuando el cliente nunca ha chateado (cita creada por staff o web):
+  // no hay canal por dónde enviar; se reporta como no_channel, no se omite.
+  conversation_id: string | null
+  channel_type: string | null
+  channel_external_id: string | null
+  send_to: string | null
   starts_at: string
   tz: string
   org_name: string
   client_name: string | null
   service_names: string | null
+}
+
+function manageUrl(token: string | null): string | null {
+  if (!token) return null
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com'
+  return `${base.replace(/\/$/, '')}/c/${token}`
 }
 
 type Kind = '24h' | '2h' | 'followup'
@@ -48,10 +60,14 @@ function buildMessage(kind: Kind, item: DueItem): string {
   const name = firstName(item.client_name)
   const svc = item.service_names ? ` de ${item.service_names}` : ''
   if (kind === '24h') {
+    const url = manageUrl(item.manage_token)
+    const manage = url
+      ? `\nSi necesitas cambiar la fecha o cancelar: ${url}`
+      : ' Si necesitas reagendar o cancelar, respóndenos por aquí.'
     return `Hola${name}, te recordamos tu cita${svc} en ${item.org_name} el ${whenLabel(
       item.starts_at,
       item.tz
-    )}. Si necesitas reagendar o cancelar, respóndenos por aquí. ¡Te esperamos!`
+    )}. ¡Te esperamos!${manage}`
   }
   if (kind === '2h') {
     return `Hola${name}, tu cita${svc} en ${item.org_name} es hoy a las ${timeLabel(
@@ -72,10 +88,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   const service = createServiceClient()
   const kinds: Kind[] = ['24h', '2h', 'followup']
-  const summary: Record<Kind, { sent: number; skipped: number }> = {
-    '24h': { sent: 0, skipped: 0 },
-    '2h': { sent: 0, skipped: 0 },
-    followup: { sent: 0, skipped: 0 },
+  const summary: Record<Kind, { sent: number; skipped: number; no_channel: number }> = {
+    '24h': { sent: 0, skipped: 0, no_channel: 0 },
+    '2h': { sent: 0, skipped: 0, no_channel: 0 },
+    followup: { sent: 0, skipped: 0, no_channel: 0 },
   }
 
   for (const kind of kinds) {
@@ -87,6 +103,17 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const items = (data as unknown as DueItem[]) ?? []
 
     for (const item of items) {
+      // Cliente sin conversación (cita de staff/web): no hay canal por dónde
+      // enviar. NO se reclama (si el cliente escribe dentro de la ventana, el
+      // siguiente cron sí lo alcanza) y queda visible en el summary/logs.
+      if (!item.conversation_id || !item.channel_type || !item.channel_external_id || !item.send_to) {
+        summary[kind].no_channel++
+        console.warn(
+          `[cron-reminders] cita ${item.appointment_id} sin canal de contacto (${kind})`
+        )
+        continue
+      }
+
       // Reclamo atómico: solo un envío por ventana (idempotente).
       const { data: claimed } = await service.rpc('claim_reminder', {
         p_appointment_id: item.appointment_id,
@@ -100,13 +127,27 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const text = buildMessage(kind, item)
       let extId: string | null = null
       try {
-        extId = await sendToCustomerByChannel(
-          service,
-          item.channel_type,
-          item.channel_external_id,
-          item.send_to,
-          text
-        )
+        // Recordatorio 24h: botón "Confirmar asistencia" (WA reply button /
+        // TG inline). Si el envío con botones falla, cae a texto plano.
+        if (kind === '24h') {
+          extId = await sendButtonsToCustomerByChannel(
+            service,
+            item.channel_type,
+            item.channel_external_id,
+            item.send_to,
+            text,
+            [{ id: `conf:${item.appointment_id}`, title: 'Confirmar asistencia' }]
+          )
+        }
+        if (!extId) {
+          extId = await sendToCustomerByChannel(
+            service,
+            item.channel_type,
+            item.channel_external_id,
+            item.send_to,
+            text
+          )
+        }
       } catch (err) {
         console.error('[cron-reminders] error enviando', err)
       }

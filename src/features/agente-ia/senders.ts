@@ -209,4 +209,32 @@ export async function sendToCustomerByChannel(
   return null
 }
 
+// Botones interactivos al cliente según su canal. En Telegram el id del
+// botón viaja como callback_data tal cual (p.ej. "conf:<appointment_id>").
+export async function sendButtonsToCustomerByChannel(
+  service: SupabaseClient<Database>,
+  channelType: string,
+  channelExternalId: string,
+  sendTo: string,
+  text: string,
+  buttons: { id: string; title: string }[]
+): Promise<string | null> {
+  if (channelType === 'telegram') {
+    return tgSendMessage(sendTo, text, {
+      inline_keyboard: buttons
+        .slice(0, 3)
+        .map((b) => [{ text: b.title, callback_data: b.id.slice(0, 64) }]),
+    })
+  }
+  if (channelType === 'whatsapp') {
+    const token = await getWaToken(service, channelExternalId)
+    if (!token) {
+      console.error('[senders] sin access_token para el canal WhatsApp', channelExternalId)
+      return null
+    }
+    return waSendInteractiveButtons(channelExternalId, token, sendTo, text, buttons)
+  }
+  return null
+}
+
 export { getWaToken }

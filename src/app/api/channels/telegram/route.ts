@@ -133,6 +133,59 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ ok: true }, { status: 200 })
     }
 
+    // A.2) Botón "Confirmar asistencia" del recordatorio ("conf:<appointment_id>"):
+    // confirma la cita y responde estático, SIN despertar al agente.
+    if ((cb.data ?? '').startsWith('conf:')) {
+      const rawId = (cb.data ?? '').slice('conf:'.length)
+      const appointmentId = z.string().uuid().safeParse(rawId).success ? rawId : null
+      const confChatId = cb.message ? String(cb.message.chat.id) : null
+      const confChannelId = process.env.TELEGRAM_BOT_EXTERNAL_ID
+      after(async () => {
+        try {
+          await tgAnswerCallback(cb.id, 'Confirmando…')
+          if (!confChatId || !confChannelId || !appointmentId) return
+          const supabase = createWebhookClient()
+          // La pulsación entra al historial y dedupea reintentos por cb.id.
+          const { data: routedData, error: routeErr } = await supabase.rpc(
+            'route_inbound_message',
+            {
+              p_channel_type: 'telegram',
+              p_external_id: confChannelId,
+              p_from_handle: confChatId,
+              p_body: 'Confirmar asistencia',
+              p_media_path: null,
+              p_ext_msg_id: `tg_cb_${cb.id}`,
+            }
+          )
+          const routed = routedData as { message_id: string | null; duplicate: boolean } | null
+          if (routeErr || !routed?.message_id || routed.duplicate) return
+
+          const { data, error } = await supabase.rpc('confirm_appointment_from_chat', {
+            p_channel_type: 'telegram',
+            p_external_id: confChannelId,
+            p_client_phone: confChatId,
+            p_appointment_id: appointmentId,
+          })
+          const text = error
+            ? 'Esta cita ya no se puede confirmar por aquí 🙏 Escríbenos y te ayudamos.'
+            : '✅ ¡Gracias! Tu asistencia quedó confirmada. Te esperamos.'
+          const extId = await tgSendMessage(confChatId, text)
+          const convId = (data as { conversation_id?: string } | null)?.conversation_id
+          if (convId) {
+            await supabase.rpc('log_outbound_message', {
+              p_conversation_id: convId,
+              p_body: text,
+              p_sender: 'system',
+              p_external_id: extId ?? undefined,
+            })
+          }
+        } catch (err) {
+          console.error('[telegram-webhook] error confirmando cita', err)
+        }
+      })
+      return NextResponse.json({ ok: true }, { status: 200 })
+    }
+
     after(async () => {
       try {
         const parts = (cb.data ?? '').split(':')

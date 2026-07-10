@@ -123,6 +123,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const toAnswer: { phoneNumberId: string; from: string }[] = []
   // Media entrante: aviso estatico + escalamiento a humano (sin LLM).
   const mediaToEscalate: { phoneNumberId: string; from: string }[] = []
+  // Boton "Confirmar asistencia" del recordatorio (id "conf:<appointment_id>"):
+  // se confirma la cita SIN despertar al agente (respuesta estatica).
+  const toConfirm: { phoneNumberId: string; from: string; appointmentId: string }[] = []
 
   try {
     const supabase = createWebhookClient()
@@ -140,11 +143,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             p_ext_msg_id: msg.id,
           })
           const routed = data as { message_id: string | null; duplicate: boolean } | null
+          const buttonId = msg.interactive?.button_reply?.id
+          const confirmId =
+            buttonId?.startsWith('conf:') &&
+            z.string().uuid().safeParse(buttonId.slice(5)).success
+              ? buttonId.slice(5)
+              : null
           if (error) {
             console.error('[whatsapp-webhook] route_inbound_message error', error.message)
           } else if (!routed?.message_id || routed.duplicate) {
             // Canal no encontrado o reintento del proveedor (mismo wamid):
             // el mensaje ya está en BD; no despertar al agente otra vez.
+          } else if (confirmId) {
+            toConfirm.push({ phoneNumberId, from: msg.from, appointmentId: confirmId })
           } else if (msg.text || msg.interactive?.button_reply) {
             toAnswer.push({ phoneNumberId, from: msg.from })
           } else if (msg.image || msg.audio || msg.document || msg.video) {
@@ -181,6 +192,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           })
         } catch (err) {
           console.error('[whatsapp-webhook] error escalando media', err)
+        }
+      }
+    })
+  }
+
+  // Botón "Confirmar asistencia": confirma la cita y responde estático (sin LLM).
+  if (toConfirm.length > 0) {
+    after(async () => {
+      const supabase = createWebhookClient()
+      const service = createServiceClient()
+      for (const { phoneNumberId, from, appointmentId } of toConfirm) {
+        try {
+          const { data, error } = await supabase.rpc('confirm_appointment_from_chat', {
+            p_channel_type: 'whatsapp',
+            p_external_id: phoneNumberId,
+            p_client_phone: from,
+            p_appointment_id: appointmentId,
+          })
+          const text = error
+            ? 'Esta cita ya no se puede confirmar por aquí 🙏 Escríbenos y te ayudamos.'
+            : '✅ ¡Gracias! Tu asistencia quedó confirmada. Te esperamos.'
+          const token = await getWaToken(service, phoneNumberId)
+          const extId = token ? await waSendMessage(phoneNumberId, token, from, text) : null
+          const convId = (data as { conversation_id?: string } | null)?.conversation_id
+          if (convId) {
+            await supabase.rpc('log_outbound_message', {
+              p_conversation_id: convId,
+              p_body: text,
+              p_sender: 'system',
+              p_external_id: extId ?? undefined,
+            })
+          }
+        } catch (err) {
+          console.error('[whatsapp-webhook] error confirmando cita', err)
         }
       }
     })
