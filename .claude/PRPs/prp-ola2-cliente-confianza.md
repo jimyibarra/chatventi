@@ -1,6 +1,7 @@
 # PRP-OLA2: Cierre del ciclo con el cliente final + operación manual del dueño
 
-> **Estado**: 🕐 PENDIENTE DE APROBACIÓN
+> **Estado**: 🔄 IMPLEMENTADA (2026-07-10, aprobada por Juan) — validación E2E en curso
+> **Commits**: A `9fd4b19` · B `7288a6f` · C `c8de4f4` · D `740ef08` (migraciones aplicadas)
 > **Fecha**: 2026-07-10
 > **Proyecto**: ChatVenti (chatventi.com)
 > **PRP padre**: `prp-chatventi.md` · **Antecesor**: `prp-ola1-agente-nav.md` (✅ 2026-07-09)
