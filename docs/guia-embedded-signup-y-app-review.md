@@ -73,7 +73,7 @@ Consejos: interfaz puede estar en español (Meta lo acepta), pero en las **notas
 En [developers.facebook.com](https://developers.facebook.com) → app ChatVenti → **Revisión de la app → Solicitudes** → borrador `2271937250276475`:
 
 ### 4.1 Configuración de la app
-- **Icono** 1024×1024 (logo ChatVenti sobre fondo sólido, sin texto pequeño). Si no tienes uno, pídeselo a Claude (skill de generación de imágenes).
+- **Icono** 1024×1024: YA existe el archivo final en `_Screen\chatventi-app-icon-final.png` — súbelo a mano (App Dashboard → Información básica → Ícono de la app → "elige un archivo" → Guardar cambios). Con eso la config queda 100% (privacy/terms/categoría ya quedaron ✓ el 2026-07-09).
 - **Email de contacto**: ibarram321@gmail.com (o el de soporte).
 - **Categoría**: Business.
 - **URL de la política de privacidad**: `https://www.chatventi.com/privacy` (ya está en línea).
