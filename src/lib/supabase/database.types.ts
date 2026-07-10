@@ -1013,6 +1013,31 @@ export type Database = {
         Args: { p_conversation_id: string }
         Returns: undefined
       }
+      get_appointment_by_token: {
+        Args: { p_token: string }
+        Returns: Json
+      }
+      confirm_appointment_by_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      cancel_appointment_by_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      reschedule_appointment_by_token: {
+        Args: { p_token: string; p_new_starts_at: string }
+        Returns: undefined
+      }
+      get_manage_token_from_chat: {
+        Args: {
+          p_channel_type: string
+          p_external_id: string
+          p_client_phone: string
+          p_appointment_id: string
+        }
+        Returns: string
+      }
       route_inbound_message: {
         Args: {
           p_body: string

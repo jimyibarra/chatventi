@@ -109,20 +109,46 @@ function fmtDateTime(iso: string, tz: string): string {
 // que fecha/hora/servicio sean siempre exactos y en la tz de la sucursal.
 // -------------------------------------------------------------------
 type ChatAction =
-  | { kind: 'booked'; services: string; startsAt: string }
-  | { kind: 'rescheduled'; services: string; startsAt: string }
+  | { kind: 'booked'; services: string; startsAt: string; manageUrl?: string | null }
+  | { kind: 'rescheduled'; services: string; startsAt: string; manageUrl?: string | null }
   | { kind: 'cancelled'; services: string; startsAt: string }
 
 function buildConfirmation(action: ChatAction, tz: string, branchName: string): string {
   const when = fmtDateTime(action.startsAt, tz)
+  // Enlace mágico (Ola 2): el cliente gestiona su cita sin login.
+  const link =
+    action.kind !== 'cancelled' && action.manageUrl
+      ? `\n🔗 Gestiona tu cita aquí: ${action.manageUrl}`
+      : ''
   switch (action.kind) {
     case 'booked':
-      return `✅ *Cita confirmada*\n📅 ${when}\n🔹 ${action.services}\n📍 ${branchName}`
+      return `✅ *Cita confirmada*\n📅 ${when}\n🔹 ${action.services}\n📍 ${branchName}${link}`
     case 'rescheduled':
-      return `🔄 *Cita reagendada*\n📅 Nueva fecha: ${when}\n🔹 ${action.services}\n📍 ${branchName}`
+      return `🔄 *Cita reagendada*\n📅 Nueva fecha: ${when}\n🔹 ${action.services}\n📍 ${branchName}${link}`
     case 'cancelled':
       return `❌ *Cita cancelada*\n📅 Era: ${when}\n🔹 ${action.services}`
   }
+}
+
+// URL pública de gestión de una cita del cliente actual (o null si falla).
+async function fetchManageUrl(
+  supabase: AnyClient,
+  params: {
+    channelType: string
+    externalId: string
+    fromHandle: string
+    appointmentId: string
+  }
+): Promise<string | null> {
+  const { data, error } = await supabase.rpc('get_manage_token_from_chat', {
+    p_channel_type: params.channelType,
+    p_external_id: params.externalId,
+    p_client_phone: params.fromHandle,
+    p_appointment_id: params.appointmentId,
+  })
+  if (error || !data) return null
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com'
+  return `${base.replace(/\/$/, '')}/c/${data}`
 }
 
 // Respuesta estática si el modelo falla: el cliente NUNCA se queda en silencio.
@@ -249,7 +275,20 @@ export async function runAgent(params: {
             return { ok: false, error: 'Ese horario acaba de ocuparse. Ofrece otro.' }
           return { ok: false, error: 'No pude agendar. Intenta con otro horario.' }
         }
-        actions.push({ kind: 'booked', services: serviceNames(service_ids), startsAt: starts_at })
+        const manageUrl = data
+          ? await fetchManageUrl(supabase, {
+              channelType,
+              externalId,
+              fromHandle,
+              appointmentId: String(data),
+            })
+          : null
+        actions.push({
+          kind: 'booked',
+          services: serviceNames(service_ids),
+          startsAt: starts_at,
+          manageUrl,
+        })
         return { ok: true, appointment_id: data, confirmed_at: fmtTime(starts_at, tz) }
       },
     }),
@@ -301,10 +340,17 @@ export async function runAgent(params: {
             return { ok: false, error: 'Esa cita ya no se puede mover (pasada o cancelada).' }
           return { ok: false, error: 'No pude reagendar. Intenta con otro horario.' }
         }
+        const manageUrl = await fetchManageUrl(supabase, {
+          channelType,
+          externalId,
+          fromHandle,
+          appointmentId: appointment_id,
+        })
         actions.push({
           kind: 'rescheduled',
           services: appt.services,
           startsAt: new_starts_at,
+          manageUrl,
         })
         return { ok: true, confirmed_at: fmtTime(new_starts_at, tz) }
       },
