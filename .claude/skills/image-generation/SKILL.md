@@ -24,7 +24,7 @@ npx tsx .claude/skills/image-generation/scripts/generate-image.ts \
   [--image /path/to/input.png] \
   [--output /path/to/output.png] \
   [--aspect 16:9] \
-  [--model google/gemini-2.5-flash-preview-image-generation]
+  [--model google/gemini-2.5-flash-image]
 ```
 
 ## Argumentos
@@ -35,14 +35,20 @@ npx tsx .claude/skills/image-generation/scripts/generate-image.ts \
 | `--image` | NO | Path a imagen de entrada (para editar/transformar una imagen existente) |
 | `--output` | NO | Path de salida personalizado. Default: `generated/img-{timestamp}.png` |
 | `--aspect` | NO | Aspect ratio: `1:1` (default), `16:9`, `9:16`, `4:3`, `3:2` |
-| `--model` | NO | Model ID de OpenRouter. Default: `google/gemini-2.5-flash-preview-image-generation` |
+| `--model` | NO | Model ID de OpenRouter. Default: `google/gemini-2.5-flash-image` |
 
 ### Modelos Disponibles
 
 | Modelo | Mejor para |
 |--------|-----------|
-| `google/gemini-2.5-flash-preview-image-generation` | Default. Rapido, buena calidad |
-| `google/gemini-2.5-pro-preview-image-generation` | Pro quality, mas detalle |
+| `google/gemini-2.5-flash-image` | Default. Rapido, buena calidad |
+
+> ⚠️ Aprendizaje 2026-07-10: los IDs `*-preview-image-generation` fueron RETIRADOS de OpenRouter (400 "not a valid model ID").
+> El formato de respuesta cambió: la imagen ahora llega en `message.images[]` (el script ya lo soporta).
+> Los modelos de imagen requieren SALDO de pago en OpenRouter (sin créditos → error 402).
+> Alternativa sin costo para iconos/logos flat: dibujar el SVG a mano y rasterizarlo con `@resvg/resvg-js`
+> (`new Resvg(svg, {fitTo:{mode:'width',value:1024}}).render().asPng()`) — tamaño exacto garantizado.
+> NO usar screenshots de browser para esto: el zoom por-origen/DPR de Chrome distorsiona los tamaños.
 
 ---
 

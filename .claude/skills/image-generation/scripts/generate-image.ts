@@ -18,8 +18,8 @@ const prompt = getArg("prompt");
 const inputImage = getArg("image");
 const outputPath = getArg("output");
 const aspect = getArg("aspect") || "1:1";
-const model =
-  getArg("model") || "google/gemini-2.5-flash-preview-image-generation";
+// 2026-07: los IDs "-preview-image-generation" fueron retirados de OpenRouter.
+const model = getArg("model") || "google/gemini-2.5-flash-image";
 
 if (!prompt) {
   console.error("Usage: npx tsx generate-image.ts --prompt 'description'");
@@ -105,6 +105,8 @@ async function generateImage() {
     choices: Array<{
       message: {
         content: Array<{ type: string; text?: string; image_url?: { url: string } }> | string;
+        // Formato nuevo (2026): las imagenes llegan en message.images
+        images?: Array<{ type: string; image_url?: { url: string } }>;
       };
     }>;
   };
@@ -121,7 +123,18 @@ async function generateImage() {
   let imageBase64: string | null = null;
   let textResponse: string | null = null;
 
-  if (Array.isArray(message.content)) {
+  // Formato nuevo: message.images[] (Gemini via OpenRouter, 2026)
+  if (Array.isArray(message.images)) {
+    for (const part of message.images) {
+      if (part.image_url?.url) {
+        const match = part.image_url.url.match(/^data:image\/\w+;base64,(.+)/s);
+        imageBase64 = match ? match[1] : part.image_url.url;
+        break;
+      }
+    }
+  }
+
+  if (!imageBase64 && Array.isArray(message.content)) {
     for (const part of message.content) {
       if (part.type === "image_url" && part.image_url?.url) {
         // Extract base64 from data URL
