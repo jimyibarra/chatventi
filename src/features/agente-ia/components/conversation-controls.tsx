@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { setAiEnabled, pauseAi, setConversationStatus } from '../actions'
+import { setAiEnabled, pauseAi, resumeAi, setConversationStatus } from '../actions'
 
 export function ConversationControls({
   conversationId,
@@ -39,14 +39,36 @@ export function ConversationControls({
       >
         IA {aiEnabled ? 'activa' : 'apagada'}
       </button>
-      {aiEnabled && (
+      {aiEnabled && !paused && (
         <button
           onClick={() => run(() => pauseAi(conversationId, 60))}
           disabled={pending}
           data-testid="pause-ai"
           className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
         >
-          {paused ? 'En pausa' : 'Pausar 1 h'}
+          Pausar 1 h
+        </button>
+      )}
+      {aiEnabled && paused && (
+        <span
+          className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
+          data-testid="ai-paused-badge"
+        >
+          IA pausada hasta{' '}
+          {new Date(aiPausedUntil!).toLocaleTimeString('es-MX', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
+        </span>
+      )}
+      {aiEnabled && paused && (
+        <button
+          onClick={() => run(() => resumeAi(conversationId))}
+          disabled={pending}
+          data-testid="resume-ai"
+          className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
+        >
+          Reanudar
         </button>
       )}
       <button

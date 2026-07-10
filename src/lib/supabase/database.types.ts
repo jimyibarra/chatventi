@@ -1009,6 +1009,10 @@ export type Database = {
         Args: { p_approval_id: string; p_approved: boolean }
         Returns: Json
       }
+      resume_ai: {
+        Args: { p_conversation_id: string }
+        Returns: undefined
+      }
       route_inbound_message: {
         Args: {
           p_body: string

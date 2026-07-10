@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ConversationControls } from '@/features/agente-ia/components/conversation-controls'
+import { MessageComposer } from '@/features/agente-ia/components/message-composer'
 
 export const dynamic = 'force-dynamic'
 
@@ -101,6 +102,8 @@ export default async function ConversacionDetallePage({
             ))
           )}
         </div>
+
+        <MessageComposer conversationId={conv.id} />
 
         {(approvals ?? []).length > 0 && (
           <div className="mt-4">

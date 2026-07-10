@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { sendToCustomerByChannel } from './senders'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -62,6 +64,75 @@ export async function deleteKnowledge(id: string): Promise<ActionResult> {
   return { ok: true }
 }
 
+// ---- Respuesta manual del negocio (Ola 2, Fase A) -------------------
+// Envía por el canal del cliente, registra sender='agent' y PAUSA la IA
+// automáticamente para que humano y bot no se pisen.
+const MANUAL_PAUSE_MINUTES = 30
+const replySchema = z.string().trim().min(1, 'Escribe un mensaje.').max(2000)
+
+export async function sendManualReply(
+  conversationId: string,
+  rawText: string
+): Promise<ActionResult> {
+  const parsed = replySchema.safeParse(rawText)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Mensaje inválido' }
+  }
+  const text = parsed.data
+
+  // Cliente autenticado: RLS garantiza que la conversación es de SU org.
+  const supabase = await createClient()
+  const { data: conv } = await supabase
+    .from('conversations')
+    .select('id, client:clients(phone), channel:channels(type, external_id)')
+    .eq('id', conversationId)
+    .maybeSingle()
+  if (!conv) return { ok: false, error: 'Conversación no encontrada.' }
+
+  const client = (conv.client as { phone: string | null } | null) ?? null
+  const channel = (conv.channel as { type: string; external_id: string } | null) ?? null
+  if (!client?.phone || !channel) {
+    return { ok: false, error: 'La conversación no tiene destinatario o canal.' }
+  }
+
+  const service = createServiceClient()
+  const externalId = await sendToCustomerByChannel(
+    service,
+    channel.type,
+    channel.external_id,
+    client.phone,
+    text
+  )
+  if (!externalId) {
+    return {
+      ok: false,
+      error:
+        channel.type === 'whatsapp'
+          ? 'No se pudo enviar por WhatsApp (revisa la conexión del número).'
+          : 'No se pudo enviar el mensaje. Intenta de nuevo.',
+    }
+  }
+
+  const [{ error: logError }, { error: pauseError }] = await Promise.all([
+    supabase.rpc('log_outbound_message', {
+      p_conversation_id: conversationId,
+      p_body: text,
+      p_sender: 'agent',
+      p_external_id: externalId,
+    }),
+    supabase.rpc('pause_ai', {
+      p_conversation_id: conversationId,
+      p_minutes: MANUAL_PAUSE_MINUTES,
+    }),
+  ])
+  if (logError) console.error('[sendManualReply] log_outbound_message', logError.message)
+  if (pauseError) console.error('[sendManualReply] pause_ai', pauseError.message)
+
+  revalidatePath(`/dashboard/conversaciones/${conversationId}`)
+  revalidatePath('/dashboard/conversaciones')
+  return { ok: true }
+}
+
 // ---- Controles de conversación -------------------------------------
 export async function setAiEnabled(conversationId: string, enabled: boolean): Promise<ActionResult> {
   const supabase = await createClient()
@@ -82,6 +153,17 @@ export async function pauseAi(conversationId: string, minutes = 60): Promise<Act
     p_minutes: minutes,
   })
   if (error) return { ok: false, error: 'No se pudo pausar la IA.' }
+  revalidatePath('/dashboard/conversaciones')
+  revalidatePath(`/dashboard/conversaciones/${conversationId}`)
+  return { ok: true }
+}
+
+export async function resumeAi(conversationId: string): Promise<ActionResult> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('resume_ai', {
+    p_conversation_id: conversationId,
+  })
+  if (error) return { ok: false, error: 'No se pudo reanudar la IA.' }
   revalidatePath('/dashboard/conversaciones')
   revalidatePath(`/dashboard/conversaciones/${conversationId}`)
   return { ok: true }
