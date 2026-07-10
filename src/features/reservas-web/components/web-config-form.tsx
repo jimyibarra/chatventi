@@ -129,7 +129,7 @@ export function WebConfigForm({
             onClick={save}
             disabled={pending}
             data-testid="save-web"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {pending ? 'Guardando…' : 'Guardar'}
           </button>
@@ -140,7 +140,7 @@ export function WebConfigForm({
             <div>
               <p className="text-xs font-medium text-gray-500">Enlace público</p>
               <div className="flex items-center gap-2">
-                <a href={publicUrl} target="_blank" rel="noopener" className="truncate text-sm text-blue-600 hover:underline">
+                <a href={publicUrl} target="_blank" rel="noopener" className="truncate text-sm text-brand-600 hover:underline">
                   {publicUrl}
                 </a>
                 <button onClick={() => copy(publicUrl, 'url')} className="text-xs text-gray-500 hover:text-gray-800">

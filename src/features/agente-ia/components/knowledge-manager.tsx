@@ -52,7 +52,7 @@ export function KnowledgeManager({ items }: { items: KbItem[] }) {
           onClick={add}
           disabled={pending || !content.trim()}
           data-testid="add-kb"
-          className="self-start rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="self-start rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           Agregar
         </button>

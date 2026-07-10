@@ -27,7 +27,7 @@ export function SetupChecklistCard({ checklist }: { checklist: SetupChecklist })
       </div>
       <div className="mb-4 h-2 w-full overflow-hidden rounded-full bg-gray-100">
         <div
-          className="h-full rounded-full bg-blue-600 transition-all"
+          className="h-full rounded-full bg-brand-600 transition-all"
           style={{ width: `${Math.max(percent, 4)}%` }}
         />
       </div>
@@ -46,13 +46,13 @@ export function SetupChecklistCard({ checklist }: { checklist: SetupChecklist })
               <Link
                 href={item.href}
                 data-testid={`checklist-${item.key}`}
-                className="group flex items-start gap-2 rounded-xl border border-gray-200 px-3 py-2 hover:border-blue-300 hover:bg-blue-50"
+                className="group flex items-start gap-2 rounded-xl border border-gray-200 px-3 py-2 hover:border-brand-300 hover:bg-brand-50"
               >
                 <span aria-hidden className="mt-0.5">
                   ⭕
                 </span>
                 <span>
-                  <span className="block text-sm font-medium text-gray-900 group-hover:text-blue-700">
+                  <span className="block text-sm font-medium text-gray-900 group-hover:text-brand-700">
                     {item.label}
                   </span>
                   <span className="block text-xs text-gray-500">{item.hint}</span>

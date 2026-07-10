@@ -54,7 +54,7 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
           onClick={send}
           disabled={pending || !text.trim()}
           data-testid="composer-send"
-          className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {pending ? 'Enviando…' : 'Enviar'}
         </button>

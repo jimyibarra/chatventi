@@ -135,7 +135,7 @@ export function AgentConfigForm({ config }: { config: Config }) {
             onClick={save}
             disabled={pending}
             data-testid="save-agent"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {pending ? 'Guardando…' : 'Guardar'}
           </button>

@@ -134,7 +134,7 @@ export function AppointmentDialog({
                     data-testid="service-chip"
                     className={`rounded-full border px-3 py-1 text-sm ${
                       serviceIds.includes(s.id)
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        ? 'border-brand-500 bg-brand-50 text-brand-700'
                         : 'border-gray-300 text-gray-600 hover:bg-gray-50'
                     }`}
                   >
@@ -199,7 +199,7 @@ export function AppointmentDialog({
                   data-testid="slot-option"
                   className={`rounded-lg border px-2.5 py-1 text-sm ${
                     selectedSlot === slot.slot_start
-                      ? 'border-blue-500 bg-blue-500 text-white'
+                      ? 'border-brand-500 bg-brand-500 text-white'
                       : 'border-gray-300 text-gray-700 hover:bg-gray-50'
                   }`}
                 >
@@ -264,7 +264,7 @@ export function AppointmentDialog({
             onClick={onSubmit}
             disabled={pending || !selectedSlot}
             data-testid="submit-appointment"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {pending ? 'Guardando…' : mode === 'create' ? 'Agendar' : 'Reagendar'}
           </button>

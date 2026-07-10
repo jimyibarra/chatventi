@@ -76,14 +76,14 @@ export default async function DashboardPage() {
       <p className="mt-1 text-gray-600">Panel de tu negocio</p>
 
       {!active && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-          <p className="text-sm text-blue-900">
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4">
+          <p className="text-sm text-brand-900">
             {sub ? `Tu suscripción está: ${STATUS_LABELS[sub.status] ?? sub.status}. ` : ''}
             Activa tu plan para desbloquear todo ChatVenti. 14 días de prueba gratis.
           </p>
           <a
             href="/dashboard/facturacion"
-            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
           >
             Ver planes
           </a>

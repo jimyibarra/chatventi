@@ -81,7 +81,7 @@ export function ServiceManager({ services }: { services: ServiceCatalog[] }) {
           onClick={add}
           disabled={pending || !name}
           data-testid="add-service"
-          className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           Agregar
         </button>

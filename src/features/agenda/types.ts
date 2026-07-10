@@ -46,7 +46,7 @@ export const STATUS_META: Record<
   AppointmentStatus,
   { label: string; badge: string }
 > = {
-  scheduled: { label: 'Agendada', badge: 'bg-blue-100 text-blue-800 border-blue-200' },
+  scheduled: { label: 'Agendada', badge: 'bg-brand-100 text-brand-800 border-brand-200' },
   confirmed: { label: 'Confirmada', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
   completed: { label: 'Completada', badge: 'bg-gray-100 text-gray-700 border-gray-200' },
   cancelled: { label: 'Cancelada', badge: 'bg-rose-100 text-rose-700 border-rose-200' },

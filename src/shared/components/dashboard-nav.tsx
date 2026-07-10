@@ -80,7 +80,7 @@ export function DashboardNav() {
               href={item.href}
               className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${
                 isActive(pathname, item.href)
-                  ? 'bg-blue-50 text-blue-700'
+                  ? 'bg-brand-50 text-brand-700'
                   : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}
               aria-current={isActive(pathname, item.href) ? 'page' : undefined}
@@ -103,7 +103,7 @@ export function DashboardNav() {
             href={item.href}
             onClick={() => setMoreOpen(false)}
             className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
-              isActive(pathname, item.href) ? 'text-blue-600' : 'text-gray-500'
+              isActive(pathname, item.href) ? 'text-brand-600' : 'text-gray-500'
             }`}
             aria-current={isActive(pathname, item.href) ? 'page' : undefined}
           >
@@ -115,7 +115,7 @@ export function DashboardNav() {
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
           className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
-            moreActive || moreOpen ? 'text-blue-600' : 'text-gray-500'
+            moreActive || moreOpen ? 'text-brand-600' : 'text-gray-500'
           }`}
           aria-expanded={moreOpen}
         >
@@ -141,7 +141,7 @@ export function DashboardNav() {
                 onClick={() => setMoreOpen(false)}
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium ${
                   isActive(pathname, item.href)
-                    ? 'bg-blue-50 text-blue-700'
+                    ? 'bg-brand-50 text-brand-700'
                     : 'text-gray-700 hover:bg-gray-50'
                 }`}
               >

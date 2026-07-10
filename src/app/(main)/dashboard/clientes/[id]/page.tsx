@@ -129,7 +129,7 @@ export default async function ClienteDetallePage({
                   </span>
                   <Link
                     href={`/dashboard/conversaciones/${c.id}`}
-                    className="text-xs font-medium text-blue-600 hover:underline"
+                    className="text-xs font-medium text-brand-600 hover:underline"
                     data-testid="open-conversation"
                   >
                     Abrir chat →

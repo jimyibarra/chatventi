@@ -92,7 +92,7 @@ export function BillingClient({ sub, active }: Props) {
         <button
           onClick={goPortal}
           disabled={pending}
-          className="mt-5 rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="mt-5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
         >
           {pending ? 'Abriendo…' : 'Administrar suscripción'}
         </button>
@@ -107,7 +107,7 @@ export function BillingClient({ sub, active }: Props) {
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-gray-200 bg-white p-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Paso 1</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Paso 1</p>
         <h2 className="mt-1 text-lg font-bold text-gray-900">
           ¿Quieres que ChatVenti responda mensajes con IA?
         </h2>
@@ -124,7 +124,7 @@ export function BillingClient({ sub, active }: Props) {
                 onClick={() => setAiTier(t.id)}
                 className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
                   selected
-                    ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600'
+                    ? 'border-brand-600 bg-brand-50 ring-1 ring-brand-600'
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
@@ -139,7 +139,7 @@ export function BillingClient({ sub, active }: Props) {
                   </span>
                   <span className="text-sm text-gray-500">{t.detail}</span>
                 </span>
-                <span className="font-semibold text-blue-700">
+                <span className="font-semibold text-brand-700">
                   {t.priceUsd === 0 ? '+$0' : `+${money(t.priceUsd)}`}
                 </span>
               </button>
@@ -149,7 +149,7 @@ export function BillingClient({ sub, active }: Props) {
       </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">Paso 2</p>
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Paso 2</p>
         <h2 className="mt-1 text-lg font-bold text-gray-900">Extras opcionales</h2>
         <label className="mt-4 flex cursor-pointer items-center justify-between rounded-xl border border-gray-200 px-4 py-3">
           <span>
@@ -157,7 +157,7 @@ export function BillingClient({ sub, active }: Props) {
             <span className="text-sm text-gray-500">Conecta tu dominio con SSL gratis</span>
           </span>
           <span className="flex items-center gap-3">
-            <span className="font-semibold text-blue-700">+{money(ADDON_DOMAIN_USD)}</span>
+            <span className="font-semibold text-brand-700">+{money(ADDON_DOMAIN_USD)}</span>
             <input
               type="checkbox"
               checked={domain}
@@ -209,7 +209,7 @@ export function BillingClient({ sub, active }: Props) {
           <button
             onClick={goCheckout}
             disabled={pending}
-            className="rounded-xl bg-blue-600 px-6 py-3 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-xl bg-brand-600 px-6 py-3 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {pending ? 'Redirigiendo…' : 'Empezar prueba gratis'}
           </button>
