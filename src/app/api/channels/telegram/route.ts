@@ -99,7 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           await tgAnswerCallback(cb.id, choiceText)
           if (!chatId || !channelExternalId || !choiceText) return
           const supabase = createWebhookClient()
-          const { error } = await supabase.rpc('route_inbound_message', {
+          const { data, error } = await supabase.rpc('route_inbound_message', {
             p_channel_type: 'telegram',
             p_external_id: channelExternalId,
             p_from_handle: chatId,
@@ -111,6 +111,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             console.error('[telegram-webhook] route_inbound_message (say) error', error.message)
             return
           }
+          const routed = data as { message_id: string | null; duplicate: boolean } | null
+          // Reintento del proveedor o canal no hallado: no despertar al agente.
+          if (!routed?.message_id || routed.duplicate) return
           await runAgent({
             channelType: 'telegram',
             externalId: channelExternalId,
@@ -208,9 +211,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const fromHandle = String(msg.chat.id)
 
+  // Solo despertar al agente si el mensaje se insertó de verdad (ni error,
+  // ni reintento del proveedor con el mismo update, ni canal no hallado).
+  let shouldHandle = false
   try {
     const supabase = createWebhookClient()
-    const { error } = await supabase.rpc('route_inbound_message', {
+    const { data, error } = await supabase.rpc('route_inbound_message', {
       p_channel_type: 'telegram',
       p_external_id: channelExternalId,
       p_from_handle: fromHandle,
@@ -220,10 +226,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
     if (error) {
       console.error('[telegram-webhook] route_inbound_message error', error.message)
+    } else {
+      const routed = data as { message_id: string | null; duplicate: boolean } | null
+      shouldHandle = Boolean(routed?.message_id) && !routed?.duplicate
     }
   } catch (err) {
     console.error('[telegram-webhook] error procesando', err)
   }
+
+  if (!shouldHandle) return NextResponse.json({ ok: true }, { status: 200 })
 
   // El agente (o el escalamiento de media) corre fuera del ciclo de la request.
   const isMedia = !msg.text && tgHasMedia(msg)

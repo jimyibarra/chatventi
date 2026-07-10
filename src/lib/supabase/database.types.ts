@@ -1018,7 +1018,7 @@ export type Database = {
           p_from_handle: string
           p_media_path?: string
         }
-        Returns: string
+        Returns: Json
       }
       set_ai_enabled: {
         Args: { p_conversation_id: string; p_enabled: boolean }

@@ -131,7 +131,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const phoneNumberId = change.value.metadata?.phone_number_id
         if (!phoneNumberId) continue
         for (const msg of change.value.messages ?? []) {
-          const { error } = await supabase.rpc('route_inbound_message', {
+          const { data, error } = await supabase.rpc('route_inbound_message', {
             p_channel_type: 'whatsapp',
             p_external_id: phoneNumberId,
             p_from_handle: msg.from,
@@ -139,8 +139,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             p_media_path: null,
             p_ext_msg_id: msg.id,
           })
+          const routed = data as { message_id: string | null; duplicate: boolean } | null
           if (error) {
             console.error('[whatsapp-webhook] route_inbound_message error', error.message)
+          } else if (!routed?.message_id || routed.duplicate) {
+            // Canal no encontrado o reintento del proveedor (mismo wamid):
+            // el mensaje ya está en BD; no despertar al agente otra vez.
           } else if (msg.text || msg.interactive?.button_reply) {
             toAnswer.push({ phoneNumberId, from: msg.from })
           } else if (msg.image || msg.audio || msg.document || msg.video) {
