@@ -37,36 +37,40 @@ export function AppointmentDialog({
   )
   const [staffId, setStaffId] = useState<string>(appointment?.staffId ?? '')
   const [date, setDate] = useState<string>(initialDate)
-  const [slots, setSlots] = useState<Slot[]>([])
-  const [selectedSlot, setSelectedSlot] = useState<string>('')
+  const [slotsResult, setSlotsResult] = useState<{ key: string; slots: Slot[] } | null>(null)
+  const [pickedSlot, setPickedSlot] = useState<string>('')
   const [clientName, setClientName] = useState('')
   const [clientPhone, setClientPhone] = useState('')
   const [notes, setNotes] = useState('')
-  const [loadingSlots, setLoadingSlots] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const serviceKey = serviceIds.join(',')
+  // Slots, loading y selección se derivan de la clave de la request vigente:
+  // al cambiar fecha/servicios/staff la clave cambia y lo anterior queda invalidado solo.
+  const requestKey =
+    serviceIds.length === 0 ? null : `${branchId}|${serviceKey}|${date}|${staffId}`
+  const slots = slotsResult && slotsResult.key === requestKey ? slotsResult.slots : []
+  const loadingSlots = requestKey !== null && slotsResult?.key !== requestKey
+  const selectedSlot = slots.some((s) => s.slot_start === pickedSlot) ? pickedSlot : ''
 
   // Carga de disponibilidad al cambiar fecha/servicios/staff.
   useEffect(() => {
-    if (serviceIds.length === 0) {
-      setSlots([])
-      return
-    }
+    if (!requestKey) return
     let active = true
-    setLoadingSlots(true)
-    setSelectedSlot('')
     fetchSlots({ branchId, serviceIds, date, staffId: staffId || null }).then((res) => {
       if (!active) return
-      setLoadingSlots(false)
-      if (res.ok) setSlots(res.data ?? [])
-      else setError(res.error)
+      if (res.ok) {
+        setSlotsResult({ key: requestKey, slots: res.data ?? [] })
+      } else {
+        setSlotsResult({ key: requestKey, slots: [] })
+        setError(res.error)
+      }
     })
     return () => {
       active = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId, serviceKey, date, staffId])
+  }, [requestKey])
 
   function toggleService(id: string) {
     setServiceIds((prev) =>
@@ -191,7 +195,7 @@ export function AppointmentDialog({
                 <button
                   key={`${slot.slot_start}-${slot.staff_id}`}
                   type="button"
-                  onClick={() => setSelectedSlot(slot.slot_start)}
+                  onClick={() => setPickedSlot(slot.slot_start)}
                   data-testid="slot-option"
                   className={`rounded-lg border px-2.5 py-1 text-sm ${
                     selectedSlot === slot.slot_start

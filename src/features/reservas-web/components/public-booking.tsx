@@ -23,25 +23,24 @@ export function PublicBooking({
   const supabase = createClient()
   const [serviceIds, setServiceIds] = useState<string[]>([])
   const [date, setDate] = useState<string>(ymdInTz(new Date(), tz))
-  const [slots, setSlots] = useState<Slot[]>([])
-  const [selectedSlot, setSelectedSlot] = useState<string>('')
+  const [slotsResult, setSlotsResult] = useState<{ key: string; slots: Slot[] } | null>(null)
+  const [pickedSlot, setPickedSlot] = useState<string>('')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [loadingSlots, setLoadingSlots] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
 
   const serviceKey = serviceIds.join(',')
+  // Slots, loading y selección derivados de la clave de la request vigente.
+  const requestKey = serviceIds.length === 0 ? null : `${branchId}|${serviceKey}|${date}`
+  const slots = slotsResult && slotsResult.key === requestKey ? slotsResult.slots : []
+  const loadingSlots = requestKey !== null && slotsResult?.key !== requestKey
+  const selectedSlot = slots.some((s) => s.slot_start === pickedSlot) ? pickedSlot : ''
 
   useEffect(() => {
-    if (serviceIds.length === 0) {
-      setSlots([])
-      return
-    }
+    if (!requestKey) return
     let active = true
-    setLoadingSlots(true)
-    setSelectedSlot('')
     supabase
       .rpc('get_available_slots', {
         p_branch_id: branchId,
@@ -50,14 +49,13 @@ export function PublicBooking({
       })
       .then(({ data }) => {
         if (!active) return
-        setLoadingSlots(false)
-        setSlots((data as Slot[] | null) ?? [])
+        setSlotsResult({ key: requestKey, slots: (data as Slot[] | null) ?? [] })
       })
     return () => {
       active = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId, serviceKey, date])
+  }, [requestKey])
 
   function toggleService(id: string) {
     setServiceIds((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]))
@@ -144,7 +142,7 @@ export function PublicBooking({
               <button
                 key={slot.slot_start}
                 type="button"
-                onClick={() => setSelectedSlot(slot.slot_start)}
+                onClick={() => setPickedSlot(slot.slot_start)}
                 data-testid="pub-slot"
                 className="rounded-lg border px-2.5 py-1 text-sm"
                 style={
