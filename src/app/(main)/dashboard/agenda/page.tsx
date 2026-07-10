@@ -37,14 +37,47 @@ export default async function AgendaPage({
   const week = weekRangeUtc(date, tz)
   const range = view === 'week' ? { from: week.from, to: week.to } : dayRangeUtc(date, tz)
 
-  const [appointments, services, staff] = await Promise.all([
+  const [appointments, services, staff, hoursCount, schedulesCount] = await Promise.all([
     getAppointmentsRange(supabase, branch.id, range.from, range.to),
     getServices(supabase, { onlyActive: true }),
     getStaff(supabase),
+    supabase
+      .from('business_hours')
+      .select('*', { count: 'exact', head: true })
+      .then((r) => r.count ?? 0),
+    supabase
+      .from('staff_schedules')
+      .select('*', { count: 'exact', head: true })
+      .then((r) => r.count ?? 0),
   ])
+
+  // Sin horario o sin disponibilidad del equipo, get_available_slots no puede
+  // ofrecer NINGÚN horario ("Sin horarios disponibles" sin causa aparente).
+  const missingSetup =
+    hoursCount === 0
+      ? 'Aún no defines tu horario de atención, por eso no aparecen horarios al agendar.'
+      : schedulesCount === 0
+        ? 'Aún no configuras la disponibilidad del equipo, por eso no aparecen horarios al agendar.'
+        : null
 
   return (
     <>
+      {missingSetup && (
+        <div className="mx-auto mt-4 max-w-5xl px-4">
+          <div
+            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+            data-testid="agenda-setup-warning"
+          >
+            <p>{missingSetup}</p>
+            <a
+              href="/dashboard/agenda/configuracion"
+              className="rounded-xl bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+            >
+              Configurar ahora
+            </a>
+          </div>
+        </div>
+      )}
       <AgendaBoard
         branchId={branch.id}
         branches={branches.map((b) => ({ id: b.id, name: b.name }))}

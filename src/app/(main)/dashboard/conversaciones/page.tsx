@@ -39,10 +39,19 @@ export default async function ConversacionesPage() {
         <h1 className="mb-4 text-xl font-bold text-gray-900">Conversaciones</h1>
 
         {rows.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-            Aún no hay conversaciones. Llegarán aquí cuando un cliente escriba por WhatsApp o
-            Telegram.
-          </p>
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+            <p className="font-medium text-gray-700">Aquí vivirán tus chats 💬</p>
+            <p className="mt-1">
+              Cuando un cliente te escriba por WhatsApp o Telegram, su conversación aparecerá
+              aquí y tu recepcionista IA podrá atenderla por ti.
+            </p>
+            <a
+              href="/dashboard/conexiones"
+              className="mt-3 inline-block rounded-xl bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Conectar WhatsApp
+            </a>
+          </div>
         ) : (
           <ul className="space-y-2">
             {rows.map((c) => (

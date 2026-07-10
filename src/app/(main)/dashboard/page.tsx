@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { STATUS_LABELS } from '@/features/billing/plans'
+import { getSetupChecklist } from '@/features/onboarding/checklist'
+import { SetupChecklistCard } from '@/features/onboarding/components/setup-checklist'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +66,7 @@ export default async function DashboardPage() {
 
   const sub = await getMySubscription()
   const active = subIsActive(sub)
+  const checklist = await getSetupChecklist(supabase)
 
   return (
     <div className="mx-auto max-w-4xl p-8">
@@ -104,14 +107,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      <div className="mt-8 rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-600">
-        <p className="font-medium text-gray-900">Siguientes pasos</p>
-        <ul className="mt-2 list-inside list-disc space-y-1">
-          <li>Conectar WhatsApp por Embedded Signup</li>
-          <li>Configurar tu agenda y disponibilidad</li>
-          <li>Activar tu recepcionista IA</li>
-        </ul>
-      </div>
+      <SetupChecklistCard checklist={checklist} />
     </div>
   )
 }

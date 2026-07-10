@@ -60,9 +60,19 @@ export default async function ClientesPage({
         </form>
 
         {rows.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-            {q ? 'Sin resultados.' : 'Aún no hay clientes. Aparecerán cuando alguien reserve o escriba.'}
-          </p>
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+            {q ? (
+              'Sin resultados.'
+            ) : (
+              <>
+                <p className="font-medium text-gray-700">Tu CRM se llena solo 👥</p>
+                <p className="mt-1">
+                  Cada cliente que escriba por chat, reserve en tu página web o agende una cita
+                  queda registrado aquí, con su historial de citas y conversaciones.
+                </p>
+              </>
+            )}
+          </div>
         ) : (
           <ul className="space-y-2">
             {rows.map((c) => (
