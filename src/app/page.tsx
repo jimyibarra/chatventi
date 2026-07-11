@@ -16,6 +16,7 @@ import {
 } from '@/features/landing/data'
 import { Icon, PhoneIcon, WhatsAppIcon } from '@/features/landing/icons'
 import { LandingEffects } from '@/features/landing/effects'
+import { DemoChat } from '@/features/landing/demo-chat'
 import '@/features/landing/landing.css'
 
 const manrope = Manrope({ subsets: ['latin'], weight: ['500', '700', '800'], variable: '--font-manrope' })
@@ -287,6 +288,33 @@ export default function Home() {
                   <p style={{ margin: 0, fontSize: 13, color: '#7A758F' }}><strong style={{ color: '#201B36', fontSize: 16 }}>18 seg</strong> respuesta promedio</p>
                 </div>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ============ DEMO EN VIVO ============ */}
+        <section id="demo-en-vivo" aria-labelledby="demo-vivo-titulo" className="cv-container cv-section">
+          <div style={{ display: 'flex', gap: 56, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div data-reveal style={{ flex: '1 1 400px', minWidth: 300 }}>
+              <p className="cv-eyebrow">Pruébalo tú mismo, ahora</p>
+              <h2 id="demo-vivo-titulo" className="cv-h2" style={{ marginBottom: 18 }}>
+                Habla con la IA como si fueras tu cliente
+              </h2>
+              <p style={{ ...BODY_MUTED, fontSize: 17, maxWidth: 480, marginBottom: 24 }}>
+                Esto no es un video ni capturas: es el mismo motor que atenderá a tus clientes,
+                conectado a la agenda de una estética de demostración. Pregúntale precios,
+                pide un horario y mira cómo agenda la cita en segundos.
+              </p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12, color: '#201B36', fontSize: 15.5 }}>
+                {['Respuestas reales generadas por IA, sin guion', 'Consulta disponibilidad y agenda de verdad', 'Así se sentirá para tus clientes en WhatsApp'].map((t) => (
+                  <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
+                    <span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div data-reveal style={{ flex: '1 1 420px', minWidth: 300, display: 'flex', justifyContent: 'center' }}>
+              <DemoChat />
             </div>
           </div>
         </section>

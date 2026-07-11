@@ -183,7 +183,7 @@ const FALLBACK_DRAFT =
 // enviar directo o enrutar a aprobación humana.
 // -------------------------------------------------------------------
 export async function runAgent(params: {
-  channelType: 'whatsapp' | 'telegram'
+  channelType: 'whatsapp' | 'telegram' | 'web'
   externalId: string
   fromHandle: string
   supabase: AnyClient

@@ -169,5 +169,48 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Limpieza de la demo de la landing: las conversaciones/citas de la org
+  // demo son efímeras; se borran las de más de 24h en cada corrida.
+  await cleanupDemoOrg(service)
+
   return NextResponse.json({ ok: true, summary })
+}
+
+const DEMO_ORG_ID = '12974a7a-fb18-4713-9d2c-28c251b09312'
+
+async function cleanupDemoOrg(service: ReturnType<typeof createServiceClient>): Promise<void> {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+
+    const { data: oldConvs } = await service
+      .from('conversations')
+      .select('id, client_id')
+      .eq('organization_id', DEMO_ORG_ID)
+      .lt('created_at', cutoff)
+
+    if (!oldConvs?.length) return
+
+    const convIds = oldConvs.map((c) => c.id)
+    const clientIds = [...new Set(oldConvs.map((c) => c.client_id).filter(Boolean))] as string[]
+
+    await service.from('messages').delete().in('conversation_id', convIds)
+    await service.from('ai_approvals').delete().in('conversation_id', convIds)
+    await service.from('conversations').delete().in('id', convIds)
+
+    if (clientIds.length) {
+      const { data: appts } = await service
+        .from('appointments')
+        .select('id')
+        .eq('organization_id', DEMO_ORG_ID)
+        .in('client_id', clientIds)
+      const apptIds = (appts ?? []).map((a) => a.id)
+      if (apptIds.length) {
+        await service.from('appointment_services').delete().in('appointment_id', apptIds)
+        await service.from('appointments').delete().in('id', apptIds)
+      }
+      await service.from('clients').delete().in('id', clientIds)
+    }
+  } catch (err) {
+    console.error('[cron-reminders] limpieza demo error', err)
+  }
 }
