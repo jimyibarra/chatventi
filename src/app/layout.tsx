@@ -1,9 +1,20 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
+import { PwaRegister } from '@/shared/components/pwa-register'
 
 export const metadata: Metadata = {
   title: 'ChatVenti',
   description: 'Agenda + recepcionista IA para tu negocio, por WhatsApp, Telegram y web.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'ChatVenti',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#5b4fe0',
 }
 
 export default function RootLayout({
@@ -13,7 +24,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es">
-      <body className="bg-gray-50 text-gray-900 antialiased">{children}</body>
+      <body className="bg-gray-50 text-gray-900 antialiased">
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   )
 }

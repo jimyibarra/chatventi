@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/features/auth/components/logout-button'
 import { DashboardNav } from '@/shared/components/dashboard-nav'
+import { PushNotificationPrompt } from '@/features/notifications/components/push-notification-prompt'
 
 export default async function MainLayout({
   children,
@@ -32,6 +33,7 @@ export default async function MainLayout({
         {/* pb-16 en móvil: que la bottom-nav no tape el contenido */}
         <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
       </div>
+      <PushNotificationPrompt />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
+import { notifyOrgOwners } from '@/features/notifications/send'
 import type { AgentContext, AgentSenders } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -57,4 +58,11 @@ export async function handleIncomingMedia(params: {
   if (info?.approval_chat_id && info.approval_id) {
     await senders.sendApproval(info.approval_chat_id, MEDIA_DRAFT, info.approval_id)
   }
+
+  await notifyOrgOwners(ctx.org_id, {
+    title: 'Un cliente envió un archivo 📎',
+    body: 'La conversación quedó escalada para atención humana.',
+    tag: 'escalation',
+    data: { url: `/dashboard/conversaciones/${convId}` },
+  })
 }

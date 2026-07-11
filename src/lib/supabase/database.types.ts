@@ -292,6 +292,78 @@ export type Database = {
           },
         ]
       }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string | null
+          endpoint: string
+          p256dh: string
+          auth: string
+          device_name: string | null
+          browser: string | null
+          user_agent: string | null
+          created_at: string
+          last_used_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string | null
+          endpoint: string
+          p256dh: string
+          auth: string
+          device_name?: string | null
+          browser?: string | null
+          user_agent?: string | null
+          created_at?: string
+          last_used_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string | null
+          endpoint?: string
+          p256dh?: string
+          auth?: string
+          device_name?: string | null
+          browser?: string | null
+          user_agent?: string | null
+          created_at?: string
+          last_used_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          title: string
+          body: string | null
+          data: Json
+          read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          title: string
+          body?: string | null
+          data?: Json
+          read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          title?: string
+          body?: string | null
+          data?: Json
+          read?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       channels: {
         Row: {
           created_at: string

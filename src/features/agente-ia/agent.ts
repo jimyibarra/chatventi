@@ -4,6 +4,7 @@ import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 import { createServiceClient } from '@/lib/supabase/service'
+import { notifyOrgOwners } from '@/features/notifications/send'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -420,6 +421,12 @@ export async function runAgent(params: {
       if (info?.approval_chat_id && info.approval_id) {
         await senders.sendApproval(info.approval_chat_id, FALLBACK_DRAFT, info.approval_id)
       }
+      await notifyOrgOwners(ctx.org_id, {
+        title: 'Un cliente necesita atención 🙋',
+        body: 'El asistente tuvo un problema y un cliente espera respuesta humana.',
+        tag: 'escalation',
+        data: { url: `/dashboard/conversaciones/${convId}` },
+      })
     } catch (fallbackErr) {
       console.error('[agent] fallback error', fallbackErr)
     }
@@ -450,6 +457,12 @@ export async function runAgent(params: {
     if (info?.approval_chat_id && info.approval_id) {
       await senders.sendApproval(info.approval_chat_id, reply, info.approval_id)
     }
+    await notifyOrgOwners(ctx.org_id, {
+      title: 'Respuesta esperando tu aprobación ✋',
+      body: reply.slice(0, 120),
+      tag: 'approval',
+      data: { url: `/dashboard/conversaciones/${convId}` },
+    })
     return { handled: true, mode: 'approval', reply }
   }
 
