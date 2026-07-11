@@ -60,7 +60,15 @@ export async function tgSendChoiceButtons(
 ): Promise<string | null> {
   return tgSendMessage(chatId, text, {
     inline_keyboard: buttons.slice(0, 3).map((b) => [
-      { text: b.title, callback_data: `say:${b.title}`.slice(0, 64) },
+      {
+        text: b.title,
+        // Los botones de horario conservan el instante exacto ([slot:<iso>])
+        // para que el agente no re-derive la hora. Límite Telegram: 64 bytes.
+        callback_data: (b.id.startsWith('slot:')
+          ? `say:${b.title} [${b.id}]`
+          : `say:${b.title}`
+        ).slice(0, 64),
+      },
     ]),
   })
 }

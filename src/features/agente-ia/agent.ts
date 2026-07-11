@@ -67,6 +67,8 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
+    '- Si el mensaje del cliente contiene una marca [slot:<instante>], eligió ese horario: pasa a book_appointment/reschedule_appointment el instante EXACTO que sigue a "slot:" sin modificarlo.',
+    '- Si vas a reservar y NO tienes el instante ISO exacto (devuelto por check_availability en este turno o en una marca [slot:...]), vuelve a llamar check_availability y usa el ISO cuya hora coincida con la que pidió el cliente. NUNCA construyas el instante tú mismo.',
     '- Para CANCELAR o REAGENDAR usa cancel_appointment / reschedule_appointment con el id EXACTO de la lista CITAS PRÓXIMAS DEL CLIENTE. Si tiene varias citas, pregunta cuál UNA sola vez. Si no tiene citas próximas, dilo con amabilidad. Para reagendar, primero consulta disponibilidad con check_availability.',
     '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
     '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
@@ -99,6 +101,32 @@ function toModelMessages(ctx: AgentContext) {
       role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
       content: m.body as string,
     }))
+}
+
+// Red de seguridad de zona horaria: si el modelo pasa un instante SIN offset
+// (p.ej. "2026-07-12T16:30:00"), se interpreta como hora LOCAL de la sucursal
+// y se convierte a UTC. Con offset explícito se respeta tal cual.
+function isoWithTz(input: string, tz: string): string {
+  const s = input.trim()
+  if (/(?:Z|[+-]\d{2}:?\d{2})$/.test(s)) return s
+  const guess = new Date(`${s}Z`)
+  if (Number.isNaN(guess.getTime())) return s
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(guess)
+  const p = Object.fromEntries(parts.map((x) => [x.type, x.value]))
+  const localAtGuess = Date.parse(
+    `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`
+  )
+  const offsetMs = localAtGuess - guess.getTime()
+  return new Date(guess.getTime() - offsetMs).toISOString()
 }
 
 function fmtTime(iso: string, tz: string): string {
@@ -282,12 +310,13 @@ export async function runAgent(params: {
         starts_at: z.string().describe('Instante ISO 8601 del inicio (de check_availability)'),
       }),
       execute: async ({ service_ids, starts_at }) => {
+        const startsAtUtc = isoWithTz(starts_at, tz)
         const { data, error } = await supabase.rpc('create_appointment_from_chat', {
           p_channel_type: channelType,
           p_external_id: externalId,
           p_client_phone: fromHandle,
           p_service_ids: service_ids,
-          p_starts_at: starts_at,
+          p_starts_at: startsAtUtc,
         })
         if (error) {
           if (error.message.includes('slot_taken'))
@@ -305,10 +334,10 @@ export async function runAgent(params: {
         actions.push({
           kind: 'booked',
           services: serviceNames(service_ids),
-          startsAt: starts_at,
+          startsAt: startsAtUtc,
           manageUrl,
         })
-        return { ok: true, appointment_id: data, confirmed_at: fmtTime(starts_at, tz) }
+        return { ok: true, appointment_id: data, confirmed_at: fmtTime(startsAtUtc, tz) }
       },
     }),
     cancel_appointment: tool({
@@ -345,12 +374,13 @@ export async function runAgent(params: {
       execute: async ({ appointment_id, new_starts_at }) => {
         const appt = upcomingById(appointment_id)
         if (!appt) return { ok: false, error: 'Esa cita no está en la lista del cliente.' }
+        const newStartsAtUtc = isoWithTz(new_starts_at, tz)
         const { error } = await supabase.rpc('reschedule_appointment_from_chat', {
           p_channel_type: channelType,
           p_external_id: externalId,
           p_client_phone: fromHandle,
           p_appointment_id: appointment_id,
-          p_new_starts_at: new_starts_at,
+          p_new_starts_at: newStartsAtUtc,
         })
         if (error) {
           if (error.message.includes('slot_taken'))
@@ -368,10 +398,10 @@ export async function runAgent(params: {
         actions.push({
           kind: 'rescheduled',
           services: appt.services,
-          startsAt: new_starts_at,
+          startsAt: newStartsAtUtc,
           manageUrl,
         })
-        return { ok: true, confirmed_at: fmtTime(new_starts_at, tz) }
+        return { ok: true, confirmed_at: fmtTime(newStartsAtUtc, tz) }
       },
     }),
     request_human_approval: tool({

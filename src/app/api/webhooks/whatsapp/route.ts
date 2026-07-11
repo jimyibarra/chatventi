@@ -87,7 +87,12 @@ function isValidSignature(rawBody: string, signatureHeader: string | null, appSe
 function extractBody(msg: z.infer<typeof messageSchema>): string | null {
   if (msg.text) return msg.text.body
   // Reply button pulsado: el titulo entra al historial como texto del cliente.
-  if (msg.interactive?.button_reply) return msg.interactive.button_reply.title
+  // Los botones de horario ("slot:<iso>") conservan el instante exacto en una
+  // marca [slot:...] para que el agente no re-derive la hora (bug de tz).
+  if (msg.interactive?.button_reply) {
+    const { id, title } = msg.interactive.button_reply
+    return id.startsWith('slot:') ? `${title} [${id}]` : title
+  }
   // Media: en Fase 1 no descargamos el binario (proxy firmado se porta en su fase).
   if (msg.image || msg.audio || msg.document || msg.video) return `[${msg.type}]`
   return null
