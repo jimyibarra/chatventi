@@ -25,6 +25,9 @@ export function SignupForm() {
       email: values.email,
       password: values.password,
       options: {
+        // El enlace del correo aterriza en /auth/confirm, que canjea el token,
+        // deja la sesion iniciada y manda a /dashboard (donde se crea el negocio).
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
         data: {
           full_name: values.ownerName,
           // Guardados como "pendientes": el onboarding se completa al primer
