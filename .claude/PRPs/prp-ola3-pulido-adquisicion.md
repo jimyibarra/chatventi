@@ -1,6 +1,6 @@
 # PRP-OLA3: Calidad percibida + adquisición
 
-> **Estado**: 🕐 APROBADA EN PRINCIPIO (Juan pidió "empezar Olas 2 y 3") — alcance detallado listo para ejecución
+> **Estado**: ✅ COMPLETADA (2026-07-10). Commits: A `8670526` (design system brand) · D `275e990` (pedidos por chat) · B `c751880` (PWA + push, skill add-mobile) · C `081844a` (demo IA en vivo, validada con el agente real). Org demo: `12974a7a-fb18-4713-9d2c-28c251b09312` (limpieza automática 24h en el cron). ⚠️ Pendiente de Juan: `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` y `VAPID_SUBJECT` en Vercel Production + redeploy (sin esto el push no funciona en prod; el resto sí).
 > **Fecha**: 2026-07-10
 > **PRP padre**: `prp-chatventi.md` · **Antecesor**: `prp-ola2-cliente-confianza.md` (✅ 2026-07-10)
 > **Insumo**: auditoría UX vs CitaFlow 2026-07-09.
