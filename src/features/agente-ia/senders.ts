@@ -93,6 +93,13 @@ export async function tgEditMessageText(
 // -------------------------------------------------------------------
 // WhatsApp (Cloud API / Graph). Token por canal (channels.credentials).
 // -------------------------------------------------------------------
+
+// México: el wa_id entrante llega como 521XXXXXXXXXX pero Cloud API espera
+// 52XXXXXXXXXX al enviar (el sandbox rechaza el formato 521 con #131030).
+function waNormalizeTo(to: string): string {
+  return /^521\d{10}$/.test(to) ? `52${to.slice(3)}` : to
+}
+
 export async function waSendMessage(
   phoneNumberId: string,
   token: string,
@@ -109,7 +116,7 @@ export async function waSendMessage(
       },
       body: JSON.stringify({
         messaging_product: 'whatsapp',
-        to,
+        to: waNormalizeTo(to),
         type: 'text',
         text: { body: text },
       }),
@@ -145,7 +152,7 @@ export async function waSendInteractiveButtons(
       },
       body: JSON.stringify({
         messaging_product: 'whatsapp',
-        to,
+        to: waNormalizeTo(to),
         type: 'interactive',
         interactive: {
           type: 'button',
