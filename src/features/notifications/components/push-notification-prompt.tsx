@@ -33,7 +33,9 @@ export function PushNotificationPrompt({ autoShowDelay = 4000 }: { autoShowDelay
   }
 
   return (
-    <div className="fixed bottom-20 right-4 z-50 max-w-sm space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg md:bottom-4">
+    // Arriba a la derecha: abajo tapaba el botón Enviar del composer y los
+    // botones de formularios (visto 2 veces en pruebas E2E).
+    <div className="fixed right-4 top-16 z-50 max-w-sm space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
       <p className="text-sm font-semibold text-gray-900">¿Activar notificaciones? 🔔</p>
       <p className="text-xs text-gray-500">
         Te avisamos cuando un cliente necesite a un humano o haya una respuesta esperando tu
