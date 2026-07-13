@@ -9,8 +9,11 @@ import nodemailer, { type Transporter } from 'nodemailer'
  *
  * Env requeridas para activar el envío (Vercel Production + .env.local):
  *   SMTP_HOST=smtp.hostinger.com  SMTP_PORT=465
- *   SMTP_USER=no-reply@chatventi.com  SMTP_PASS=<contraseña de apps>
- *   EMAIL_FROM=ChatVenti <no-reply@chatventi.com>
+ *   SMTP_USER=hola@chatventi.com   ← BUZÓN REAL con login (NO el alias no-reply@,
+ *                                     un alias no puede autenticarse → error 535)
+ *   SMTP_PASS=<Contraseña de apps de hola@ (2FA); la normal da 535>
+ *   EMAIL_FROM=ChatVenti <no-reply@chatventi.com>  ← alias, solo como remitente
+ * Son las MISMAS credenciales que ya usa el SMTP de Supabase Auth.
  */
 let transport: Transporter | null = null
 
