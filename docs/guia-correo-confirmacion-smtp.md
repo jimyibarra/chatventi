@@ -37,3 +37,18 @@ Supabase **no permite editar las plantillas ni el remitente sin SMTP propio**. P
 ```
 
 4. Probar: registrarse con un correo real → debe llegar "Confirma tu cuenta de ChatVenti" de `ChatVenti <no-reply@...>` → clic → entra directo al panel con el negocio creado.
+
+## Plantilla "Restablece tu contraseña" (recovery) — español (2026-07-13)
+
+Aplicada por **Management API** (`PATCH /v1/projects/{ref}/config/auth`), NO hace falta pegarla a mano. Campos: `mailer_subjects_recovery` y `mailer_templates_recovery_content`. El enlace usa `type=recovery`, que `/auth/confirm` enruta a `/nueva-clave`.
+
+> 🔑 El token `sbp_` de `.mcp.json` **tiene permiso de escritura** (PATCH config auth → 200): se pueden editar plantillas de correo y config de Auth por API sin entrar al dashboard.
+
+- **Subject**: `Restablece tu contraseña de ChatVenti`
+- **Body**: mismo estilo de marca que arriba, con este enlace:
+
+```html
+<a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery" ...>Definir nueva contraseña</a>
+```
+
+Flujo completo: `/recuperar` (o el enlace "¿Olvidaste tu contraseña?" del login) → correo → clic → `/auth/confirm?type=recovery` → `/nueva-clave` (fija contraseña con sesión temporal) → dashboard (o `/admin` si es super_admin).
