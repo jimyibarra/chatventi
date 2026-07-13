@@ -18,8 +18,8 @@ export default async function FacturacionPage() {
   return (
     <div className="mx-auto max-w-2xl p-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Facturación</h1>
-        <p className="mt-1 text-gray-600">
+        <h1 className="text-2xl font-bold text-ink">Facturación</h1>
+        <p className="mt-1 text-ink-muted">
           Paga solo por lo que usas. Base con agenda, CRM y reservas web; suma el módulo de
           Recepcionista IA cuando lo necesites.
         </p>

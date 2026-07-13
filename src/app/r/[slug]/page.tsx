@@ -56,7 +56,7 @@ export default async function PublicBookingPage({
   const logo = ctx.org.branding?.logo_url
 
   return (
-    <div className={isEmbed ? 'p-3' : 'min-h-screen bg-gray-50'}>
+    <div className={isEmbed ? 'p-3' : 'min-h-screen bg-surface'}>
       <div className={isEmbed ? 'mx-auto max-w-md' : 'mx-auto max-w-2xl px-4 py-8'}>
         {/* Encabezado con branding */}
         {!isEmbed && (
@@ -73,8 +73,8 @@ export default async function PublicBookingPage({
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{ctx.org.name}</h1>
-              {description && <p className="text-sm text-gray-600">{description}</p>}
+              <h1 className="text-2xl font-bold text-ink">{ctx.org.name}</h1>
+              {description && <p className="text-sm text-ink-muted">{description}</p>}
             </div>
           </header>
         )}
@@ -90,12 +90,12 @@ export default async function PublicBookingPage({
         {/* Tienda de productos */}
         {!isEmbed && ctx.products.length > 0 && (
           <section className="mt-8">
-            <h2 className="mb-3 text-lg font-bold text-gray-900">Productos</h2>
+            <h2 className="mb-3 text-lg font-bold text-ink">Productos</h2>
             <div className="grid gap-3 sm:grid-cols-2">
               {ctx.products.map((p) => (
                 <div
                   key={p.id}
-                  className="flex gap-3 rounded-2xl border border-gray-200 bg-white p-3"
+                  className="flex gap-3 rounded-card border border-line bg-white p-3"
                   data-testid="pub-product"
                 >
                   {p.image_url && (
@@ -103,8 +103,8 @@ export default async function PublicBookingPage({
                     <img src={p.image_url} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
                   )}
                   <div>
-                    <p className="font-medium text-gray-900">{p.name}</p>
-                    {p.description && <p className="text-xs text-gray-500">{p.description}</p>}
+                    <p className="font-medium text-ink">{p.name}</p>
+                    {p.description && <p className="text-xs text-ink-soft">{p.description}</p>}
                     {p.price != null && (
                       <p className="mt-1 text-sm font-semibold" style={{ color: primary }}>
                         ${p.price}
@@ -130,7 +130,7 @@ export default async function PublicBookingPage({
         )}
 
         {!isEmbed && (
-          <p className="mt-8 text-center text-xs text-gray-400">
+          <p className="mt-8 text-center text-xs text-ink-faint">
             Reservas con tecnología de ChatVenti
           </p>
         )}

@@ -22,7 +22,7 @@ export default async function AgendaPage({
   if (branches.length === 0) {
     return (
       <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
           Aún no tienes una sucursal. Se crea automáticamente al registrar tu negocio.
         </div>
       </div>
@@ -65,13 +65,13 @@ export default async function AgendaPage({
       {missingSetup && (
         <div className="mx-auto mt-4 max-w-5xl px-4">
           <div
-            className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+            className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-warn-bg bg-warn-bg p-4 text-sm text-warn"
             data-testid="agenda-setup-warning"
           >
             <p>{missingSetup}</p>
             <a
               href="/dashboard/agenda/configuracion"
-              className="rounded-xl bg-amber-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-amber-700"
+              className="rounded-xl bg-warn-strong px-3 py-1.5 text-sm font-medium text-white hover:bg-warn"
             >
               Configurar ahora
             </a>

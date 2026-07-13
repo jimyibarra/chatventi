@@ -11,17 +11,17 @@ export default function TermsPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="mx-auto max-w-3xl px-6 py-6">
-        <Link href="/" className="text-lg font-bold text-gray-900">
+        <Link href="/" className="text-lg font-bold text-ink">
           {LEGAL.brand}
         </Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-20">
-        <h1 className="text-3xl font-bold text-gray-900">Términos del Servicio</h1>
-        <p className="mt-2 text-sm text-gray-500">Última actualización: {LEGAL.lastUpdated}</p>
+        <h1 className="text-3xl font-bold text-ink">Términos del Servicio</h1>
+        <p className="mt-2 text-sm text-ink-soft">Última actualización: {LEGAL.lastUpdated}</p>
 
-        <div className="mt-8 space-y-6 text-gray-700">
+        <div className="mt-8 space-y-6 text-ink-muted">
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">1. Aceptación</h2>
+            <h2 className="text-xl font-semibold text-ink">1. Aceptación</h2>
             <p>
               Al crear una cuenta o usar {LEGAL.brand} ({LEGAL.domain}) aceptas estos Términos. Si no
               estás de acuerdo, no uses el servicio.
@@ -29,7 +29,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">2. El servicio</h2>
+            <h2 className="text-xl font-semibold text-ink">2. El servicio</h2>
             <p>
               {LEGAL.brand} es un software que permite a negocios atender clientes y gestionar citas
               por WhatsApp, Telegram y web, con apoyo de un asistente de IA. El servicio se ofrece
@@ -38,7 +38,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">3. Tu cuenta</h2>
+            <h2 className="text-xl font-semibold text-ink">3. Tu cuenta</h2>
             <p>
               Eres responsable de la veracidad de los datos de tu negocio, de la seguridad de tus
               credenciales y de la actividad realizada bajo tu cuenta.
@@ -46,7 +46,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">4. Uso aceptable</h2>
+            <h2 className="text-xl font-semibold text-ink">4. Uso aceptable</h2>
             <ul className="list-disc pl-6">
               <li>Cumplir las políticas de WhatsApp Business y de Meta, y las de Telegram.</li>
               <li>No enviar spam ni mensajes no solicitados; respetar el consentimiento del cliente.</li>
@@ -60,7 +60,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">5. Servicios de terceros</h2>
+            <h2 className="text-xl font-semibold text-ink">5. Servicios de terceros</h2>
             <p>
               El servicio depende de plataformas de terceros (Meta/WhatsApp, Telegram, procesador de
               pagos, proveedor de IA e infraestructura). Su disponibilidad y políticas están fuera de
@@ -69,7 +69,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">6. Pagos</h2>
+            <h2 className="text-xl font-semibold text-ink">6. Pagos</h2>
             <p>
               La suscripción se cobra según el plan contratado. Salvo que la ley exija lo contrario,
               los pagos no son reembolsables por periodos ya iniciados. Podemos actualizar los
@@ -78,10 +78,10 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">7. Datos y privacidad</h2>
+            <h2 className="text-xl font-semibold text-ink">7. Datos y privacidad</h2>
             <p>
               El tratamiento de datos personales se rige por nuestra{' '}
-              <Link href="/privacy" className="text-indigo-600 hover:underline">
+              <Link href="/privacy" className="text-brand-600 hover:underline">
                 Política de Privacidad
               </Link>
               .
@@ -89,7 +89,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">8. Disponibilidad y responsabilidad</h2>
+            <h2 className="text-xl font-semibold text-ink">8. Disponibilidad y responsabilidad</h2>
             <p>
               El servicio se ofrece &laquo;tal cual&raquo;. Hacemos esfuerzos razonables por
               mantenerlo disponible, pero no garantizamos una operación ininterrumpida ni libre de
@@ -99,7 +99,7 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">9. Cancelación</h2>
+            <h2 className="text-xl font-semibold text-ink">9. Cancelación</h2>
             <p>
               Puedes cancelar tu suscripción en cualquier momento. Podemos suspender o terminar
               cuentas que incumplan estos Términos o las políticas de las plataformas conectadas.
@@ -107,11 +107,11 @@ export default function TermsPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">10. Cambios y contacto</h2>
+            <h2 className="text-xl font-semibold text-ink">10. Cambios y contacto</h2>
             <p>
               Podemos actualizar estos Términos; la versión vigente se publicará en esta página.
               Dudas:{' '}
-              <a className="text-indigo-600 hover:underline" href={`mailto:${LEGAL.contactEmail}`}>
+              <a className="text-brand-600 hover:underline" href={`mailto:${LEGAL.contactEmail}`}>
                 {LEGAL.contactEmail}
               </a>
               .
@@ -119,8 +119,8 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <div className="mt-10 border-t border-gray-100 pt-6 text-sm">
-          <Link href="/" className="text-indigo-600 hover:underline">
+        <div className="mt-10 border-t border-line-row pt-6 text-sm">
+          <Link href="/" className="text-brand-600 hover:underline">
             ← Volver al inicio
           </Link>
         </div>

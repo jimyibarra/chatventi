@@ -164,11 +164,11 @@ export function EmbeddedSignupButton({
       </button>
 
       {!configId && (
-        <p className="text-xs text-amber-600">
+        <p className="text-xs text-warn">
           Falta configurar <code>NEXT_PUBLIC_META_CONFIG_ID</code> (el Embedded Signup de Meta).
         </p>
       )}
-      {state.kind === 'ok' && <p className="text-sm text-green-600">✓ {state.detail}</p>}
+      {state.kind === 'ok' && <p className="text-sm text-success">✓ {state.detail}</p>}
       {state.kind === 'error' && <p className="text-sm text-red-600">✗ {state.detail}</p>}
     </div>
   )

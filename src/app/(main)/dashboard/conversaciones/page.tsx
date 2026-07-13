@@ -36,18 +36,18 @@ export default async function ConversacionesPage() {
   return (
     <>
       <div className="mx-auto max-w-4xl p-6">
-        <h1 className="mb-4 text-xl font-bold text-gray-900">Conversaciones</h1>
+        <h1 className="mb-4 text-xl font-bold text-ink">Conversaciones</h1>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
-            <p className="font-medium text-gray-700">Aquí vivirán tus chats 💬</p>
+          <div className="rounded-card border border-dashed border-line bg-white p-6 text-sm text-ink-soft">
+            <p className="font-medium text-ink-muted">Aquí vivirán tus chats 💬</p>
             <p className="mt-1">
               Cuando un cliente te escriba por WhatsApp o Telegram, su conversación aparecerá
               aquí y tu recepcionista IA podrá atenderla por ti.
             </p>
             <a
               href="/dashboard/conexiones"
-              className="mt-3 inline-block rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+              className="mt-3 inline-block rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600"
             >
               Conectar WhatsApp
             </a>
@@ -57,16 +57,16 @@ export default async function ConversacionesPage() {
             {rows.map((c) => (
               <li
                 key={c.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white p-4"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-white p-4"
               >
                 <div className="min-w-0">
                   <Link
                     href={`/dashboard/conversaciones/${c.id}`}
-                    className="font-medium text-gray-900 hover:underline"
+                    className="font-medium text-ink hover:underline"
                   >
                     {c.client?.name || c.client?.phone || 'Cliente'}
                   </Link>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-ink-soft">
                     {c.channel?.type ?? '—'} · {STATUS_LABEL[c.status] ?? c.status}
                   </p>
                 </div>

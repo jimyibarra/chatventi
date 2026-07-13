@@ -42,7 +42,7 @@ export default async function ClientesPage({
   return (
     <>
       <div className="mx-auto max-w-4xl space-y-4 p-6">
-        <h1 className="text-xl font-bold text-gray-900">Clientes (CRM)</h1>
+        <h1 className="text-xl font-bold text-ink">Clientes (CRM)</h1>
 
         <TagManager tags={(tags as Tag[] | null) ?? []} />
 
@@ -52,20 +52,20 @@ export default async function ClientesPage({
             defaultValue={q ?? ''}
             data-testid="client-search"
             placeholder="Buscar por nombre o teléfono…"
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="flex-1 rounded-lg border border-line px-3 py-2 text-sm"
           />
-          <button className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+          <button className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface">
             Buscar
           </button>
         </form>
 
         {rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-6 text-sm text-gray-500">
+          <div className="rounded-card border border-dashed border-line bg-white p-6 text-sm text-ink-soft">
             {q ? (
               'Sin resultados.'
             ) : (
               <>
-                <p className="font-medium text-gray-700">Tu CRM se llena solo 👥</p>
+                <p className="font-medium text-ink-muted">Tu CRM se llena solo 👥</p>
                 <p className="mt-1">
                   Cada cliente que escriba por chat, reserve en tu página web o agende una cita
                   queda registrado aquí, con su historial de citas y conversaciones.
@@ -76,16 +76,16 @@ export default async function ClientesPage({
         ) : (
           <ul className="space-y-2">
             {rows.map((c) => (
-              <li key={c.id} className="rounded-2xl border border-gray-200 bg-white p-4">
+              <li key={c.id} className="rounded-card border border-line bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <Link
                     href={`/dashboard/clientes/${c.id}`}
-                    className="font-medium text-gray-900 hover:underline"
+                    className="font-medium text-ink hover:underline"
                     data-testid="client-link"
                   >
                     {c.name || c.phone || 'Cliente sin nombre'}
                   </Link>
-                  <span className="text-xs text-gray-400">{c.phone}</span>
+                  <span className="text-xs text-ink-faint">{c.phone}</span>
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {(c.client_tags ?? [])

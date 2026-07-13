@@ -11,17 +11,17 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-white">
       <header className="mx-auto max-w-3xl px-6 py-6">
-        <Link href="/" className="text-lg font-bold text-gray-900">
+        <Link href="/" className="text-lg font-bold text-ink">
           {LEGAL.brand}
         </Link>
       </header>
       <main className="mx-auto max-w-3xl px-6 pb-20">
-        <h1 className="text-3xl font-bold text-gray-900">Política de Privacidad</h1>
-        <p className="mt-2 text-sm text-gray-500">Última actualización: {LEGAL.lastUpdated}</p>
+        <h1 className="text-3xl font-bold text-ink">Política de Privacidad</h1>
+        <p className="mt-2 text-sm text-ink-soft">Última actualización: {LEGAL.lastUpdated}</p>
 
-        <div className="prose prose-gray mt-8 space-y-6 text-gray-700">
+        <div className="mt-8 space-y-6 text-ink-muted">
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">1. Quiénes somos</h2>
+            <h2 className="text-xl font-semibold text-ink">1. Quiénes somos</h2>
             <p>
               {LEGAL.legalName} (&laquo;{LEGAL.brand}&raquo;, &laquo;nosotros&raquo;) opera la
               plataforma disponible en {LEGAL.domain}, un software que permite a negocios (por
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">2. Nuestro rol</h2>
+            <h2 className="text-xl font-semibold text-ink">2. Nuestro rol</h2>
             <p>
               Cuando un negocio usa {LEGAL.brand} para atender a sus propios clientes, el negocio
               actúa como <strong>responsable</strong> de esos datos y {LEGAL.brand} actúa como
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">3. Datos que recopilamos</h2>
+            <h2 className="text-xl font-semibold text-ink">3. Datos que recopilamos</h2>
             <ul className="list-disc pl-6">
               <li>
                 <strong>Datos de la cuenta:</strong> nombre del negocio, nombre del titular, correo
@@ -68,7 +68,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">4. Cómo usamos los datos</h2>
+            <h2 className="text-xl font-semibold text-ink">4. Cómo usamos los datos</h2>
             <p>
               Prestar y operar el servicio (mensajería, agenda, recordatorios y asistente IA),
               autenticar el acceso, procesar cobros del software, brindar soporte, prevenir fraude y
@@ -77,7 +77,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-ink">
               5. WhatsApp, Telegram y proveedores
             </h2>
             <p>
@@ -109,7 +109,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">6. Conservación</h2>
+            <h2 className="text-xl font-semibold text-ink">6. Conservación</h2>
             <p>
               Conservamos los datos mientras la cuenta esté activa y durante el tiempo necesario
               para cumplir obligaciones legales. El negocio puede solicitar la eliminación de los
@@ -118,11 +118,11 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">7. Tus derechos</h2>
+            <h2 className="text-xl font-semibold text-ink">7. Tus derechos</h2>
             <p>
               Puedes solicitar acceso, rectificación, eliminación u oposición al tratamiento de tus
               datos, así como la portabilidad, escribiendo a{' '}
-              <a className="text-indigo-600 hover:underline" href={`mailto:${LEGAL.privacyEmail}`}>
+              <a className="text-brand-600 hover:underline" href={`mailto:${LEGAL.privacyEmail}`}>
                 {LEGAL.privacyEmail}
               </a>
               . Si eres cliente final de un negocio, dirígete primero a ese negocio como responsable
@@ -131,7 +131,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">8. Seguridad</h2>
+            <h2 className="text-xl font-semibold text-ink">8. Seguridad</h2>
             <p>
               Aplicamos medidas técnicas y organizativas razonables (cifrado en tránsito,
               aislamiento por organización y control de acceso) para proteger la información.
@@ -139,7 +139,7 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">9. Cambios</h2>
+            <h2 className="text-xl font-semibold text-ink">9. Cambios</h2>
             <p>
               Podemos actualizar esta política. Publicaremos la versión vigente en esta página con
               su fecha de actualización.
@@ -147,10 +147,10 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-gray-900">10. Contacto</h2>
+            <h2 className="text-xl font-semibold text-ink">10. Contacto</h2>
             <p>
               Para cualquier duda sobre privacidad, escríbenos a{' '}
-              <a className="text-indigo-600 hover:underline" href={`mailto:${LEGAL.privacyEmail}`}>
+              <a className="text-brand-600 hover:underline" href={`mailto:${LEGAL.privacyEmail}`}>
                 {LEGAL.privacyEmail}
               </a>
               .
@@ -158,8 +158,8 @@ export default function PrivacyPage() {
           </section>
         </div>
 
-        <div className="mt-10 border-t border-gray-100 pt-6 text-sm">
-          <Link href="/" className="text-indigo-600 hover:underline">
+        <div className="mt-10 border-t border-line-row pt-6 text-sm">
+          <Link href="/" className="text-brand-600 hover:underline">
             ← Volver al inicio
           </Link>
         </div>

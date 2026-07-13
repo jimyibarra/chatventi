@@ -21,8 +21,8 @@ export default async function AgentePage() {
     <>
       <div className="mx-auto max-w-3xl space-y-5 p-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Recepcionista IA</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-ink">Recepcionista IA</h1>
+          <p className="text-sm text-ink-soft">
             Configura el agente que atiende WhatsApp y Telegram: agenda citas, responde dudas y
             escala a un humano cuando hace falta.
           </p>

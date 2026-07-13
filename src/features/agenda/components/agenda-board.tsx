@@ -58,13 +58,13 @@ export function AgendaBoard({
     <div className="p-6">
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h1 className="mr-2 text-xl font-bold text-gray-900">Agenda</h1>
+        <h1 className="mr-2 text-xl font-bold text-ink">Agenda</h1>
 
         {branches.length > 1 && (
           <select
             value={branchId}
             onChange={(e) => navigate({ branch: e.target.value })}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-line px-3 py-1.5 text-sm"
           >
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
@@ -74,14 +74,14 @@ export function AgendaBoard({
           </select>
         )}
 
-        <div className="flex overflow-hidden rounded-lg border border-gray-300">
+        <div className="flex overflow-hidden rounded-lg border border-line">
           {(['day', 'week'] as const).map((v) => (
             <button
               key={v}
               onClick={() => navigate({ view: v })}
               data-testid={`view-${v}`}
               className={`px-3 py-1.5 text-sm ${
-                view === v ? 'bg-brand-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-50'
+                view === v ? 'bg-brand-500 text-white' : 'bg-white text-ink-muted hover:bg-surface'
               }`}
             >
               {v === 'day' ? 'Día' : 'Semana'}
@@ -92,27 +92,27 @@ export function AgendaBoard({
         <div className="flex items-center gap-1">
           <button
             onClick={() => navigate({ date: addDays(date, view === 'week' ? -7 : -1, tz) })}
-            className="rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm hover:bg-gray-50"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-sm hover:bg-surface"
             aria-label="Anterior"
           >
             ‹
           </button>
           <button
             onClick={() => navigate({ date: ymdInTz(new Date(), tz) })}
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50"
+            className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-surface"
           >
             Hoy
           </button>
           <button
             onClick={() => navigate({ date: addDays(date, view === 'week' ? 7 : 1, tz) })}
-            className="rounded-lg border border-gray-300 px-2.5 py-1.5 text-sm hover:bg-gray-50"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-sm hover:bg-surface"
             aria-label="Siguiente"
           >
             ›
           </button>
         </div>
 
-        <span className="text-sm font-medium text-gray-600" data-testid="range-label">
+        <span className="text-sm font-medium text-ink-muted" data-testid="range-label">
           {view === 'day'
             ? formatDateLabel(date, tz)
             : `${formatDateLabel(weekDays[0], tz)} – ${formatDateLabel(weekDays[6], tz)}`}
@@ -121,14 +121,14 @@ export function AgendaBoard({
         <div className="ml-auto flex items-center gap-2">
           <Link
             href="/dashboard/agenda/configuracion"
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface"
           >
             Configuración
           </Link>
           <button
             onClick={() => setDialog({ kind: 'create' })}
             data-testid="nueva-cita-btn"
-            className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700"
+            className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600"
           >
             + Nueva cita
           </button>
@@ -217,16 +217,16 @@ function DayView({
   const gridHeight = (DAY_END - DAY_START) * PPM
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
+    <div className="overflow-x-auto rounded-card border border-line bg-white">
       <div className="flex min-w-[640px]">
         {/* Eje de horas */}
-        <div className="w-14 shrink-0 border-r border-gray-100">
-          <div className="h-8 border-b border-gray-100" />
+        <div className="w-14 shrink-0 border-r border-line-row">
+          <div className="h-8 border-b border-line-row" />
           <div className="relative" style={{ height: gridHeight }}>
             {hours.map((h) => (
               <div
                 key={h}
-                className="absolute -translate-y-1/2 pr-2 text-right text-xs text-gray-400"
+                className="absolute -translate-y-1/2 pr-2 text-right text-xs text-ink-faint"
                 style={{ top: (h * 60 - DAY_START) * PPM, right: 0 }}
               >
                 {String(h).padStart(2, '0')}:00
@@ -239,15 +239,15 @@ function DayView({
         {columns.map((col) => {
           const appts = appointments.filter((a) => a.staff_id === col.id)
           return (
-            <div key={col.id ?? 'none'} className="flex-1 border-r border-gray-100 last:border-r-0">
-              <div className="flex h-8 items-center justify-center border-b border-gray-100 text-xs font-medium text-gray-600">
+            <div key={col.id ?? 'none'} className="flex-1 border-r border-line-row last:border-r-0">
+              <div className="flex h-8 items-center justify-center border-b border-line-row text-xs font-medium text-ink-muted">
                 {col.label}
               </div>
               <div className="relative" style={{ height: gridHeight }}>
                 {hours.map((h) => (
                   <div
                     key={h}
-                    className="absolute w-full border-b border-gray-50"
+                    className="absolute w-full border-b border-line-row"
                     style={{ top: (h * 60 - DAY_START) * PPM }}
                   />
                 ))}
@@ -298,13 +298,13 @@ function WeekView({
           .filter((a) => ymdInTz(new Date(a.starts_at), tz) === day)
           .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
         return (
-          <div key={day} className="rounded-xl border border-gray-200 bg-white p-2">
-            <div className="mb-2 text-center text-xs font-medium text-gray-600">
+          <div key={day} className="rounded-xl border border-line bg-white p-2">
+            <div className="mb-2 text-center text-xs font-medium text-ink-muted">
               {formatDateLabel(day, tz)}
             </div>
             <div className="space-y-1">
               {dayAppts.length === 0 ? (
-                <p className="py-2 text-center text-xs text-gray-300">—</p>
+                <p className="py-2 text-center text-xs text-ink-faint">—</p>
               ) : (
                 dayAppts.map((a) => {
                   const meta = STATUS_META[a.status as AppointmentStatus]

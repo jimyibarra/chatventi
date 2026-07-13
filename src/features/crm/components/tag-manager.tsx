@@ -34,10 +34,10 @@ export function TagManager({ tags }: { tags: Tag[] }) {
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-4">
-      <h2 className="mb-2 text-sm font-semibold text-gray-900">Etiquetas</h2>
+    <section className="rounded-card border border-line bg-white p-4">
+      <h2 className="mb-2 text-sm font-semibold text-ink">Etiquetas</h2>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {tags.length === 0 && <span className="text-xs text-gray-400">Sin etiquetas aún.</span>}
+        {tags.length === 0 && <span className="text-xs text-ink-faint">Sin etiquetas aún.</span>}
         {tags.map((t) => (
           <span
             key={t.id}
@@ -62,20 +62,20 @@ export function TagManager({ tags }: { tags: Tag[] }) {
           type="color"
           value={color}
           onChange={(e) => setColor(e.target.value)}
-          className="h-8 w-10 rounded border border-gray-300"
+          className="h-8 w-10 rounded border border-line"
         />
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           data-testid="tag-name"
           placeholder="Nueva etiqueta (ej. VIP)"
-          className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+          className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm"
         />
         <button
           onClick={add}
           disabled={pending || !name.trim()}
           data-testid="add-tag"
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
         >
           Crear
         </button>

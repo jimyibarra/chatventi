@@ -34,8 +34,8 @@ export function HoursManager({
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">Horario de la sucursal</h2>
+    <section className="rounded-card border border-line bg-white p-5">
+      <h2 className="mb-3 text-base font-semibold text-ink">Horario de la sucursal</h2>
       {error && <p className="mb-2 text-sm text-rose-700">{error}</p>}
       <div className="space-y-1">
         {WEEKDAYS.map((label, weekday) => {
@@ -81,8 +81,8 @@ function HourRow({
 
   return (
     <div className="flex flex-wrap items-center gap-2 py-1 text-sm" data-testid={`hour-row-${weekday}`}>
-      <span className="w-24 text-gray-700">{label}</span>
-      <label className="flex items-center gap-1 text-xs text-gray-500">
+      <span className="w-24 text-ink-muted">{label}</span>
+      <label className="flex items-center gap-1 text-xs text-ink-soft">
         <input type="checkbox" checked={isClosed} onChange={(e) => setIsClosed(e.target.checked)} />
         Cerrado
       </label>
@@ -91,20 +91,20 @@ function HourRow({
         value={o}
         disabled={isClosed}
         onChange={(e) => setO(e.target.value)}
-        className="rounded-lg border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
+        className="rounded-lg border border-line px-2 py-1 text-sm disabled:bg-line-soft"
       />
-      <span className="text-gray-400">–</span>
+      <span className="text-ink-faint">–</span>
       <input
         type="time"
         value={c}
         disabled={isClosed}
         onChange={(e) => setC(e.target.value)}
-        className="rounded-lg border border-gray-300 px-2 py-1 text-sm disabled:bg-gray-100"
+        className="rounded-lg border border-line px-2 py-1 text-sm disabled:bg-line-soft"
       />
       <button
         onClick={() => onSave(weekday, o, c, isClosed)}
         disabled={disabled}
-        className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+        className="rounded-lg border border-line px-3 py-1 text-xs font-medium text-ink-muted hover:bg-surface"
       >
         Guardar
       </button>

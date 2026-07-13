@@ -87,17 +87,17 @@ export function PublicBooking({
 
   if (done) {
     return (
-      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 text-center">
-        <p className="text-lg font-semibold text-emerald-800">{done}</p>
-        <p className="mt-1 text-sm text-emerald-700">Te esperamos.</p>
+      <div className="rounded-card border border-success-bg bg-success-bg p-6 text-center">
+        <p className="text-lg font-semibold text-success">{done}</p>
+        <p className="mt-1 text-sm text-success">Te esperamos.</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-5 rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="space-y-5 rounded-card border border-line bg-white p-5">
       <div>
-        <h2 className="mb-2 text-base font-semibold text-gray-900">1. Elige tu servicio</h2>
+        <h2 className="mb-2 text-base font-semibold text-ink">1. Elige tu servicio</h2>
         <div className="flex flex-wrap gap-2">
           {services.map((s) => (
             <button
@@ -120,20 +120,20 @@ export function PublicBooking({
       </div>
 
       <div>
-        <h2 className="mb-2 text-base font-semibold text-gray-900">2. Elige fecha y hora</h2>
+        <h2 className="mb-2 text-base font-semibold text-ink">2. Elige fecha y hora</h2>
         <input
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
           data-testid="pub-date"
-          className="mb-3 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="mb-3 rounded-lg border border-line px-3 py-2 text-sm"
         />
         {serviceIds.length === 0 ? (
-          <p className="text-sm text-gray-500">Selecciona un servicio para ver horarios.</p>
+          <p className="text-sm text-ink-soft">Selecciona un servicio para ver horarios.</p>
         ) : loadingSlots ? (
-          <p className="text-sm text-gray-500">Buscando disponibilidad…</p>
+          <p className="text-sm text-ink-soft">Buscando disponibilidad…</p>
         ) : slots.length === 0 ? (
-          <p className="text-sm text-gray-500" data-testid="pub-no-slots">
+          <p className="text-sm text-ink-soft" data-testid="pub-no-slots">
             Sin horarios disponibles ese día.
           </p>
         ) : (
@@ -159,21 +159,21 @@ export function PublicBooking({
       </div>
 
       <div>
-        <h2 className="mb-2 text-base font-semibold text-gray-900">3. Tus datos</h2>
+        <h2 className="mb-2 text-base font-semibold text-ink">3. Tus datos</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nombre"
             data-testid="pub-name"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Teléfono / WhatsApp"
             data-testid="pub-phone"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm"
           />
         </div>
       </div>

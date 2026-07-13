@@ -73,11 +73,11 @@ export default async function ClienteDetallePage({
       <div className="mx-auto max-w-3xl space-y-5 p-6">
         <Link
           href="/dashboard/clientes"
-          className="inline-block text-sm text-gray-500 hover:text-gray-900"
+          className="inline-block text-sm text-ink-soft hover:text-ink"
         >
           ← Clientes
         </Link>
-        <h1 className="text-xl font-bold text-gray-900">
+        <h1 className="text-xl font-bold text-ink">
           {client.name || client.phone || 'Cliente'}
         </h1>
 
@@ -87,12 +87,12 @@ export default async function ClienteDetallePage({
           assignedTagIds={assignedIds}
         />
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Historial de citas</h2>
+        <section className="rounded-card border border-line bg-white p-5">
+          <h2 className="mb-3 text-base font-semibold text-ink">Historial de citas</h2>
           {appts.length === 0 ? (
-            <p className="text-sm text-gray-400">Sin citas.</p>
+            <p className="text-sm text-ink-faint">Sin citas.</p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line-row">
               {appts.map((a) => {
                 const meta = STATUS_META[a.status as AppointmentStatus]
                 const services = (a.appointment_services ?? [])
@@ -101,7 +101,7 @@ export default async function ClienteDetallePage({
                   .join(', ')
                 return (
                   <li key={a.id} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-gray-700">
+                    <span className="text-ink-muted">
                       {fmtDateTime(a.starts_at)}
                       {services ? ` · ${services}` : ''}
                     </span>
@@ -115,15 +115,15 @@ export default async function ClienteDetallePage({
           )}
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5">
-          <h2 className="mb-3 text-base font-semibold text-gray-900">Conversaciones</h2>
+        <section className="rounded-card border border-line bg-white p-5">
+          <h2 className="mb-3 text-base font-semibold text-ink">Conversaciones</h2>
           {convs.length === 0 ? (
-            <p className="text-sm text-gray-400">Sin conversaciones.</p>
+            <p className="text-sm text-ink-faint">Sin conversaciones.</p>
           ) : (
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-line-row">
               {convs.map((c) => (
                 <li key={c.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-gray-700">
+                  <span className="text-ink-muted">
                     {c.channel?.type ?? '—'}
                     {c.last_message_at ? ` · ${fmtDateTime(c.last_message_at)}` : ''}
                   </span>

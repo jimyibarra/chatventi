@@ -20,11 +20,12 @@ export default async function MainLayout({
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
-        <span className="font-semibold text-gray-900">ChatVenti</span>
+    <div className="min-h-screen bg-surface">
+      {/* En desktop el logo vive en el sidebar; el header solo lleva la cuenta. */}
+      <header className="flex items-center justify-between gap-3 border-b border-line bg-white px-6 py-3 md:justify-end">
+        <span className="font-extrabold tracking-tight text-ink md:hidden">ChatVenti</span>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500">{user.email}</span>
+          <span className="text-sm text-ink-soft">{user.email}</span>
           <LogoutButton />
         </div>
       </header>

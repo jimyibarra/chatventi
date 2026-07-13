@@ -19,7 +19,7 @@ export default async function AgendaConfigPage() {
   if (branches.length === 0) {
     return (
       <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
           Aún no tienes una sucursal.
         </div>
       </div>
@@ -38,8 +38,8 @@ export default async function AgendaConfigPage() {
     <>
       <div className="mx-auto max-w-4xl space-y-5 p-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Configuración de la agenda</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-ink">Configuración de la agenda</h1>
+          <p className="text-sm text-ink-soft">
             Sucursal: {branch.name} · Zona horaria: {branch.timezone}
           </p>
         </div>

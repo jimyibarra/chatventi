@@ -23,8 +23,8 @@ export default async function ReservasWebPage() {
     <>
       <div className="mx-auto max-w-3xl space-y-5 p-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Reservas Web</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-ink">Reservas Web</h1>
+          <p className="text-sm text-ink-soft">
             Publica una página donde tus clientes reservan solos, e incrústala en tu sitio con el
             widget.
           </p>

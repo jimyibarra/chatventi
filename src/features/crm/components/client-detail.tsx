@@ -50,43 +50,43 @@ export function ClientDetail({
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5">
+    <section className="rounded-card border border-line bg-white p-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Nombre</label>
+          <label className="mb-1 block text-sm font-medium text-ink-muted">Nombre</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             data-testid="client-name-input"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Teléfono / handle</label>
+          <label className="mb-1 block text-sm font-medium text-ink-muted">Teléfono / handle</label>
           <input
             value={client.phone ?? ''}
             disabled
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-500"
+            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-soft"
           />
         </div>
       </div>
 
       <div className="mt-3">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Notas</label>
+        <label className="mb-1 block text-sm font-medium text-ink-muted">Notas</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           data-testid="client-notes"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-line px-3 py-2 text-sm"
           placeholder="Preferencias, alergias, observaciones…"
         />
       </div>
 
       <div className="mt-4">
-        <label className="mb-2 block text-sm font-medium text-gray-700">Etiquetas</label>
+        <label className="mb-2 block text-sm font-medium text-ink-muted">Etiquetas</label>
         {allTags.length === 0 ? (
-          <p className="text-xs text-gray-400">Crea etiquetas en la lista de clientes.</p>
+          <p className="text-xs text-ink-faint">Crea etiquetas en la lista de clientes.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {allTags.map((t) => {
@@ -118,11 +118,11 @@ export function ClientDetail({
           onClick={save}
           disabled={pending}
           data-testid="save-client"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
         >
           {pending ? 'Guardando…' : 'Guardar'}
         </button>
-        {saved && <span className="text-sm text-emerald-700">Guardado ✓</span>}
+        {saved && <span className="text-sm text-success">Guardado ✓</span>}
       </div>
     </section>
   )

@@ -33,8 +33,8 @@ export function ConversationControls({
         data-testid="toggle-ai"
         className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
           aiEnabled
-            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-            : 'border-gray-300 bg-gray-50 text-gray-500'
+            ? 'border-success-bg bg-success-bg text-success'
+            : 'border-line bg-surface text-ink-soft'
         }`}
       >
         IA {aiEnabled ? 'activa' : 'apagada'}
@@ -44,14 +44,14 @@ export function ConversationControls({
           onClick={() => run(() => pauseAi(conversationId, 60))}
           disabled={pending}
           data-testid="pause-ai"
-          className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
+          className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface"
         >
           Pausar 1 h
         </button>
       )}
       {aiEnabled && paused && (
         <span
-          className="rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
+          className="rounded-lg border border-warn-bg bg-warn-bg px-2.5 py-1 text-xs font-medium text-warn"
           data-testid="ai-paused-badge"
         >
           IA pausada hasta{' '}
@@ -66,7 +66,7 @@ export function ConversationControls({
           onClick={() => run(() => resumeAi(conversationId))}
           disabled={pending}
           data-testid="resume-ai"
-          className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
+          className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface"
         >
           Reanudar
         </button>
@@ -74,7 +74,7 @@ export function ConversationControls({
       <button
         onClick={() => run(() => setConversationStatus(conversationId, 'closed'))}
         disabled={pending}
-        className="rounded-lg border border-gray-300 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-50"
+        className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface"
       >
         Cerrar
       </button>

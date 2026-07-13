@@ -41,37 +41,37 @@ export function ProductManager({ products }: { products: Product[] }) {
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">Tienda (productos)</h2>
+    <section className="rounded-card border border-line bg-white p-5">
+      <h2 className="mb-3 text-base font-semibold text-ink">Tienda (productos)</h2>
 
       <div className="mb-4 flex flex-wrap items-end gap-2">
         <div>
-          <label className="mb-1 block text-xs text-gray-500">Nombre</label>
+          <label className="mb-1 block text-xs text-ink-soft">Nombre</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             data-testid="product-name"
-            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            className="rounded-lg border border-line px-3 py-1.5 text-sm focus:border-brand-400"
             placeholder="Cera moldeadora"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-gray-500">Precio</label>
+          <label className="mb-1 block text-xs text-ink-soft">Precio</label>
           <input
             type="number"
             min={0}
             value={price}
             onChange={(e) => setPrice(e.target.value)}
-            className="w-24 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            className="w-24 rounded-lg border border-line px-3 py-1.5 text-sm focus:border-brand-400"
             placeholder="—"
           />
         </div>
         <div className="flex-1">
-          <label className="mb-1 block text-xs text-gray-500">Descripción</label>
+          <label className="mb-1 block text-xs text-ink-soft">Descripción</label>
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+            className="w-full rounded-lg border border-line px-3 py-1.5 text-sm focus:border-brand-400"
             placeholder="Opcional"
           />
         </div>
@@ -79,7 +79,7 @@ export function ProductManager({ products }: { products: Product[] }) {
           onClick={add}
           disabled={pending || !name}
           data-testid="add-product"
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
         >
           Agregar
         </button>
@@ -87,13 +87,13 @@ export function ProductManager({ products }: { products: Product[] }) {
 
       {error && <p className="mb-2 text-sm text-rose-700">{error}</p>}
 
-      <ul className="divide-y divide-gray-100">
+      <ul className="divide-y divide-line-row">
         {products.length === 0 && (
-          <li className="py-2 text-sm text-gray-400">Aún no hay productos.</li>
+          <li className="py-2 text-sm text-ink-faint">Aún no hay productos.</li>
         )}
         {products.map((p) => (
           <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-            <span className="text-gray-800">
+            <span className="text-ink-muted">
               {p.name}
               {p.price != null ? ` · $${p.price}` : ''}
             </span>

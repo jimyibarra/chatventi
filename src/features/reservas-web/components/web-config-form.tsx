@@ -62,55 +62,55 @@ export function WebConfigForm({
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">Tu página de reservas</h2>
+    <section className="rounded-card border border-line bg-white p-5">
+      <h2 className="mb-3 text-base font-semibold text-ink">Tu página de reservas</h2>
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Enlace (slug)</label>
+          <label className="mb-1 block text-sm font-medium text-ink-muted">Enlace (slug)</label>
           <div className="flex items-center gap-1 text-sm">
-            <span className="text-gray-400">{BASE}/r/</span>
+            <span className="text-ink-faint">{BASE}/r/</span>
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               data-testid="web-slug"
               placeholder="mi-negocio"
-              className="flex-1 rounded-lg border border-gray-300 px-3 py-2"
+              className="flex-1 rounded-lg border border-line px-3 py-2 focus:border-brand-400"
             />
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Color principal</label>
+            <label className="mb-1 block text-sm font-medium text-ink-muted">Color principal</label>
             <div className="flex items-center gap-2">
               <input
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="h-9 w-12 rounded border border-gray-300"
+                className="h-9 w-12 rounded border border-line"
               />
               <input
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
                 data-testid="web-color"
-                className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-28 rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
               />
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">URL del logo</label>
+            <label className="mb-1 block text-sm font-medium text-ink-muted">URL del logo</label>
             <input
               value={logoUrl}
               onChange={(e) => setLogoUrl(e.target.value)}
               placeholder="https://…/logo.png"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
             />
           </div>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-ink-muted">
             WhatsApp del negocio (para pedidos de productos)
           </label>
           <input
@@ -118,28 +118,28 @@ export function WebConfigForm({
             onChange={(e) => setWhatsappNumber(e.target.value)}
             data-testid="web-whatsapp"
             placeholder="5215512345678 (solo dígitos, con lada del país)"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
           />
-          <p className="mt-1 text-xs text-gray-400">
+          <p className="mt-1 text-xs text-ink-faint">
             Si lo configuras, cada producto de tu página mostrará un botón “Pedir por WhatsApp”.
           </p>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Descripción corta</label>
+          <label className="mb-1 block text-sm font-medium text-ink-muted">Descripción corta</label>
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             data-testid="web-description"
             placeholder="Ej: Barbería clásica en el centro"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
           />
         </div>
 
         {msg && (
           <p
             className={`rounded-lg px-3 py-2 text-sm ${
-              msg.ok ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+              msg.ok ? 'bg-success-bg text-success' : 'bg-rose-50 text-rose-700'
             }`}
             data-testid="web-msg"
           >
@@ -152,32 +152,32 @@ export function WebConfigForm({
             onClick={save}
             disabled={pending}
             data-testid="save-web"
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
           >
             {pending ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
 
         {publicUrl && (
-          <div className="space-y-2 rounded-xl border border-gray-100 bg-gray-50 p-3">
+          <div className="space-y-2 rounded-xl border border-line-soft bg-surface p-3">
             <div>
-              <p className="text-xs font-medium text-gray-500">Enlace público</p>
+              <p className="text-xs font-medium text-ink-soft">Enlace público</p>
               <div className="flex items-center gap-2">
                 <a href={publicUrl} target="_blank" rel="noopener" className="truncate text-sm text-brand-600 hover:underline">
                   {publicUrl}
                 </a>
-                <button onClick={() => copy(publicUrl, 'url')} className="text-xs text-gray-500 hover:text-gray-800">
+                <button onClick={() => copy(publicUrl, 'url')} className="text-xs text-ink-soft hover:text-ink">
                   {copied === 'url' ? '¡Copiado!' : 'Copiar'}
                 </button>
               </div>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500">Widget para tu sitio web</p>
+              <p className="text-xs font-medium text-ink-soft">Widget para tu sitio web</p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded bg-white px-2 py-1 text-xs text-gray-700">
+                <code className="flex-1 truncate rounded bg-white px-2 py-1 text-xs text-ink-muted">
                   {widgetSnippet}
                 </code>
-                <button onClick={() => copy(widgetSnippet!, 'widget')} className="text-xs text-gray-500 hover:text-gray-800">
+                <button onClick={() => copy(widgetSnippet!, 'widget')} className="text-xs text-ink-soft hover:text-ink">
                   {copied === 'widget' ? '¡Copiado!' : 'Copiar'}
                 </button>
               </div>

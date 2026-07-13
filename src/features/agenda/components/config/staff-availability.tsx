@@ -47,21 +47,21 @@ export function StaffAvailability({
   }
 
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5">
-      <h2 className="mb-3 text-base font-semibold text-gray-900">Disponibilidad del equipo</h2>
+    <section className="rounded-card border border-line bg-white p-5">
+      <h2 className="mb-3 text-base font-semibold text-ink">Disponibilidad del equipo</h2>
 
       {staff.length === 0 ? (
-        <p className="text-sm text-amber-700">No hay miembros del equipo activos.</p>
+        <p className="text-sm text-warn">No hay miembros del equipo activos.</p>
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-end gap-2">
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Profesional</label>
+              <label className="mb-1 block text-xs text-ink-soft">Profesional</label>
               <select
                 value={staffId}
                 onChange={(e) => setStaffId(e.target.value)}
                 data-testid="avail-staff"
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-line px-3 py-1.5 text-sm"
               >
                 {staff.map((s) => (
                   <option key={s.id} value={s.id}>
@@ -71,12 +71,12 @@ export function StaffAvailability({
               </select>
             </div>
             <div>
-              <label className="mb-1 block text-xs text-gray-500">Día</label>
+              <label className="mb-1 block text-xs text-ink-soft">Día</label>
               <select
                 value={weekday}
                 onChange={(e) => setWeekday(e.target.value)}
                 data-testid="avail-weekday"
-                className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                className="rounded-lg border border-line px-3 py-1.5 text-sm"
               >
                 {WEEKDAYS.map((label, i) => (
                   <option key={i} value={i}>
@@ -89,20 +89,20 @@ export function StaffAvailability({
               type="time"
               value={start}
               onChange={(e) => setStart(e.target.value)}
-              className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              className="rounded-lg border border-line px-2 py-1.5 text-sm"
             />
-            <span className="text-gray-400">–</span>
+            <span className="text-ink-faint">–</span>
             <input
               type="time"
               value={end}
               onChange={(e) => setEnd(e.target.value)}
-              className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm"
+              className="rounded-lg border border-line px-2 py-1.5 text-sm"
             />
             <button
               onClick={add}
               disabled={pending || !staffId}
               data-testid="add-availability"
-              className="rounded-lg bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
             >
               Agregar
             </button>
@@ -110,13 +110,13 @@ export function StaffAvailability({
 
           {error && <p className="mb-2 text-sm text-rose-700">{error}</p>}
 
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-line-row">
             {schedules.length === 0 && (
-              <li className="py-2 text-sm text-gray-400">Sin bloques de disponibilidad.</li>
+              <li className="py-2 text-sm text-ink-faint">Sin bloques de disponibilidad.</li>
             )}
             {schedules.map((s) => (
               <li key={s.id} className="flex items-center justify-between py-2 text-sm">
-                <span className="text-gray-800">
+                <span className="text-ink-muted">
                   {staffName(s.staff_id)} · {WEEKDAYS[s.weekday]} {s.start_time.slice(0, 5)}–
                   {s.end_time.slice(0, 5)}
                 </span>

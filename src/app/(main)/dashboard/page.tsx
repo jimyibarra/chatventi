@@ -4,6 +4,11 @@ import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { STATUS_LABELS } from '@/features/billing/plans'
 import { getSetupChecklist } from '@/features/onboarding/checklist'
 import { SetupChecklistCard } from '@/features/onboarding/components/setup-checklist'
+import { getPanelMetrics } from '@/features/dashboard/metrics'
+import { IaHeroCell } from '@/features/dashboard/components/ia-hero-cell'
+import { UpcomingCell } from '@/features/dashboard/components/upcoming-cell'
+import { KpiCell } from '@/shared/components/ui/kpi-cell'
+import { ButtonLink } from '@/shared/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,7 +47,7 @@ export default async function DashboardPage() {
     // (NO redirigir a /login: el proxy la devolvería a /dashboard -> bucle).
     return (
       <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-800">
+        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
           Tu cuenta aún no tiene un negocio asociado. Cierra sesión y regístrate
           de nuevo para crear tu negocio.
         </div>
@@ -56,54 +61,84 @@ export default async function DashboardPage() {
     .select('name, created_at')
     .maybeSingle()
 
-  const { count: channelsCount } = await supabase
-    .from('channels')
-    .select('*', { count: 'exact', head: true })
-
-  const { count: branchesCount } = await supabase
-    .from('branches')
-    .select('*', { count: 'exact', head: true })
-
   const sub = await getMySubscription()
   const active = subIsActive(sub)
   const checklist = await getSetupChecklist(supabase)
+  const metrics = await getPanelMetrics(supabase)
+
+  const todayLabel = new Intl.DateTimeFormat('es-MX', {
+    timeZone: metrics.tz,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date())
 
   return (
-    <div className="mx-auto max-w-4xl p-8">
-      <h1 className="text-2xl font-bold text-gray-900">
-        Bienvenido{profile?.full_name ? `, ${profile.full_name}` : ''}
-      </h1>
-      <p className="mt-1 text-gray-600">Panel de tu negocio</p>
+    <div className="mx-auto max-w-5xl p-5 md:p-8">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Panel</h1>
+          <p className="mt-0.5 text-[13px] text-ink-soft">
+            Hola{profile.full_name ? ` ${profile.full_name}` : ''} —{' '}
+            <span data-testid="org-name" className="font-medium text-ink-muted">
+              {org?.name ?? '—'}
+            </span>{' '}
+            · {todayLabel}
+          </p>
+        </div>
+        <ButtonLink href="/dashboard/agenda">+ Nueva cita</ButtonLink>
+      </div>
 
       {!active && (
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand-200 bg-brand-50 p-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-200 bg-brand-50 p-4">
           <p className="text-sm text-brand-900">
             {sub ? `Tu suscripción está: ${STATUS_LABELS[sub.status] ?? sub.status}. ` : ''}
             Activa tu plan para desbloquear todo ChatVenti. 14 días de prueba gratis.
           </p>
-          <a
-            href="/dashboard/facturacion"
-            className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
-          >
+          <ButtonLink href="/dashboard/facturacion" className="text-sm">
             Ver planes
-          </a>
+          </ButtonLink>
         </div>
       )}
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <p className="text-sm text-gray-500">Negocio</p>
-          <p className="mt-1 text-lg font-semibold text-gray-900" data-testid="org-name">
-            {org?.name ?? '—'}
-          </p>
+      {/* Mosaico bento: 4 KPIs arriba, hero IA + próximas citas abajo. */}
+      <div className="grid grid-cols-2 gap-3.5 md:grid-cols-4">
+        <KpiCell
+          label="Citas hoy"
+          value={metrics.citasHoy.value}
+          delta={metrics.citasHoy.delta}
+          deltaTone={metrics.citasHoy.deltaTone}
+          spark={metrics.citasHoy.spark}
+        />
+        <KpiCell
+          label="Conversaciones"
+          value={metrics.conversaciones.value}
+          delta={metrics.conversaciones.delta}
+          deltaTone={metrics.conversaciones.deltaTone}
+          spark={metrics.conversaciones.spark}
+        />
+        {metrics.confirmacion ? (
+          <KpiCell
+            label="Confirmación"
+            value={metrics.confirmacion.value}
+            delta={metrics.confirmacion.detail}
+            deltaTone="warn"
+          />
+        ) : (
+          <KpiCell label="Confirmación" value="—" delta="Sin citas aún" deltaTone="warn" />
+        )}
+        <KpiCell
+          label="Clientes nuevos"
+          value={metrics.clientesNuevos}
+          delta="últimos 7 días"
+          deltaTone="success"
+        />
+
+        <div className="col-span-2">
+          <IaHeroCell ia={metrics.ia} />
         </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <p className="text-sm text-gray-500">Sucursales</p>
-          <p className="mt-1 text-lg font-semibold text-gray-900">{branchesCount ?? 0}</p>
-        </div>
-        <div className="rounded-2xl border border-gray-200 bg-white p-5">
-          <p className="text-sm text-gray-500">Canales conectados</p>
-          <p className="mt-1 text-lg font-semibold text-gray-900">{channelsCount ?? 0}</p>
+        <div className="col-span-2">
+          <UpcomingCell proximas={metrics.proximas} />
         </div>
       </div>
 

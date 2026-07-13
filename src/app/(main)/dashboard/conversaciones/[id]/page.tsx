@@ -53,16 +53,16 @@ export default async function ConversacionDetallePage({
       <div className="mx-auto max-w-2xl p-6">
         <Link
           href="/dashboard/conversaciones"
-          className="mb-3 inline-block text-sm text-gray-500 hover:text-gray-900"
+          className="mb-3 inline-block text-sm text-ink-soft hover:text-ink"
         >
           ← Conversaciones
         </Link>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">
+            <h1 className="text-lg font-bold text-ink">
               {client?.name || client?.phone || 'Cliente'}
             </h1>
-            <p className="text-xs text-gray-500">{channel?.type ?? '—'}</p>
+            <p className="text-xs text-ink-soft">{channel?.type ?? '—'}</p>
           </div>
           <ConversationControls
             conversationId={conv.id}
@@ -72,14 +72,14 @@ export default async function ConversacionDetallePage({
         </div>
 
         {(approvals ?? []).some((a) => a.status === 'pending') && (
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <div className="mb-4 rounded-xl border border-warn-bg bg-warn-bg p-3 text-sm text-warn">
             Hay una respuesta esperando aprobación por Telegram.
           </div>
         )}
 
-        <div className="space-y-2 rounded-2xl border border-gray-200 bg-white p-4">
+        <div className="space-y-2 rounded-card border border-line bg-white p-4">
           {(messages ?? []).length === 0 ? (
-            <p className="text-sm text-gray-400">Sin mensajes.</p>
+            <p className="text-sm text-ink-faint">Sin mensajes.</p>
           ) : (
             (messages ?? []).map((m) => (
               <div
@@ -90,7 +90,7 @@ export default async function ConversacionDetallePage({
                   className={`max-w-[75%] rounded-2xl px-3 py-2 text-sm ${
                     m.direction === 'outbound'
                       ? 'bg-brand-600 text-white'
-                      : 'bg-gray-100 text-gray-800'
+                      : 'bg-line-soft text-ink-muted'
                   }`}
                 >
                   <p className="mb-0.5 text-[10px] uppercase opacity-70">
@@ -107,22 +107,22 @@ export default async function ConversacionDetallePage({
 
         {(approvals ?? []).length > 0 && (
           <div className="mt-4">
-            <h2 className="mb-2 text-sm font-semibold text-gray-700">Historial de aprobaciones</h2>
+            <h2 className="mb-2 text-sm font-semibold text-ink-muted">Historial de aprobaciones</h2>
             <ul className="space-y-1">
               {(approvals ?? []).map((a) => (
-                <li key={a.id} className="rounded-lg border border-gray-200 bg-white p-2 text-xs">
+                <li key={a.id} className="rounded-lg border border-line bg-white p-2 text-xs">
                   <span
                     className={`mr-2 rounded-full px-2 py-0.5 ${
                       a.status === 'approved'
-                        ? 'bg-emerald-100 text-emerald-700'
+                        ? 'bg-success-bg text-success'
                         : a.status === 'rejected'
                           ? 'bg-rose-100 text-rose-700'
-                          : 'bg-amber-100 text-amber-800'
+                          : 'bg-warn-bg text-warn'
                     }`}
                   >
                     {a.status}
                   </span>
-                  <span className="text-gray-600">{a.draft}</span>
+                  <span className="text-ink-muted">{a.draft}</span>
                 </li>
               ))}
             </ul>

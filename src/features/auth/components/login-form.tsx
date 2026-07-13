@@ -35,22 +35,22 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-gray-700">Correo</label>
+        <label className="block text-sm font-medium text-ink-muted">Correo</label>
         <input
           type="email"
           autoComplete="email"
           {...register('email')}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
         {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-gray-700">Contraseña</label>
+        <label className="block text-sm font-medium text-ink-muted">Contraseña</label>
         <input
           type="password"
           autoComplete="current-password"
           {...register('password')}
-          className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="mt-1 w-full rounded-lg border border-line px-3 py-2 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
         {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
       </div>
@@ -58,13 +58,13 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full rounded-lg bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-brand-500 px-4 py-2 font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
       >
         {isSubmitting ? 'Entrando…' : 'Entrar'}
       </button>
-      <p className="text-center text-sm text-gray-600">
+      <p className="text-center text-sm text-ink-muted">
         ¿No tienes cuenta?{' '}
-        <Link href="/signup" className="font-medium text-indigo-600 hover:underline">
+        <Link href="/signup" className="font-medium text-brand-600 hover:underline">
           Crea tu negocio
         </Link>
       </p>

@@ -26,17 +26,17 @@ export default async function ConexionesPage() {
     <>
       <div className="mx-auto max-w-3xl space-y-6 p-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Conexiones</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-xl font-bold text-ink">Conexiones</h1>
+          <p className="text-sm text-ink-soft">
             Conecta el WhatsApp de tu negocio para que el asistente atienda por ese canal. Usa el
             inicio de sesión de Meta: eliges (o creas) tu cuenta de WhatsApp Business y tu número.
           </p>
         </div>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <section className="rounded-card border border-line bg-white p-5">
           <div className="mb-3 flex items-center gap-2">
             <span className="text-lg">💬</span>
-            <h2 className="font-semibold text-gray-900">WhatsApp</h2>
+            <h2 className="font-semibold text-ink">WhatsApp</h2>
           </div>
 
           {channels && channels.length > 0 ? (
@@ -44,13 +44,13 @@ export default async function ConexionesPage() {
               {channels.map((ch) => (
                 <li
                   key={ch.id}
-                  className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-sm"
+                  className="flex items-center justify-between rounded-lg bg-surface px-3 py-2 text-sm"
                 >
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-ink">
                       {ch.display_name ?? 'Número de WhatsApp'}
                     </p>
-                    <p className="text-gray-500">
+                    <p className="text-ink-soft">
                       ID: {ch.external_id}
                       {ch.waba_id ? ` · WABA ${ch.waba_id}` : ''}
                     </p>
@@ -58,8 +58,8 @@ export default async function ConexionesPage() {
                   <span
                     className={
                       ch.status === 'active'
-                        ? 'rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700'
-                        : 'rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700'
+                        ? 'rounded-full bg-success-bg px-2 py-0.5 text-xs font-medium text-success'
+                        : 'rounded-full bg-warn-bg px-2 py-0.5 text-xs font-medium text-warn'
                     }
                   >
                     {STATUS_LABEL[ch.status] ?? ch.status}
@@ -68,7 +68,7 @@ export default async function ConexionesPage() {
               ))}
             </ul>
           ) : (
-            <p className="mb-4 text-sm text-gray-500">Todavía no has conectado ningún WhatsApp.</p>
+            <p className="mb-4 text-sm text-ink-soft">Todavía no has conectado ningún WhatsApp.</p>
           )}
 
           <EmbeddedSignupButton appId={appId} configId={configId} />

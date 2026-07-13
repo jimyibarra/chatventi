@@ -21,6 +21,36 @@ const config: Config = {
           800: '#362da3',
           900: '#2b247d',
         },
+        // Bento Grid claro (PRP prp-rediseno-bento-claro): tokens de la tarjeta
+        // aprobada en Claude Design (comparativa/panel-bento.html).
+        ink: {
+          DEFAULT: '#1a1830',
+          muted: '#6b6a80',
+          soft: '#8a89a0',
+          faint: '#9997ae',
+        },
+        surface: '#f6f6fa',
+        line: {
+          DEFAULT: '#e8e7f2',
+          soft: '#eceaf5',
+          row: '#f1f0f8',
+        },
+        success: {
+          DEFAULT: '#0d9463',
+          bg: '#e4f7ef',
+        },
+        warn: {
+          DEFAULT: '#a07408',
+          strong: '#b8860b',
+          bg: '#fdf3d7',
+        },
+      },
+      borderRadius: {
+        card: '18px',
+      },
+      boxShadow: {
+        'card-hover': '0 4px 20px rgba(91,79,224,.10)',
+        btn: '0 2px 8px rgba(91,79,224,.30)',
       },
     },
   },

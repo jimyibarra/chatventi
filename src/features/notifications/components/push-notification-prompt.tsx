@@ -35,9 +35,9 @@ export function PushNotificationPrompt({ autoShowDelay = 4000 }: { autoShowDelay
   return (
     // Arriba a la derecha: abajo tapaba el botón Enviar del composer y los
     // botones de formularios (visto 2 veces en pruebas E2E).
-    <div className="fixed right-4 top-16 z-50 max-w-sm space-y-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-lg">
-      <p className="text-sm font-semibold text-gray-900">¿Activar notificaciones? 🔔</p>
-      <p className="text-xs text-gray-500">
+    <div className="fixed right-4 top-16 z-50 max-w-sm space-y-3 rounded-card border border-line bg-white p-4 shadow-lg">
+      <p className="text-sm font-semibold text-ink">¿Activar notificaciones? 🔔</p>
+      <p className="text-xs text-ink-soft">
         Te avisamos cuando un cliente necesite a un humano o haya una respuesta esperando tu
         aprobación — aunque no tengas ChatVenti abierto.
       </p>
@@ -45,14 +45,14 @@ export function PushNotificationPrompt({ autoShowDelay = 4000 }: { autoShowDelay
         <button
           onClick={handleEnable}
           data-testid="push-enable"
-          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
+          className="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-btn hover:bg-brand-600"
         >
           Activar
         </button>
         <button
           onClick={handleDismiss}
           data-testid="push-dismiss"
-          className="rounded-lg px-3 py-1.5 text-xs text-gray-500 hover:text-gray-800"
+          className="rounded-lg px-3 py-1.5 text-xs text-ink-soft hover:text-ink"
         >
           Ahora no
         </button>

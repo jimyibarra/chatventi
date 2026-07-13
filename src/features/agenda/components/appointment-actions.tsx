@@ -47,29 +47,29 @@ export function AppointmentActions({
     <Modal title="Detalle de la cita" onClose={onClose} testId="appointment-actions">
       <div className="space-y-3 text-sm">
         <div className="flex items-center justify-between">
-          <span className="font-medium text-gray-900">
+          <span className="font-medium text-ink">
             {formatTime(appointment.starts_at, tz)} – {formatTime(appointment.ends_at, tz)}
           </span>
           <span className={`rounded-full border px-2 py-0.5 text-xs ${meta.badge}`}>
             {meta.label}
           </span>
         </div>
-        <div className="space-y-1 text-gray-600">
+        <div className="space-y-1 text-ink-muted">
           <p>
-            <span className="text-gray-400">Cliente:</span>{' '}
+            <span className="text-ink-faint">Cliente:</span>{' '}
             {appointment.client?.name || appointment.client?.phone || 'Sin cliente'}
           </p>
           <p>
-            <span className="text-gray-400">Profesional:</span>{' '}
+            <span className="text-ink-faint">Profesional:</span>{' '}
             {appointment.staff?.full_name || 'Sin asignar'}
           </p>
           <p>
-            <span className="text-gray-400">Servicios:</span>{' '}
+            <span className="text-ink-faint">Servicios:</span>{' '}
             {appointment.services.map((s) => s.name).join(', ') || '—'}
           </p>
           {appointment.notes && (
             <p>
-              <span className="text-gray-400">Notas:</span> {appointment.notes}
+              <span className="text-ink-faint">Notas:</span> {appointment.notes}
             </p>
           )}
         </div>
@@ -87,7 +87,7 @@ export function AppointmentActions({
               onClick={() => changeStatus(t.status)}
               disabled={pending || appointment.status === t.status}
               data-testid={t.testId}
-              className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+              className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface disabled:opacity-40"
             >
               {t.label}
             </button>
@@ -96,7 +96,7 @@ export function AppointmentActions({
         <button
           onClick={onReschedule}
           data-testid="open-reschedule"
-          className="w-full rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+          className="w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600"
         >
           Reagendar
         </button>

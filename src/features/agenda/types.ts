@@ -47,10 +47,10 @@ export const STATUS_META: Record<
   { label: string; badge: string }
 > = {
   scheduled: { label: 'Agendada', badge: 'bg-brand-100 text-brand-800 border-brand-200' },
-  confirmed: { label: 'Confirmada', badge: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
-  completed: { label: 'Completada', badge: 'bg-gray-100 text-gray-700 border-gray-200' },
+  confirmed: { label: 'Confirmada', badge: 'bg-success-bg text-success border-success-bg' },
+  completed: { label: 'Completada', badge: 'bg-line-soft text-ink-muted border-line' },
   cancelled: { label: 'Cancelada', badge: 'bg-rose-100 text-rose-700 border-rose-200' },
-  no_show: { label: 'No asistió', badge: 'bg-amber-100 text-amber-800 border-amber-200' },
+  no_show: { label: 'No asistió', badge: 'bg-warn-bg text-warn border-warn-bg' },
 }
 
 // -------------------------------------------------------------------

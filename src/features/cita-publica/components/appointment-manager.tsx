@@ -93,17 +93,17 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
 
   const meta = STATUS_META[appointment.status as AppointmentStatus] ?? {
     label: appointment.status,
-    badge: 'bg-gray-100 text-gray-700 border-gray-200',
+    badge: 'bg-line-soft text-ink-muted border-line',
   }
   const isConfirmed = appointment.status === 'confirmed'
 
   return (
-    <div className="space-y-4 rounded-2xl border border-gray-200 bg-white p-5">
+    <div className="space-y-4 rounded-card border border-line bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-wide text-gray-400">Tu cita en</p>
-          <h1 className="text-lg font-bold text-gray-900">{org.name}</h1>
-          <p className="text-sm text-gray-500">{branch.name}</p>
+          <p className="text-xs uppercase tracking-wide text-ink-faint">Tu cita en</p>
+          <h1 className="text-lg font-bold text-ink">{org.name}</h1>
+          <p className="text-sm text-ink-soft">{branch.name}</p>
         </div>
         <span
           className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.badge}`}
@@ -113,11 +113,11 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
         </span>
       </div>
 
-      <div className="rounded-xl bg-gray-50 p-3">
-        <p className="text-sm font-semibold text-gray-900" data-testid="cita-when">
+      <div className="rounded-xl bg-surface p-3">
+        <p className="text-sm font-semibold text-ink" data-testid="cita-when">
           📅 {fmtDateTime(appointment.starts_at, tz)}
         </p>
-        <p className="mt-1 text-sm text-gray-600">
+        <p className="mt-1 text-sm text-ink-muted">
           🔹 {services.map((s) => s.name).join(' + ') || 'Servicio'}
         </p>
       </div>
@@ -137,7 +137,7 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
               }
               disabled={busy}
               data-testid="cita-confirmar"
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+              className="rounded-lg bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success/90 disabled:opacity-50"
             >
               ✅ Confirmar asistencia
             </button>
@@ -146,7 +146,7 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
             onClick={() => setRescheduling(true)}
             disabled={busy}
             data-testid="cita-reagendar"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface"
           >
             📅 Cambiar fecha u hora
           </button>
@@ -166,19 +166,19 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
       )}
 
       {appointment.can_manage && rescheduling && (
-        <div className="space-y-3 rounded-xl border border-gray-200 p-3">
-          <p className="text-sm font-semibold text-gray-900">Elige nueva fecha y hora</p>
+        <div className="space-y-3 rounded-xl border border-line p-3">
+          <p className="text-sm font-semibold text-ink">Elige nueva fecha y hora</p>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             data-testid="cita-fecha"
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            className="rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
           />
           {loadingSlots ? (
-            <p className="text-sm text-gray-500">Buscando disponibilidad…</p>
+            <p className="text-sm text-ink-soft">Buscando disponibilidad…</p>
           ) : slots.length === 0 ? (
-            <p className="text-sm text-gray-500" data-testid="cita-no-slots">
+            <p className="text-sm text-ink-soft" data-testid="cita-no-slots">
               Sin horarios disponibles ese día.
             </p>
           ) : (
@@ -192,7 +192,7 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
                   className={`rounded-lg border px-2.5 py-1 text-sm ${
                     selectedSlot === slot.slot_start
                       ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-line text-ink-muted hover:bg-surface'
                   }`}
                 >
                   {formatTime(slot.slot_start, tz)}
@@ -212,14 +212,14 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
               }
               disabled={busy || !selectedSlot}
               data-testid="cita-reagendar-confirmar"
-              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
             >
               {busy ? 'Guardando…' : 'Confirmar cambio'}
             </button>
             <button
               onClick={() => setRescheduling(false)}
               disabled={busy}
-              className="rounded-lg border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+              className="rounded-lg border border-line px-4 py-2 text-sm text-ink-muted hover:bg-surface"
             >
               Volver
             </button>
@@ -228,7 +228,7 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
       )}
 
       {!appointment.can_manage && (
-        <p className="text-sm text-gray-500" data-testid="cita-no-gestionable">
+        <p className="text-sm text-ink-soft" data-testid="cita-no-gestionable">
           Esta cita ya no se puede modificar desde aquí. Si necesitas ayuda, escríbenos por el
           chat donde la agendaste.
         </p>

@@ -64,6 +64,22 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`)
 }
 
+function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+  const active = isActive(pathname, item.href)
+  return (
+    <Link
+      href={item.href}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+        active ? 'bg-brand-50 text-brand-700' : 'text-ink-muted hover:bg-surface hover:text-ink'
+      }`}
+      aria-current={active ? 'page' : undefined}
+    >
+      {item.icon}
+      {item.label}
+    </Link>
+  )
+}
+
 export function DashboardNav() {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
@@ -72,29 +88,27 @@ export function DashboardNav() {
   return (
     <>
       {/* Sidebar desktop */}
-      <aside className="hidden w-56 shrink-0 border-r border-gray-200 bg-white md:block">
+      <aside className="hidden w-56 shrink-0 border-r border-line bg-white md:block">
         <nav className="sticky top-0 flex flex-col gap-1 p-3" aria-label="Navegación principal">
-          {[...PRIMARY, ...SECONDARY].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium ${
-                isActive(pathname, item.href)
-                  ? 'bg-brand-50 text-brand-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-              aria-current={isActive(pathname, item.href) ? 'page' : undefined}
-            >
-              {item.icon}
-              {item.label}
-            </Link>
+          <div className="flex items-center gap-2.5 px-2.5 pb-3 pt-1">
+            <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-gradient-to-br from-brand-400 to-brand-700 text-sm shadow-btn">
+              💬
+            </span>
+            <span className="text-[15px] font-extrabold tracking-tight text-ink">ChatVenti</span>
+          </div>
+          {PRIMARY.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
+          ))}
+          <div className="my-2 h-px bg-line-soft" />
+          {SECONDARY.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} />
           ))}
         </nav>
       </aside>
 
       {/* Bottom-nav móvil */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-gray-200 bg-white md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-line bg-white md:hidden"
         aria-label="Navegación principal"
       >
         {PRIMARY.map((item) => (
@@ -103,7 +117,7 @@ export function DashboardNav() {
             href={item.href}
             onClick={() => setMoreOpen(false)}
             className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
-              isActive(pathname, item.href) ? 'text-brand-600' : 'text-gray-500'
+              isActive(pathname, item.href) ? 'text-brand-600' : 'text-ink-soft'
             }`}
             aria-current={isActive(pathname, item.href) ? 'page' : undefined}
           >
@@ -115,7 +129,7 @@ export function DashboardNav() {
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
           className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${
-            moreActive || moreOpen ? 'text-brand-600' : 'text-gray-500'
+            moreActive || moreOpen ? 'text-brand-600' : 'text-ink-soft'
           }`}
           aria-expanded={moreOpen}
         >
@@ -131,7 +145,7 @@ export function DashboardNav() {
           onClick={() => setMoreOpen(false)}
         >
           <div
-            className="absolute inset-x-0 bottom-12 rounded-t-2xl border-t border-gray-200 bg-white p-3 pb-4 shadow-lg"
+            className="absolute inset-x-0 bottom-12 rounded-t-2xl border-t border-line bg-white p-3 pb-4 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
             {SECONDARY.map((item) => (
@@ -142,7 +156,7 @@ export function DashboardNav() {
                 className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium ${
                   isActive(pathname, item.href)
                     ? 'bg-brand-50 text-brand-700'
-                    : 'text-gray-700 hover:bg-gray-50'
+                    : 'text-ink-muted hover:bg-surface'
                 }`}
               >
                 {item.icon}

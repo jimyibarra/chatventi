@@ -119,9 +119,9 @@ export function AppointmentDialog({
       <div className="space-y-4">
         {mode === 'create' && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Servicios</label>
+            <label className="mb-1 block text-sm font-medium text-ink-muted">Servicios</label>
             {services.length === 0 ? (
-              <p className="text-sm text-amber-700">
+              <p className="text-sm text-warn">
                 No hay servicios activos. Créalos en Configuración.
               </p>
             ) : (
@@ -135,7 +135,7 @@ export function AppointmentDialog({
                     className={`rounded-full border px-3 py-1 text-sm ${
                       serviceIds.includes(s.id)
                         ? 'border-brand-500 bg-brand-50 text-brand-700'
-                        : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                        : 'border-line text-ink-muted hover:bg-surface'
                     }`}
                   >
                     {s.name} · {s.duration_minutes}m
@@ -148,24 +148,24 @@ export function AppointmentDialog({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Fecha</label>
+            <label className="mb-1 block text-sm font-medium text-ink-muted">Fecha</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
               data-testid="date-input"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
+            <label className="mb-1 block text-sm font-medium text-ink-muted">
               Profesional
             </label>
             <select
               value={staffId}
               onChange={(e) => setStaffId(e.target.value)}
               data-testid="staff-select"
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
             >
               <option value="">Cualquiera / sin asignar</option>
               {staff.map((p) => (
@@ -178,15 +178,15 @@ export function AppointmentDialog({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
+          <label className="mb-1 block text-sm font-medium text-ink-muted">
             Horarios disponibles
           </label>
           {loadingSlots ? (
-            <p className="text-sm text-gray-500">Buscando disponibilidad…</p>
+            <p className="text-sm text-ink-soft">Buscando disponibilidad…</p>
           ) : serviceIds.length === 0 ? (
-            <p className="text-sm text-gray-500">Selecciona un servicio para ver horarios.</p>
+            <p className="text-sm text-ink-soft">Selecciona un servicio para ver horarios.</p>
           ) : slots.length === 0 ? (
-            <p className="text-sm text-gray-500" data-testid="no-slots">
+            <p className="text-sm text-ink-soft" data-testid="no-slots">
               Sin horarios disponibles ese día.
             </p>
           ) : (
@@ -200,7 +200,7 @@ export function AppointmentDialog({
                   className={`rounded-lg border px-2.5 py-1 text-sm ${
                     selectedSlot === slot.slot_start
                       ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                      : 'border-line text-ink-muted hover:bg-surface'
                   }`}
                 >
                   {formatTime(slot.slot_start, tz)}
@@ -213,23 +213,23 @@ export function AppointmentDialog({
         {mode === 'create' && (
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
+              <label className="mb-1 block text-sm font-medium text-ink-muted">
                 Cliente (nombre)
               </label>
               <input
                 value={clientName}
                 onChange={(e) => setClientName(e.target.value)}
                 data-testid="client-name"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Teléfono</label>
+              <label className="mb-1 block text-sm font-medium text-ink-muted">Teléfono</label>
               <input
                 value={clientPhone}
                 onChange={(e) => setClientPhone(e.target.value)}
                 data-testid="client-phone"
-                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -237,12 +237,12 @@ export function AppointmentDialog({
 
         {mode === 'create' && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Notas</label>
+            <label className="mb-1 block text-sm font-medium text-ink-muted">Notas</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
             />
           </div>
         )}
@@ -256,7 +256,7 @@ export function AppointmentDialog({
         <div className="flex justify-end gap-2 pt-2">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface"
           >
             Cancelar
           </button>
@@ -264,7 +264,7 @@ export function AppointmentDialog({
             onClick={onSubmit}
             disabled={pending || !selectedSlot}
             data-testid="submit-appointment"
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
           >
             {pending ? 'Guardando…' : mode === 'create' ? 'Agendar' : 'Reagendar'}
           </button>
