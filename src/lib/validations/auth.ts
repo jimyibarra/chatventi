@@ -31,5 +31,21 @@ export const signupSchema = z
     path: ['confirmPassword'],
   })
 
+export const recoverSchema = z.object({
+  email: z.string().email('Correo inválido'),
+})
+
+export const newPasswordSchema = z
+  .object({
+    password: z.string().min(6, 'Mínimo 6 caracteres'),
+    confirmPassword: z.string().min(6, 'Confirma tu contraseña'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Las contraseñas no coinciden',
+    path: ['confirmPassword'],
+  })
+
 export type LoginInput = z.infer<typeof loginSchema>
 export type SignupInput = z.infer<typeof signupSchema>
+export type RecoverInput = z.infer<typeof recoverSchema>
+export type NewPasswordInput = z.infer<typeof newPasswordSchema>

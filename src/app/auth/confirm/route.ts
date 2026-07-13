@@ -15,12 +15,16 @@ export async function GET(request: NextRequest) {
 
   const supabase = await createClient()
 
+  // Recuperación de contraseña: tras verificar, el destino es fijar la nueva
+  // contraseña, no el dashboard.
+  const dest = type === 'recovery' ? '/nueva-clave' : '/dashboard'
+
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) return NextResponse.redirect(`${origin}/dashboard`)
+    if (!error) return NextResponse.redirect(`${origin}${dest}`)
   } else if (tokenHash) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
-    if (!error) return NextResponse.redirect(`${origin}/dashboard`)
+    if (!error) return NextResponse.redirect(`${origin}${dest}`)
   }
 
   return NextResponse.redirect(`${origin}/login?error=confirmacion`)

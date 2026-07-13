@@ -54,6 +54,11 @@ export function LoginForm() {
           placeholder="Tu contraseña"
         />
         {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+        <div className="mt-1 text-right">
+          <Link href="/recuperar" className="text-sm font-medium text-brand-600 hover:underline">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
       </div>
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
       <button
