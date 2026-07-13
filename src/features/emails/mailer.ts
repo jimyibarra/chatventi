@@ -35,6 +35,21 @@ export function emailsEnabled(): boolean {
   return getTransport() !== null
 }
 
+/**
+ * Verifica la conexión/autenticación con el SMTP (handshake real, SIN enviar
+ * correo). Útil para confirmar que las credenciales de producción son correctas.
+ */
+export async function verifyTransport(): Promise<{ configured: boolean; ok: boolean; error?: string }> {
+  const t = getTransport()
+  if (!t) return { configured: false, ok: false }
+  try {
+    await t.verify()
+    return { configured: true, ok: true }
+  } catch (e) {
+    return { configured: true, ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
 export async function sendEmail(opts: {
   to: string
   subject: string

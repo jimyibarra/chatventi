@@ -88,6 +88,37 @@ export function onboardingEmail(o: { orgName: string; siteUrl: string }): Built 
   }
 }
 
+/** Al activarse la suscripción (checkout completado; arranca la prueba con plan). */
+export function subscriptionActiveEmail(o: {
+  orgName: string
+  planLine: string
+  totalUsd: number
+  trialEndLabel: string | null
+  siteUrl: string
+}): Built {
+  const trialNote = o.trialEndLabel
+    ? `<p style="margin:0 0 14px">Tu <strong>prueba gratuita</strong> corre hasta el <strong>${o.trialEndLabel}</strong>. No se te cobrará antes de esa fecha, y puedes cambiar de plan o cancelar cuando quieras.</p>`
+    : ''
+  const body = `
+    <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, ¡tu suscripción quedó activa! 🎉 Gracias por confiar en ChatVenti.</p>
+    <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:0 0 14px">
+      <p style="margin:0;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Tu plan</p>
+      <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#111827">${o.planLine}</p>
+      <p style="margin:6px 0 0;font-size:14px;color:#374151">$${o.totalUsd} USD / mes</p>
+    </div>
+    ${trialNote}
+    <p style="margin:0">Desde tu panel puedes conectar WhatsApp, configurar tu Recepcionista IA y administrar tu suscripción cuando lo necesites.</p>`
+  return {
+    subject: '🎉 Tu suscripción de ChatVenti está activa',
+    html: layout({
+      title: '¡Tu suscripción está activa!',
+      bodyHtml: body,
+      cta: { label: 'Ir a mi panel →', href: `${o.siteUrl}/dashboard` },
+      note: 'Puedes gestionar tu plan, tarjeta o cancelar desde “Administrar suscripción” en Facturación.',
+    }),
+  }
+}
+
 /** Recordatorio a ~48h de que termina la prueba gratuita. */
 export function trialEndingEmail(o: {
   orgName: string

@@ -1,7 +1,23 @@
+import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe, STRIPE_WEBHOOK_SECRET, PRICE_TEAM, describeSubscriptionItems } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
+import { aiTierById, monthlyTotalUsd, type AiTierId } from '@/features/billing/plans'
+import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
+import { subscriptionActiveEmail } from '@/features/emails/templates'
+
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
+
+// Resumen legible del plan para el correo de suscripción activa.
+function planLine(aiTier: AiTierId, hasDomain: boolean, teamSeats: number): string {
+  const tier = aiTierById(aiTier)
+  const parts = ['ChatVenti Starter']
+  if (tier.id !== 'none') parts.push(`Recepcionista IA (${tier.detail})`)
+  if (hasDomain) parts.push('Dominio propio')
+  if (teamSeats > 0) parts.push(`${teamSeats} cuenta(s) de empleado extra`)
+  return parts.join(' · ')
+}
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -101,7 +117,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
   const incomingLive = status === 'active' || status === 'trialing'
   const { data: existingRow } = await admin
     .from('subscriptions')
-    .select('stripe_subscription_id')
+    .select('stripe_subscription_id, subscription_email_sent_at')
     .eq('organization_id', orgId)
     .maybeSingle()
   const trackedId = existingRow?.stripe_subscription_id as string | null | undefined
@@ -109,6 +125,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     console.log(`[stripe] ignora evento de sub duplicada ${sub.id} (org sigue ${trackedId})`)
     return
   }
+  const alreadyEmailed = Boolean(existingRow?.subscription_email_sent_at)
 
   const { error } = await admin.from('subscriptions').upsert(
     {
@@ -131,4 +148,37 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     throw new Error('upsert failed')
   }
   console.log(`[stripe] sync org=${orgId} status=${status} ai=${aiTier}`)
+
+  // Correo de "suscripción activa" (una vez, al activarse el plan). Marcamos el
+  // flag de inmediato para evitar doble envío entre eventos created/updated y
+  // enviamos con after() para no retrasar la respuesta a Stripe.
+  if (incomingLive && !alreadyEmailed && emailsEnabled()) {
+    await admin
+      .from('subscriptions')
+      .update({ subscription_email_sent_at: new Date().toISOString() })
+      .eq('organization_id', orgId)
+
+    const trialEndIso = unixToIso(sub.trial_end)
+    after(async () => {
+      const { data: org } = await admin
+        .from('organizations')
+        .select('name, contact_email')
+        .eq('id', orgId)
+        .maybeSingle()
+      if (!org?.contact_email) return
+      const trialEndLabel = trialEndIso
+        ? new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(
+            new Date(trialEndIso)
+          )
+        : null
+      const { subject, html } = subscriptionActiveEmail({
+        orgName: org.name,
+        planLine: planLine(aiTier, hasDomain, teamSeats),
+        totalUsd: monthlyTotalUsd({ aiTier, domain: hasDomain, teamSeats }),
+        trialEndLabel,
+        siteUrl: SITE,
+      })
+      await sendEmail({ to: org.contact_email, subject, html })
+    })
+  }
 }

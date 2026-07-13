@@ -880,6 +880,7 @@ export type Database = {
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          subscription_email_sent_at: string | null
           team_seats: number
           trial_end: string | null
           trial_ending_email_sent_at: string | null
@@ -897,6 +898,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_email_sent_at?: string | null
           team_seats?: number
           trial_end?: string | null
           trial_ending_email_sent_at?: string | null
@@ -914,6 +916,7 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          subscription_email_sent_at?: string | null
           team_seats?: number
           trial_end?: string | null
           trial_ending_email_sent_at?: string | null

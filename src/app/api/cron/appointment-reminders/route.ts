@@ -4,7 +4,7 @@ import {
   sendToCustomerByChannel,
   sendButtonsToCustomerByChannel,
 } from '@/features/agente-ia/senders'
-import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
+import { sendEmail, emailsEnabled, verifyTransport } from '@/features/emails/mailer'
 import { trialEndingEmail } from '@/features/emails/templates'
 
 export const runtime = 'nodejs'
@@ -178,7 +178,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // demo son efímeras; se borran las de más de 24h en cada corrida.
   await cleanupDemoOrg(service)
 
-  return NextResponse.json({ ok: true, summary, trial: trialSummary })
+  // Diagnóstico del SMTP (handshake real, sin enviar): confirma que las
+  // credenciales de correo en producción son correctas.
+  const emailsStatus = await verifyTransport()
+
+  return NextResponse.json({ ok: true, summary, trial: trialSummary, emails: emailsStatus })
 }
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
