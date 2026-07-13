@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { signupSchema, type SignupInput } from '@/lib/validations/auth'
+import { LEGAL } from '@/shared/constants/legal'
 import { PasswordInput } from './password-input'
 
 const COUNTRIES = [
@@ -86,6 +87,9 @@ export function SignupForm() {
           pending_country: values.country,
           pending_city: values.city,
           pending_phone: values.phone,
+          // Click-wrap: versión de Términos aceptada. El sello de tiempo legal
+          // lo pone el servidor (now()) al crear el perfil vía RPC.
+          pending_terms_version: LEGAL.termsVersion,
         },
       },
     })
@@ -105,6 +109,7 @@ export function SignupForm() {
       p_country: values.country,
       p_city: values.city,
       p_phone: values.phone,
+      p_terms_version: LEGAL.termsVersion,
     })
     if (rpcError && !rpcError.message.includes('already_onboarded')) {
       setServerError('No se pudo crear el negocio: ' + readableError(rpcError))
@@ -213,6 +218,38 @@ export function SignupForm() {
         )}
       </div>
 
+      <div>
+        <label className="flex items-start gap-2.5 text-sm text-ink-muted">
+          <input
+            type="checkbox"
+            {...register('acceptTerms')}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-brand-500 focus:ring-brand-400"
+          />
+          <span>
+            He leído y acepto los{' '}
+            <Link
+              href="/terms"
+              target="_blank"
+              className="font-semibold text-brand-600 hover:underline"
+            >
+              Términos y condiciones
+            </Link>{' '}
+            y la{' '}
+            <Link
+              href="/privacy"
+              target="_blank"
+              className="font-semibold text-brand-600 hover:underline"
+            >
+              Política de privacidad
+            </Link>
+            .
+          </span>
+        </label>
+        {errors.acceptTerms && (
+          <p className="mt-1 text-sm text-red-600">{errors.acceptTerms.message}</p>
+        )}
+      </div>
+
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
 
       <button
@@ -222,13 +259,6 @@ export function SignupForm() {
       >
         {isSubmitting ? 'Creando…' : 'Registrarse'}
       </button>
-
-      <p className="text-center text-xs text-ink-soft">
-        Al registrarse en ChatVenti, acepta nuestros{' '}
-        <Link href="/terms" target="_blank" className="font-semibold text-brand-600 hover:underline">
-          Términos y condiciones
-        </Link>
-      </p>
 
       <p className="text-center text-sm text-ink-muted">
         ¿Ya tienes cuenta?{' '}

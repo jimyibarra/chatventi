@@ -13,4 +13,7 @@ export const LEGAL = {
   contactEmail: 'soporte@chatventi.com',
   privacyEmail: 'soporte@chatventi.com',
   lastUpdated: '13 de julio de 2026',
+  // Versión de los Términos que el usuario acepta al registrarse (click-wrap).
+  // Súbela cuando cambie el contenido legal para forzar re-aceptación futura.
+  termsVersion: '2026-07-13',
 } as const

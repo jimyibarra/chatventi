@@ -181,7 +181,8 @@ export default function TermsPage() {
               el soporte hasta que se liquiden. La suscripción de ChatVenti es por negocio
               (organización); el uso para más de un negocio requiere suscripciones adicionales o un
               acuerdo por escrito con ChatVenti, de lo contrario su cuenta podrá ser suspendida o
-              cancelada.
+              cancelada. Todos los cargos por suscripción son no reembolsables una vez realizado
+              el pago, salvo que la legislación aplicable exija lo contrario.
             </p>
           </S>
 
@@ -290,7 +291,11 @@ export default function TermsPage() {
               uso y configuración (incluido el modo de aprobación). ChatVenti no asume
               responsabilidad por la seguridad, confidencialidad o privacidad de las comunicaciones
               transmitidas a través de internet ni por fallas, retrasos, errores o pérdidas de
-              contenido, datos o información, ni por problemas de compatibilidad.
+              contenido, datos o información, ni por problemas de compatibilidad. El Usuario
+              reconoce que es el responsable final del contenido emitido por la IA en su nombre;
+              por lo tanto, se obliga a configurar los límites de conocimiento del bot y a
+              supervisar periódicamente las interacciones para asegurar el cumplimiento con sus
+              políticas internas y la ley.
             </p>
           </S>
 
@@ -335,9 +340,10 @@ export default function TermsPage() {
               ejercerlo en otra ocasión. Si un tribunal determina que alguna parte del Acuerdo es
               inválida o inaplicable, esto no afectará la validez del resto del Acuerdo. Usted no
               puede ceder sus derechos y obligaciones bajo el Acuerdo sin nuestro permiso previo por
-              escrito. Estos Términos se rigen e interpretan de acuerdo con las leyes de los Estados
-              Unidos Mexicanos, y cualquier disputa relacionada estará sujeta a la jurisdicción de
-              los tribunales de México. Si se encuentra fuera de México, es su responsabilidad
+              escrito. Estos Términos se rigen e interpretan de acuerdo con las leyes federales de
+              los Estados Unidos Mexicanos, y cualquier disputa relacionada estará sujeta a la
+              jurisdicción exclusiva de los tribunales competentes en la ciudad de Santiago de
+              Querétaro, Querétaro. Si se encuentra fuera de México, es su responsabilidad
               asegurarse de cumplir las leyes locales de su jurisdicción.
             </p>
           </S>

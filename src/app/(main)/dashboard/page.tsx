@@ -35,6 +35,7 @@ export default async function DashboardPage() {
       pending_country?: string
       pending_city?: string
       pending_phone?: string
+      pending_terms_version?: string
     }
     if (meta.pending_org_name) {
       await supabase.rpc('create_organization_with_owner', {
@@ -43,6 +44,7 @@ export default async function DashboardPage() {
         p_country: meta.pending_country,
         p_city: meta.pending_city,
         p_phone: meta.pending_phone,
+        p_terms_version: meta.pending_terms_version,
       })
       // Redirigimos en vez de re-consultar: evita el read-after-write lag de
       // Supabase (el SELECT inmediato tras el RPC puede pegar en una réplica

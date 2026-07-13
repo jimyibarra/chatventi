@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { Metadata } from 'next'
+import Image from 'next/image'
 import Link from 'next/link'
 import { Inter, Manrope } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
@@ -81,9 +82,8 @@ export default function Home() {
       {/* ============ HEADER ============ */}
       <header className="cv-header">
         <div className="cv-container" style={{ padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-          <a href="#inicio" aria-label="ChatVenti — inicio" style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 21, color: '#201B36' }}>
-            <span aria-hidden style={{ width: 34, height: 34, borderRadius: 11, background: 'linear-gradient(135deg, #6D4FE0, #4338CA)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 16, fontWeight: 800 }}>C</span>
-            Chat<span style={{ color: '#5B4FE0' }}>Venti</span>
+          <a href="#inicio" aria-label="ChatVenti — inicio" style={{ display: 'flex', alignItems: 'center' }}>
+            <Image src="/brand/chatventi-logo.png" alt="ChatVenti" width={168} height={62} priority style={{ height: 38, width: 'auto' }} />
           </a>
           <nav aria-label="Navegación principal" style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginLeft: 'auto', alignItems: 'center' }}>
             <a className="cv-navlink" href="#como-funciona">Cómo funciona</a>
@@ -447,7 +447,7 @@ export default function Home() {
         <div className="cv-container" style={{ padding: '64px 24px 32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 40 }}>
           <div>
             <p style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 20, color: '#fff', margin: '0 0 14px' }}>
-              <span aria-hidden style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg, #6D4FE0, #4338CA)', display: 'grid', placeItems: 'center', color: '#fff', fontSize: 15 }}>C</span>
+              <Image src="/brand/chatventi-icon.png" alt="" aria-hidden width={32} height={32} style={{ width: 32, height: 32, borderRadius: 9 }} />
               {LEGAL.brand}
             </p>
             <p style={{ fontSize: 14, lineHeight: 1.65, margin: 0, maxWidth: 260 }}>El recepcionista con IA que agenda citas por WhatsApp, Telegram y web, 24/7, para negocios de citas en Latinoamérica.</p>

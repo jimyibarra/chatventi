@@ -1002,8 +1002,12 @@ export type Database = {
       create_organization_with_owner: {
         Args: {
           p_branch_name?: string
+          p_city?: string
+          p_country?: string
           p_org_name: string
           p_owner_name?: string
+          p_phone?: string
+          p_terms_version?: string
         }
         Returns: string
       }

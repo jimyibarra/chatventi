@@ -21,6 +21,10 @@ export const signupSchema = z
     email: z.string().email('Correo inválido'),
     password: z.string().min(6, 'Mínimo 6 caracteres'),
     confirmPassword: z.string().min(6, 'Confirma tu contraseña'),
+    // Click-wrap: sin aceptación explícita no se puede crear la cuenta.
+    acceptTerms: z.literal(true, {
+      errorMap: () => ({ message: 'Debes aceptar los Términos y la Política de privacidad' }),
+    }),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Las contraseñas no coinciden',
