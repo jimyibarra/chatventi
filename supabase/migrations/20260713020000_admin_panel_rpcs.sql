@@ -100,11 +100,13 @@ begin
       where c2.organization_id = o.id)
   from public.organizations o
   left join public.subscriptions s on s.organization_id = o.id
+  -- profiles se aliasea (pr): sin el alias, `order by created_at` es ambiguo
+  -- con el OUT param created_at de RETURNS TABLE (error 42702).
   left join lateral (
-    select email, full_name
-    from public.profiles
-    where organization_id = o.id and role = 'owner'
-    order by created_at asc
+    select pr.email, pr.full_name
+    from public.profiles pr
+    where pr.organization_id = o.id and pr.role = 'owner'
+    order by pr.created_at asc
     limit 1
   ) own on true
   order by o.created_at desc;
