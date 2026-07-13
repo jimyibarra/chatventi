@@ -6,7 +6,7 @@
 // =====================================================================
 
 export const CURRENCY = 'usd' as const
-export const TRIAL_DAYS = 14
+export const TRIAL_DAYS = 10
 
 /** Precio de la base "ChatVenti Starter" (siempre incluida), en USD/mes. */
 export const STARTER_PRICE_USD = 29

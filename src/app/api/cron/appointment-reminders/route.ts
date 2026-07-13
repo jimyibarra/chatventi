@@ -4,6 +4,8 @@ import {
   sendToCustomerByChannel,
   sendButtonsToCustomerByChannel,
 } from '@/features/agente-ia/senders'
+import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
+import { trialEndingEmail } from '@/features/emails/templates'
 
 export const runtime = 'nodejs'
 
@@ -169,11 +171,75 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Recordatorio de fin de prueba (~48h antes), por correo. Idempotente.
+  const trialSummary = await sendTrialEndingEmails(service)
+
   // Limpieza de la demo de la landing: las conversaciones/citas de la org
   // demo son efímeras; se borran las de más de 24h en cada corrida.
   await cleanupDemoOrg(service)
 
-  return NextResponse.json({ ok: true, summary })
+  return NextResponse.json({ ok: true, summary, trial: trialSummary })
+}
+
+const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
+
+// Suscripciones en prueba cuyo trial_end cae dentro de las próximas 48h y a las
+// que aún no se les avisó. Marca `trial_ending_email_sent_at` para no repetir.
+async function sendTrialEndingEmails(
+  service: ReturnType<typeof createServiceClient>
+): Promise<{ sent: number; skipped: number }> {
+  const result = { sent: 0, skipped: 0 }
+  // Si el SMTP aún no está configurado, NO tocamos nada: así no "quemamos" el
+  // aviso de fin de prueba antes de que el correo esté activo.
+  if (!emailsEnabled()) return result
+  try {
+    const now = new Date()
+    const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString()
+
+    const { data: subs, error } = await service
+      .from('subscriptions')
+      .select('organization_id, trial_end')
+      .eq('status', 'trialing')
+      .is('trial_ending_email_sent_at', null)
+      .not('trial_end', 'is', null)
+      .lte('trial_end', in48h)
+      .gt('trial_end', now.toISOString())
+    if (error) {
+      console.error('[cron-trial] query error', error.message)
+      return result
+    }
+
+    for (const sub of subs ?? []) {
+      const { data: org } = await service
+        .from('organizations')
+        .select('name, contact_email')
+        .eq('id', sub.organization_id)
+        .maybeSingle()
+      if (!org?.contact_email) {
+        result.skipped++
+        continue
+      }
+      const trialEndLabel = new Intl.DateTimeFormat('es-MX', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date(sub.trial_end as string))
+
+      const { subject, html } = trialEndingEmail({ orgName: org.name, trialEndLabel, siteUrl: SITE })
+      const ok = await sendEmail({ to: org.contact_email, subject, html })
+      // Marca aunque falle el envío para no reintentar en bucle cada día; si el
+      // SMTP aún no está configurado, simplemente no se enviará (log en mailer).
+      await service
+        .from('subscriptions')
+        .update({ trial_ending_email_sent_at: new Date().toISOString() })
+        .eq('organization_id', sub.organization_id)
+      if (ok) result.sent++
+      else result.skipped++
+    }
+  } catch (e) {
+    console.error('[cron-trial] error', e)
+  }
+  return result
 }
 
 const DEMO_ORG_ID = '12974a7a-fb18-4713-9d2c-28c251b09312'

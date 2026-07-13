@@ -1,5 +1,7 @@
+import { after } from 'next/server'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { runDashboardLifecycleEmails } from '@/features/emails/lifecycle'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { STATUS_LABELS } from '@/features/billing/plans'
 import { getSetupChecklist } from '@/features/onboarding/checklist'
@@ -62,6 +64,10 @@ export default async function DashboardPage() {
       </div>
     )
   }
+
+  // Correos de ciclo de vida (bienvenida / onboarding). En segundo plano con
+  // after(): no bloquea el render y es idempotente (marcas en la org).
+  after(() => runDashboardLifecycleEmails(user.id))
 
   // --- Datos del negocio (RLS los acota a la org del usuario) ----------------
   const { data: org } = await supabase

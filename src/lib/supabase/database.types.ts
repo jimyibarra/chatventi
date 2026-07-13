@@ -631,8 +631,10 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          onboarding_email_sent_at: string | null
           phone: string | null
           web_slug: string | null
+          welcome_email_sent_at: string | null
         }
         Insert: {
           branding?: Json | null
@@ -640,8 +642,10 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          onboarding_email_sent_at?: string | null
           phone?: string | null
           web_slug?: string | null
+          welcome_email_sent_at?: string | null
         }
         Update: {
           branding?: Json | null
@@ -649,8 +653,10 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          onboarding_email_sent_at?: string | null
           phone?: string | null
           web_slug?: string | null
+          welcome_email_sent_at?: string | null
         }
         Relationships: []
       }
@@ -876,6 +882,7 @@ export type Database = {
           stripe_subscription_id: string | null
           team_seats: number
           trial_end: string | null
+          trial_ending_email_sent_at: string | null
           updated_at: string
         }
         Insert: {
@@ -892,6 +899,7 @@ export type Database = {
           stripe_subscription_id?: string | null
           team_seats?: number
           trial_end?: string | null
+          trial_ending_email_sent_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -908,6 +916,7 @@ export type Database = {
           stripe_subscription_id?: string | null
           team_seats?: number
           trial_end?: string | null
+          trial_ending_email_sent_at?: string | null
           updated_at?: string
         }
         Relationships: [
