@@ -90,10 +90,9 @@ export function DashboardNav() {
       {/* Sidebar desktop */}
       <aside className="hidden w-56 shrink-0 border-r border-line bg-white md:block">
         <nav className="sticky top-0 flex flex-col gap-1 p-3" aria-label="Navegación principal">
-          <div className="flex items-center gap-2.5 px-2.5 pb-3 pt-1">
-            <span className="flex h-7 w-7 items-center justify-center rounded-[9px] bg-gradient-to-br from-brand-400 to-brand-700 text-sm shadow-btn">
-              💬
-            </span>
+          <div className="flex items-center gap-2 px-2.5 pb-3 pt-1">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/chatventi-icon.png" alt="" className="h-8 w-8" />
             <span className="text-[15px] font-extrabold tracking-tight text-ink">ChatVenti</span>
           </div>
           {PRIMARY.map((item) => (

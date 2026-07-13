@@ -23,7 +23,11 @@ export default async function MainLayout({
     <div className="min-h-screen bg-surface">
       {/* En desktop el logo vive en el sidebar; el header solo lleva la cuenta. */}
       <header className="flex items-center justify-between gap-3 border-b border-line bg-white px-6 py-3 md:justify-end">
-        <span className="font-extrabold tracking-tight text-ink md:hidden">ChatVenti</span>
+        <span className="flex items-center gap-2 md:hidden">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/chatventi-icon.png" alt="" className="h-7 w-7" />
+          <span className="font-extrabold tracking-tight text-ink">ChatVenti</span>
+        </span>
         <div className="flex items-center gap-3">
           <span className="text-sm text-ink-soft">{user.email}</span>
           <LogoutButton />

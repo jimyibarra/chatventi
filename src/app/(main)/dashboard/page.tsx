@@ -32,11 +32,17 @@ export default async function DashboardPage() {
     const meta = (user.user_metadata ?? {}) as {
       pending_org_name?: string
       pending_owner_name?: string
+      pending_country?: string
+      pending_city?: string
+      pending_phone?: string
     }
     if (meta.pending_org_name) {
       await supabase.rpc('create_organization_with_owner', {
         p_org_name: meta.pending_org_name,
         p_owner_name: meta.pending_owner_name,
+        p_country: meta.pending_country,
+        p_city: meta.pending_city,
+        p_phone: meta.pending_phone,
       })
       // Redirigimos en vez de re-consultar: evita el read-after-write lag de
       // Supabase (el SELECT inmediato tras el RPC puede pegar en una réplica

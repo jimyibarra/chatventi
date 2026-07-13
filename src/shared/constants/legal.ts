@@ -12,5 +12,5 @@ export const LEGAL = {
   // Correo real (buzón hola@ con alias soporte@ en Hostinger). Funciona para Meta.
   contactEmail: 'soporte@chatventi.com',
   privacyEmail: 'soporte@chatventi.com',
-  lastUpdated: '3 de julio de 2026',
+  lastUpdated: '13 de julio de 2026',
 } as const
