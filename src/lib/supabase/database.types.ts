@@ -957,6 +957,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_global_stats: { Args: never; Returns: Json }
+      admin_list_organizations: {
+        Args: never
+        Returns: {
+          id: string
+          name: string
+          country: string | null
+          city: string | null
+          created_at: string
+          owner_email: string | null
+          owner_name: string | null
+          plan: string
+          sub_status: string
+          ai_tier: string
+          has_domain: boolean
+          team_seats: number
+          trial_end: string | null
+          current_period_end: string | null
+          users_count: number
+          conversations_count: number
+          appointments_count: number
+          clients_count: number
+          last_activity: string | null
+        }[]
+      }
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
       claim_reminder: {
         Args: { p_appointment_id: string; p_kind: string }

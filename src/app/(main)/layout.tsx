@@ -19,6 +19,17 @@ export default async function MainLayout({
     redirect('/login')
   }
 
+  // El super_admin no es un tenant (no tiene organización): su lugar es /admin.
+  // Sin esto, el dashboard de cliente asumiría una org y fallaría.
+  const { data: adminProfile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (adminProfile?.role === 'super_admin') {
+    redirect('/admin')
+  }
+
   return (
     <div className="min-h-screen bg-surface">
       {/* En desktop el logo vive en el sidebar; el header solo lleva la cuenta. */}
