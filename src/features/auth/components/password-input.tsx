@@ -8,10 +8,16 @@ export function PasswordInput({
   registration,
   autoComplete,
   placeholder,
+  readOnly,
+  onFocus,
 }: {
   registration: UseFormRegisterReturn
   autoComplete: string
   placeholder?: string
+  // "readonly hasta enfocar": evita que el navegador autorrellene credenciales
+  // guardadas al cargar la página (p. ej. al volver al login tras salir).
+  readOnly?: boolean
+  onFocus?: () => void
 }) {
   const [show, setShow] = useState(false)
   return (
@@ -20,7 +26,9 @@ export function PasswordInput({
         type={show ? 'text' : 'password'}
         autoComplete={autoComplete}
         placeholder={placeholder}
+        readOnly={readOnly}
         {...registration}
+        onFocus={onFocus}
         className="w-full rounded-lg border border-line px-3 py-2 pr-11 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
       />
       <button

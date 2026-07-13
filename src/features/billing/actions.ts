@@ -79,6 +79,23 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       )
     }
 
+    // Anti-DUPLICADO: si el customer ya tiene una suscripción viva en Stripe
+    // (la fuente de verdad), NO abrimos otro checkout. Cierra la carrera en la
+    // que el webhook aún no sincronizó tras un primer pago y la UI todavía
+    // muestra el botón de compra → evita cobrar dos veces por el mismo periodo.
+    const liveStates = ['active', 'trialing', 'past_due', 'unpaid', 'incomplete']
+    const currentSubs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      limit: 100,
+    })
+    if (currentSubs.data.some((s) => liveStates.includes(s.status))) {
+      return {
+        ok: false,
+        error: 'Ya tienes una suscripción activa. Adminístrala desde “Administrar suscripción”.',
+      }
+    }
+
     // Líneas del checkout.
     const lineItems: { price: string; quantity: number }[] = [
       { price: PRICE_STARTER, quantity: 1 },

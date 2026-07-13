@@ -94,6 +94,22 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
   const status = sub.status === 'canceled' ? 'canceled' : sub.status
   const periodEnd = sub.current_period_end ?? sub.items.data[0]?.current_period_end
 
+  // Higiene anti-duplicado: si ya seguimos OTRA suscripción para esta org y
+  // este evento es de una suscripción distinta que NO está viva, lo ignoramos.
+  // Evita que la cancelación de una suscripción duplicada pise a la activa
+  // (la fila se indexa por organization_id, así que el último evento ganaría).
+  const incomingLive = status === 'active' || status === 'trialing'
+  const { data: existingRow } = await admin
+    .from('subscriptions')
+    .select('stripe_subscription_id')
+    .eq('organization_id', orgId)
+    .maybeSingle()
+  const trackedId = existingRow?.stripe_subscription_id as string | null | undefined
+  if (trackedId && trackedId !== sub.id && !incomingLive) {
+    console.log(`[stripe] ignora evento de sub duplicada ${sub.id} (org sigue ${trackedId})`)
+    return
+  }
+
   const { error } = await admin.from('subscriptions').upsert(
     {
       organization_id: orgId,

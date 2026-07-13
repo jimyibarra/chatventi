@@ -2,16 +2,22 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { BillingClient } from '@/features/billing/components/billing-client'
+import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout'
 
 export const dynamic = 'force-dynamic'
 
-export default async function FacturacionPage() {
+export default async function FacturacionPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ success?: string; canceled?: string }>
+}) {
   const supabase = await createClient()
   const {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const { success, canceled } = await searchParams
   const sub = await getMySubscription()
   const active = subIsActive(sub)
 
@@ -24,6 +30,13 @@ export default async function FacturacionPage() {
           Recepcionista IA cuando lo necesites.
         </p>
       </div>
+
+      {success && <PostCheckoutSuccess active={active} />}
+      {canceled && !success && (
+        <div className="mb-6 rounded-card border border-warn-bg bg-warn-bg p-4 text-sm text-warn">
+          Cancelaste el proceso de pago. Puedes contratar cuando quieras; no se hizo ningún cargo.
+        </div>
+      )}
 
       <BillingClient
         sub={

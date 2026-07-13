@@ -12,6 +12,11 @@ import { PasswordInput } from './password-input'
 export function LoginForm() {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
+  // Campos "bloqueados" hasta que el usuario los enfoca: así el navegador NO
+  // autorrellena las credenciales guardadas al aterrizar (privacidad en equipos
+  // compartidos; los campos quedan vacíos al salir de sesión).
+  const [locked, setLocked] = useState(true)
+  const unlock = () => setLocked(false)
   const {
     register,
     handleSubmit,
@@ -34,14 +39,16 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
       <div>
         <label className="block text-sm font-medium text-ink-muted">Correo</label>
         <input
           type="email"
-          autoComplete="email"
+          autoComplete="off"
+          readOnly={locked}
           placeholder="hola@tunegocio.com"
           {...register('email')}
+          onFocus={unlock}
           className="mt-1 w-full rounded-lg border border-line px-3 py-2 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
         {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
@@ -50,8 +57,10 @@ export function LoginForm() {
         <label className="block text-sm font-medium text-ink-muted">Contraseña</label>
         <PasswordInput
           registration={register('password')}
-          autoComplete="current-password"
+          autoComplete="off"
           placeholder="Tu contraseña"
+          readOnly={locked}
+          onFocus={unlock}
         />
         {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
         <div className="mt-1 text-right">
