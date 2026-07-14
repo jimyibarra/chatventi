@@ -12,7 +12,8 @@ if (!key) {
   console.error('Falta STRIPE_SECRET_KEY.')
   process.exit(1)
 }
-const stripe = new Stripe(key)
+// La API por defecto (2026+) rechaza `coupon` en promotionCodes.create; 2024-06-20 sí lo acepta.
+const stripe = new Stripe(key, { apiVersion: '2024-06-20' })
 
 const PROMO_CODE = 'BIENVENIDO30'
 const PERCENT_OFF = 30
