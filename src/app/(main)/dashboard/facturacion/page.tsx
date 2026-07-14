@@ -1,15 +1,22 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getMySubscription, subIsActive } from '@/features/billing/gating'
+import {
+  getMySubscription,
+  getMyOrgTrial,
+  subIsActive,
+  hasAppAccess,
+} from '@/features/billing/gating'
 import { BillingClient } from '@/features/billing/components/billing-client'
 import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout'
+import { TrialEndedBanner } from '@/features/billing/components/subscription-required'
+import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 
 export const dynamic = 'force-dynamic'
 
 export default async function FacturacionPage({
   searchParams,
 }: {
-  searchParams: Promise<{ success?: string; canceled?: string }>
+  searchParams: Promise<{ success?: string; canceled?: string; bloqueado?: string }>
 }) {
   const supabase = await createClient()
   const {
@@ -18,8 +25,20 @@ export default async function FacturacionPage({
   if (!user) redirect('/login')
 
   const { success, canceled } = await searchParams
-  const sub = await getMySubscription()
+  const [sub, orgTrial] = await Promise.all([getMySubscription(), getMyOrgTrial()])
   const active = subIsActive(sub)
+  // Banner de "prueba terminada" si el acceso está bloqueado (sin éxito reciente).
+  const blocked = !!orgTrial && !hasAppAccess(orgTrial, sub) && !success
+  const deleteIso =
+    orgTrial?.delete_scheduled_at ??
+    (orgTrial?.created_at
+      ? new Date(new Date(orgTrial.created_at).getTime() + DATA_RETENTION_DAYS * 86400000).toISOString()
+      : null)
+  const deleteLabel = deleteIso
+    ? new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(
+        new Date(deleteIso)
+      )
+    : null
 
   return (
     <div className="mx-auto max-w-2xl p-8">
@@ -31,6 +50,7 @@ export default async function FacturacionPage({
         </p>
       </div>
 
+      {blocked && <TrialEndedBanner deleteLabel={deleteLabel} />}
       {success && <PostCheckoutSuccess active={active} />}
       {canceled && !success && (
         <div className="mb-6 rounded-card border border-warn-bg bg-warn-bg p-4 text-sm text-warn">

@@ -1,16 +1,8 @@
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/features/auth/components/logout-button'
 import { DashboardNav } from '@/shared/components/dashboard-nav'
 import { PushNotificationPrompt } from '@/features/notifications/components/push-notification-prompt'
-import {
-  getMyOrgTrial,
-  getMySubscription,
-  hasAppAccess,
-} from '@/features/billing/gating'
-import { SubscriptionRequired } from '@/features/billing/components/subscription-required'
-import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 
 export default async function MainLayout({
   children,
@@ -38,27 +30,9 @@ export default async function MainLayout({
     redirect('/admin')
   }
 
-  // Gate de acceso: prueba gratis vigente o suscripción activa. Al terminar la
-  // prueba sin suscripción, se bloquea el panel (pero se permite Facturación
-  // para poder pagar). Los datos se conservan hasta el borrado del día 30.
-  const pathname = (await headers()).get('x-pathname') ?? ''
-  const onBilling = pathname.startsWith('/dashboard/facturacion')
-  const [orgTrial, sub] = await Promise.all([getMyOrgTrial(), getMySubscription()])
-  // Solo bloqueamos si la org EXISTE (si aún no hay org, el usuario acaba de
-  // confirmar su correo y el dashboard creará el negocio: no bloquear ahí).
-  if (orgTrial && !hasAppAccess(orgTrial, sub) && !onBilling) {
-    const deleteIso =
-      orgTrial?.delete_scheduled_at ??
-      (orgTrial?.created_at
-        ? new Date(new Date(orgTrial.created_at).getTime() + DATA_RETENTION_DAYS * 86400000).toISOString()
-        : null)
-    const deleteLabel = deleteIso
-      ? new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(
-          new Date(deleteIso)
-        )
-      : null
-    return <SubscriptionRequired deleteLabel={deleteLabel} />
-  }
+  // El gate de acceso (prueba vencida sin suscripción → redirige a Facturación)
+  // vive en el proxy/middleware, que corre en CADA navegación (los layouts no
+  // se re-renderizan en soft-nav).
 
   return (
     <div className="min-h-screen bg-surface">
