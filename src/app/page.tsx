@@ -123,7 +123,7 @@ export default function Home() {
                 </a>
               </div>
               <p style={{ fontSize: 14, color: '#7A758F', margin: '0 0 28px', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin contratos forzosos</span><span>✓ Listo en minutos</span>
+                <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
               </p>
               <p style={{ margin: 0, fontSize: 14, color: '#5F5A75', maxWidth: 480 }}>
                 Hecho para <strong style={{ color: '#201B36' }}>peluquerías, barberías, dentistas, spas y consultorios</strong> — cualquier negocio que vive de su agenda.
@@ -363,7 +363,7 @@ export default function Home() {
           <div data-reveal className="cv-section-head">
             <p className="cv-eyebrow">Precios</p>
             <h2 id="precios-titulo" className="cv-h2">Un plan base, y la IA cuando la necesites</h2>
-            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis. Elige cuánto volumen de conversaciones atiende la IA — y cámbialo cuando quieras. Precios en USD.</p>
+            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito. Elige cuánto volumen de conversaciones atiende la IA — y cámbialo cuando quieras. Precios en USD.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, alignItems: 'stretch' }}>
             <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
@@ -437,7 +437,7 @@ export default function Home() {
             <div style={{ position: 'relative', display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href="/signup" className="cv-btn-green" style={{ padding: '17px 40px', fontSize: 17.5, boxShadow: '0 10px 28px rgba(0,0,0,0.3)' }}>Empezar prueba gratis</Link>
             </div>
-            <p style={{ position: 'relative', margin: '18px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>{TRIAL_DAYS} días gratis · Cancela cuando quieras · Listo en minutos</p>
+            <p style={{ position: 'relative', margin: '18px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>{TRIAL_DAYS} días gratis · Sin tarjeta de crédito · Cancela cuando quieras</p>
           </div>
         </section>
       </main>

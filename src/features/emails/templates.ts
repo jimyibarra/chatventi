@@ -2,11 +2,23 @@
 // correos de autenticación (mismo logotipo oficial). HTML inline (compatibilidad
 // con clientes de correo). El logo se referencia por URL pública absoluta.
 
+import { PROMO_CODE, PROMO_LABEL, TRIAL_DAYS } from '@/features/billing/plans'
+
 const LOGO = 'https://www.chatventi.com/brand/chatventi-logo.png'
 
 interface Built {
   subject: string
   html: string
+}
+
+// Bloque visual con el código de promo (30% off 3 meses) para los correos del
+// funnel de conversión.
+function promoBox(): string {
+  return `<div style="border:1px dashed #c7bff5;background:#f4f2fe;border-radius:10px;padding:14px 16px;margin:16px 0;text-align:center">
+    <p style="margin:0;font-size:13px;color:#4a3fc4">Usa este código al suscribirte y obtén</p>
+    <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#4338ca">${PROMO_LABEL}</p>
+    <p style="margin:8px 0 0"><span style="display:inline-block;border:1px dashed #5b4fe0;background:#ffffff;border-radius:8px;padding:6px 16px;font-family:monospace;font-size:16px;font-weight:bold;letter-spacing:2px;color:#4338ca">${PROMO_CODE}</span></p>
+  </div>`
 }
 
 function layout(opts: {
@@ -48,7 +60,7 @@ const check = (t: string) =>
 export function welcomeEmail(o: { orgName: string; siteUrl: string }): Built {
   const body = `
     <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, ¡tu cuenta de ChatVenti ya está activa! 🎉</p>
-    <p style="margin:0 0 14px">Desde tu panel puedes empezar a llenar tu agenda hoy mismo. Esto es lo que tienes disponible:</p>
+    <p style="margin:0 0 14px">Tienes <strong>${TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito</strong>. Pruébalo con calma; si te sirve, luego eliges tu plan.</p>
     <table style="margin:0 0 8px;font-size:14.5px;line-height:1.5">
       ${check('Agenda de citas con disponibilidad y anti-solape')}
       ${check('Recepcionista con IA por WhatsApp, Telegram y tu web')}
@@ -57,12 +69,12 @@ export function welcomeEmail(o: { orgName: string; siteUrl: string }): Built {
     </table>
     <p style="margin:14px 0 0"><strong>Siguiente paso:</strong> configura tu negocio en unos minutos y empieza a recibir reservas.</p>`
   return {
-    subject: '¡Bienvenido a ChatVenti! 🎉',
+    subject: `¡Bienvenido a ChatVenti! ${TRIAL_DAYS} días gratis, sin tarjeta 🎉`,
     html: layout({
       title: `¡Bienvenido a ChatVenti, ${o.orgName}!`,
       bodyHtml: body,
       cta: { label: 'Configurar mi negocio →', href: `${o.siteUrl}/dashboard` },
-      note: 'Recibes este correo porque creaste una cuenta en ChatVenti.',
+      note: 'Recibes este correo porque creaste una cuenta en ChatVenti. Sin tarjeta y sin compromiso.',
     }),
   }
 }
@@ -119,7 +131,7 @@ export function subscriptionActiveEmail(o: {
   }
 }
 
-/** Recordatorio a ~48h de que termina la prueba gratuita. */
+/** Recordatorio unos días antes de que termine la prueba gratis (con promo). */
 export function trialEndingEmail(o: {
   orgName: string
   trialEndLabel: string
@@ -127,15 +139,78 @@ export function trialEndingEmail(o: {
 }): Built {
   const body = `
     <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, tu prueba gratuita de ChatVenti termina el <strong>${o.trialEndLabel}</strong>.</p>
-    <p style="margin:0 0 14px">No tienes que hacer nada: al finalizar la prueba, tu plan <strong>continúa automáticamente</strong> para que tu agenda y tu recepcionista IA sigan trabajando sin cortes. Conservas todo tu historial, tu configuración y tus datos.</p>
-    <p style="margin:0 0 14px">Si prefieres cambiar de plan o cancelar, puedes hacerlo en cualquier momento desde tu panel — sin penalizaciones.</p>`
+    <p style="margin:0 0 14px">Si ya viste cómo te ayuda a llenar tu agenda y responder a tus clientes, suscríbete ahora para seguir sin cortes y no perder tu configuración ni tu historial.</p>
+    ${promoBox()}`
   return {
-    subject: '⏰ Tu prueba de ChatVenti termina pronto',
+    subject: '⏰ Tu prueba gratis de ChatVenti termina pronto',
     html: layout({
       title: 'Tu prueba gratuita está por terminar',
       bodyHtml: body,
-      cta: { label: 'Ver mi plan →', href: `${o.siteUrl}/dashboard/facturacion` },
-      note: 'Puedes cambiar de plan o cancelar cuando quieras desde “Administrar suscripción”.',
+      cta: { label: 'Suscribirme ahora →', href: `${o.siteUrl}/dashboard/facturacion` },
+      note: 'Sin permanencias: puedes cambiar de plan o cancelar cuando quieras.',
+    }),
+  }
+}
+
+/** Al terminar la prueba (acceso bloqueado). Suscríbete o pierdes tus datos. */
+export function trialEndedEmail(o: {
+  orgName: string
+  deleteLabel: string | null
+  siteUrl: string
+}): Built {
+  const keep = o.deleteLabel
+    ? `Conservamos los datos de tu negocio hasta el <strong>${o.deleteLabel}</strong>. Si te suscribes antes de esa fecha, sigues justo donde lo dejaste.`
+    : 'Conservamos tus datos por unos días más. Si te suscribes ahora, sigues justo donde lo dejaste.'
+  const body = `
+    <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, tu prueba gratuita de ChatVenti terminó.</p>
+    <p style="margin:0 0 14px">${keep}</p>
+    <p style="margin:0 0 14px">Suscríbete para reactivar tu agenda y tu recepcionista con IA:</p>
+    ${promoBox()}`
+  return {
+    subject: '🔔 Tu prueba terminó — suscríbete para no perder tus datos',
+    html: layout({
+      title: 'Tu prueba gratuita terminó',
+      bodyHtml: body,
+      cta: { label: 'Suscribirme y continuar →', href: `${o.siteUrl}/dashboard/facturacion` },
+      note: 'Tus datos siguen a salvo hasta la fecha indicada. Sin permanencias.',
+    }),
+  }
+}
+
+/** Aviso de que los datos del negocio se eliminarán pronto. */
+export function deletionWarningEmail(o: {
+  orgName: string
+  deleteLabel: string
+  siteUrl: string
+}): Built {
+  const body = `
+    <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, este es un aviso importante.</p>
+    <p style="margin:0 0 14px">Como tu prueba terminó y aún no tienes una suscripción activa, los <strong>datos de tu negocio</strong> (agenda, clientes, servicios y configuración) se <strong>eliminarán el ${o.deleteLabel}</strong>.</p>
+    <p style="margin:0 0 14px">Todavía estás a tiempo: suscríbete antes de esa fecha y conserva todo tal como está.</p>
+    ${promoBox()}`
+  return {
+    subject: '⚠️ Tus datos de ChatVenti se eliminarán pronto',
+    html: layout({
+      title: 'Tus datos se eliminarán pronto',
+      bodyHtml: body,
+      cta: { label: 'Suscribirme y conservar mis datos →', href: `${o.siteUrl}/dashboard/facturacion` },
+      note: 'Después de la fecha indicada, los datos del negocio no se podrán recuperar.',
+    }),
+  }
+}
+
+/** Tras eliminar los datos (día 30). La cuenta se conserva; sin nuevo trial. */
+export function dataDeletedEmail(o: { orgName: string; siteUrl: string }): Built {
+  const body = `
+    <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, como no se activó una suscripción, los datos de tu negocio se eliminaron según nuestra política.</p>
+    <p style="margin:0 0 14px"><strong>Tu cuenta sigue disponible.</strong> Si quieres volver a usar ChatVenti, puedes suscribirte cuando quieras — ten en cuenta que empezarías desde cero (el periodo de prueba ya fue utilizado).</p>`
+  return {
+    subject: 'Tus datos de ChatVenti fueron eliminados',
+    html: layout({
+      title: 'Tus datos fueron eliminados',
+      bodyHtml: body,
+      cta: { label: 'Volver a ChatVenti →', href: `${o.siteUrl}/dashboard/facturacion` },
+      note: 'Gracias por probar ChatVenti. Aquí estaremos cuando quieras volver.',
     }),
   }
 }

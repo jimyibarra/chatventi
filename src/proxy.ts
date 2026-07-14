@@ -10,6 +10,10 @@ type CookieToSet = { name: string; value: string; options: CookieOptions }
  * Patron portado de SastrePro2 (src/proxy.ts).
  */
 export async function proxy(request: NextRequest) {
+  // Exponemos la ruta actual a los layouts (para el gate de acceso: permitir
+  // /dashboard/facturacion aunque la prueba haya terminado).
+  request.headers.set('x-pathname', request.nextUrl.pathname)
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient<Database>(

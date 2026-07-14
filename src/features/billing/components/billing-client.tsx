@@ -6,7 +6,8 @@ import {
   STARTER_PRICE_USD,
   ADDON_DOMAIN_USD,
   ADDON_TEAM_USD,
-  TRIAL_DAYS,
+  PROMO_CODE,
+  PROMO_LABEL,
   monthlyTotalUsd,
   aiTierById,
   STATUS_LABELS,
@@ -202,8 +203,9 @@ export function BillingClient({ sub, active }: Props) {
               <span className="text-base font-normal text-ink-faint"> /mes</span>
             </p>
             <p className="mt-1 text-xs text-ink-faint">
-              Base ${STARTER_PRICE_USD} + módulos · {TRIAL_DAYS} días de prueba gratis · cancela
-              cuando quieras
+              Base ${STARTER_PRICE_USD} + módulos · usa el código{' '}
+              <span className="font-semibold text-white">{PROMO_CODE}</span> y obtén {PROMO_LABEL} ·
+              cancela cuando quieras
             </p>
           </div>
           <button
@@ -211,7 +213,7 @@ export function BillingClient({ sub, active }: Props) {
             disabled={pending}
             className="rounded-xl bg-brand-500 px-6 py-3 font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
           >
-            {pending ? 'Redirigiendo…' : 'Empezar prueba gratis'}
+            {pending ? 'Redirigiendo…' : 'Suscribirme ahora'}
           </button>
         </div>
         {error && <p className="mt-3 text-sm text-red-300">{error}</p>}

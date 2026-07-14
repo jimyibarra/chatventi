@@ -6,7 +6,16 @@
 // =====================================================================
 
 export const CURRENCY = 'usd' as const
+// Prueba GRATIS sin tarjeta (días desde el registro). Debe coincidir con el
+// interval de create_organization_with_owner en la migración.
 export const TRIAL_DAYS = 10
+// Días desde el registro tras los cuales, sin suscripción, se borran los datos
+// operativos del negocio (se conserva la cuenta del dueño).
+export const DATA_RETENTION_DAYS = 30
+// Promo de conversión: 30% de descuento por 3 meses. El código se envía en los
+// correos del funnel y se aplica en el checkout (allow_promotion_codes).
+export const PROMO_CODE = 'BIENVENIDO30'
+export const PROMO_LABEL = '30% de descuento durante 3 meses'
 
 /** Precio de la base "ChatVenti Starter" (siempre incluida), en USD/mes. */
 export const STARTER_PRICE_USD = 29

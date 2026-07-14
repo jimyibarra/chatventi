@@ -629,10 +629,16 @@ export type Database = {
           branding: Json | null
           contact_email: string | null
           created_at: string
+          data_deleted_at: string | null
+          delete_scheduled_at: string | null
+          deletion_warning_email_sent_at: string | null
           id: string
           name: string
           onboarding_email_sent_at: string | null
           phone: string | null
+          trial_ended_email_sent_at: string | null
+          trial_ending_email_sent_at: string | null
+          trial_ends_at: string | null
           web_slug: string | null
           welcome_email_sent_at: string | null
         }
@@ -640,10 +646,16 @@ export type Database = {
           branding?: Json | null
           contact_email?: string | null
           created_at?: string
+          data_deleted_at?: string | null
+          delete_scheduled_at?: string | null
+          deletion_warning_email_sent_at?: string | null
           id?: string
           name: string
           onboarding_email_sent_at?: string | null
           phone?: string | null
+          trial_ended_email_sent_at?: string | null
+          trial_ending_email_sent_at?: string | null
+          trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
         }
@@ -651,10 +663,16 @@ export type Database = {
           branding?: Json | null
           contact_email?: string | null
           created_at?: string
+          data_deleted_at?: string | null
+          delete_scheduled_at?: string | null
+          deletion_warning_email_sent_at?: string | null
           id?: string
           name?: string
           onboarding_email_sent_at?: string | null
           phone?: string | null
+          trial_ended_email_sent_at?: string | null
+          trial_ending_email_sent_at?: string | null
+          trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
         }
@@ -1096,6 +1114,7 @@ export type Database = {
       }
       org_has_ai: { Args: { p_org: string }; Returns: boolean }
       org_is_active: { Args: { p_org: string }; Returns: boolean }
+      wipe_organization_business_data: { Args: { p_org: string }; Returns: undefined }
       pause_ai: {
         Args: { p_conversation_id: string; p_minutes?: number }
         Returns: undefined

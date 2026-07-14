@@ -268,7 +268,7 @@ export const FAQS = [
   },
   {
     q: '¿Puedo cancelar cuando quiera?',
-    a: `Sí. No hay contratos forzosos ni penalizaciones: administras tu suscripción, cambias de plan o cancelas desde el portal de facturación de tu panel. Y empiezas con ${TRIAL_DAYS} días de prueba gratis.`,
+    a: `Sí. No hay contratos forzosos ni penalizaciones: administras tu suscripción, cambias de plan o cancelas desde el portal de facturación de tu panel. Y empiezas con ${TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito.`,
   },
   {
     q: '¿Cuánto tarda la configuración?',

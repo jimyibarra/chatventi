@@ -10,7 +10,6 @@ import {
   PRICE_TEAM,
   aiTierPriceId,
 } from '@/lib/stripe'
-import { TRIAL_DAYS } from '@/features/billing/plans'
 
 export type CheckoutResult =
   | { ok: true; url: string }
@@ -109,9 +108,10 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       mode: 'subscription',
       customer: customerId,
       line_items: lineItems,
+      // El código de promo (30% off 3 meses) se aplica aquí. Ya NO hay trial de
+      // Stripe: la prueba gratis (sin tarjeta) ocurre a nivel de app antes.
       allow_promotion_codes: true,
       subscription_data: {
-        trial_period_days: TRIAL_DAYS,
         metadata: { organization_id: orgId as string },
       },
       metadata: { organization_id: orgId as string },

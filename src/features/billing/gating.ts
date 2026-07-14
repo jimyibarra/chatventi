@@ -44,3 +44,34 @@ export function subIsActive(sub: OrgSubscription | null): boolean {
 export function subHasAi(sub: OrgSubscription | null): boolean {
   return subIsActive(sub) && !!sub && sub.ai_tier !== 'none'
 }
+
+export interface OrgTrial {
+  trial_ends_at: string | null
+  data_deleted_at: string | null
+  delete_scheduled_at: string | null
+  created_at: string
+}
+
+/** ¿Sigue vigente la prueba gratis (sin tarjeta)? */
+export function trialActive(org: OrgTrial | null): boolean {
+  return !!org?.trial_ends_at && new Date(org.trial_ends_at) > new Date()
+}
+
+/**
+ * Acceso al panel = prueba vigente O suscripción activa. Al terminar la prueba
+ * sin suscripción, el acceso se bloquea (pantalla "Suscríbete"); los datos se
+ * conservan hasta el borrado del día 30.
+ */
+export function hasAppAccess(org: OrgTrial | null, sub: OrgSubscription | null): boolean {
+  return subIsActive(sub) || trialActive(org)
+}
+
+/** Lee el estado de trial de la org del usuario autenticado (por RLS). */
+export async function getMyOrgTrial(): Promise<OrgTrial | null> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('organizations')
+    .select('trial_ends_at, data_deleted_at, delete_scheduled_at, created_at')
+    .maybeSingle()
+  return (data as OrgTrial | null) ?? null
+}

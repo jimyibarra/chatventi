@@ -5,7 +5,13 @@ import {
   sendButtonsToCustomerByChannel,
 } from '@/features/agente-ia/senders'
 import { sendEmail, emailsEnabled, verifyTransport } from '@/features/emails/mailer'
-import { trialEndingEmail } from '@/features/emails/templates'
+import {
+  trialEndingEmail,
+  trialEndedEmail,
+  deletionWarningEmail,
+  dataDeletedEmail,
+} from '@/features/emails/templates'
+import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 
 export const runtime = 'nodejs'
 
@@ -171,8 +177,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  // Recordatorio de fin de prueba (~48h antes), por correo. Idempotente.
-  const trialSummary = await sendTrialEndingEmails(service)
+  // Funnel de la prueba gratis: recordatorio → bloqueo → aviso → borrado.
+  const trialSummary = await runTrialFunnel(service)
 
   // Limpieza de la demo de la landing: las conversaciones/citas de la org
   // demo son efímeras; se borran las de más de 24h en cada corrida.
@@ -187,63 +193,146 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
 
-// Suscripciones en prueba cuyo trial_end cae dentro de las próximas 48h y a las
-// que aún no se les avisó. Marca `trial_ending_email_sent_at` para no repetir.
-async function sendTrialEndingEmails(
+const dayLabel = (iso: string): string =>
+  new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }).format(
+    new Date(iso)
+  )
+
+type OrgRow = {
+  id: string
+  name: string
+  contact_email: string | null
+  created_at: string
+  trial_ends_at: string | null
+  delete_scheduled_at: string | null
+}
+
+type FunnelSummary = { reminders: number; blocked: number; warnings: number; deleted: number }
+
+/**
+ * Funnel de la prueba gratis (sin tarjeta), corrido a diario:
+ *   1. Recordatorio ~3 días antes de que termine la prueba.
+ *   2. Al terminar: correo de "prueba terminada" + se agenda el borrado (día 30).
+ *   3. Aviso ~4 días antes del borrado.
+ *   4. Borrado de los datos operativos (se conserva la cuenta) + correo.
+ * Todo salta a las orgs con suscripción activa. Idempotente por marcas de fecha.
+ * Guardado por emailsEnabled(): si el SMTP no está activo, NO corre nada (no se
+ * borra nada sin haber avisado por correo).
+ */
+async function runTrialFunnel(
   service: ReturnType<typeof createServiceClient>
-): Promise<{ sent: number; skipped: number }> {
-  const result = { sent: 0, skipped: 0 }
-  // Si el SMTP aún no está configurado, NO tocamos nada: así no "quemamos" el
-  // aviso de fin de prueba antes de que el correo esté activo.
-  if (!emailsEnabled()) return result
+): Promise<FunnelSummary> {
+  const summary: FunnelSummary = { reminders: 0, blocked: 0, warnings: 0, deleted: 0 }
+  if (!emailsEnabled()) return summary
   try {
     const now = new Date()
-    const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString()
+    const nowIso = now.toISOString()
 
-    const { data: subs, error } = await service
+    // Orgs con suscripción viva: quedan fuera del funnel.
+    const { data: activeSubs } = await service
       .from('subscriptions')
-      .select('organization_id, trial_end')
-      .eq('status', 'trialing')
+      .select('organization_id')
+      .in('status', ['trialing', 'active'])
+    const activeOrgs = new Set((activeSubs ?? []).map((s) => s.organization_id))
+
+    const cols = 'id, name, contact_email, created_at, trial_ends_at, delete_scheduled_at'
+
+    // 1) Recordatorio: prueba termina dentro de ~3 días.
+    const in3d = new Date(now.getTime() + 3 * 86400000).toISOString()
+    const { data: ending } = await service
+      .from('organizations')
+      .select(cols)
+      .is('data_deleted_at', null)
       .is('trial_ending_email_sent_at', null)
-      .not('trial_end', 'is', null)
-      .lte('trial_end', in48h)
-      .gt('trial_end', now.toISOString())
-    if (error) {
-      console.error('[cron-trial] query error', error.message)
-      return result
+      .gt('trial_ends_at', nowIso)
+      .lte('trial_ends_at', in3d)
+    for (const o of (ending ?? []) as OrgRow[]) {
+      if (!o.contact_email || activeOrgs.has(o.id)) continue
+      const { subject, html } = trialEndingEmail({
+        orgName: o.name,
+        trialEndLabel: dayLabel(o.trial_ends_at as string),
+        siteUrl: SITE,
+      })
+      await sendEmail({ to: o.contact_email, subject, html })
+      await service.from('organizations').update({ trial_ending_email_sent_at: nowIso }).eq('id', o.id)
+      summary.reminders++
     }
 
-    for (const sub of subs ?? []) {
-      const { data: org } = await service
+    // 2) Prueba terminada: correo de bloqueo + agenda el borrado (registro + 30d).
+    const { data: ended } = await service
+      .from('organizations')
+      .select(cols)
+      .is('data_deleted_at', null)
+      .is('trial_ended_email_sent_at', null)
+      .lt('trial_ends_at', nowIso)
+    for (const o of (ended ?? []) as OrgRow[]) {
+      if (activeOrgs.has(o.id)) continue
+      const deleteIso = new Date(
+        new Date(o.created_at).getTime() + DATA_RETENTION_DAYS * 86400000
+      ).toISOString()
+      if (o.contact_email) {
+        const { subject, html } = trialEndedEmail({
+          orgName: o.name,
+          deleteLabel: dayLabel(deleteIso),
+          siteUrl: SITE,
+        })
+        await sendEmail({ to: o.contact_email, subject, html })
+      }
+      await service
         .from('organizations')
-        .select('name, contact_email')
-        .eq('id', sub.organization_id)
-        .maybeSingle()
-      if (!org?.contact_email) {
-        result.skipped++
+        .update({ trial_ended_email_sent_at: nowIso, delete_scheduled_at: deleteIso })
+        .eq('id', o.id)
+      summary.blocked++
+    }
+
+    // 3) Aviso de borrado: faltan ~4 días.
+    const in4d = new Date(now.getTime() + 4 * 86400000).toISOString()
+    const { data: warn } = await service
+      .from('organizations')
+      .select(cols)
+      .is('data_deleted_at', null)
+      .is('deletion_warning_email_sent_at', null)
+      .not('delete_scheduled_at', 'is', null)
+      .gt('delete_scheduled_at', nowIso)
+      .lte('delete_scheduled_at', in4d)
+    for (const o of (warn ?? []) as OrgRow[]) {
+      if (activeOrgs.has(o.id)) continue
+      if (o.contact_email) {
+        const { subject, html } = deletionWarningEmail({
+          orgName: o.name,
+          deleteLabel: dayLabel(o.delete_scheduled_at as string),
+          siteUrl: SITE,
+        })
+        await sendEmail({ to: o.contact_email, subject, html })
+      }
+      await service.from('organizations').update({ deletion_warning_email_sent_at: nowIso }).eq('id', o.id)
+      summary.warnings++
+    }
+
+    // 4) Borrado: llegó el día. Se borran los datos operativos; se conserva la cuenta.
+    const { data: toDelete } = await service
+      .from('organizations')
+      .select(cols)
+      .is('data_deleted_at', null)
+      .not('delete_scheduled_at', 'is', null)
+      .lte('delete_scheduled_at', nowIso)
+    for (const o of (toDelete ?? []) as OrgRow[]) {
+      if (activeOrgs.has(o.id)) continue
+      const { error } = await service.rpc('wipe_organization_business_data', { p_org: o.id })
+      if (error) {
+        console.error('[cron-trial] wipe error', o.id, error.message)
         continue
       }
-      const trialEndLabel = new Intl.DateTimeFormat('es-MX', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-      }).format(new Date(sub.trial_end as string))
-
-      const { subject, html } = trialEndingEmail({ orgName: org.name, trialEndLabel, siteUrl: SITE })
-      const ok = await sendEmail({ to: org.contact_email, subject, html })
-      // Marca aunque falle el envío para no reintentar en bucle cada día; si el
-      // SMTP aún no está configurado, simplemente no se enviará (log en mailer).
-      await service
-        .from('subscriptions')
-        .update({ trial_ending_email_sent_at: new Date().toISOString() })
-        .eq('organization_id', sub.organization_id)
-      if (ok) result.sent++
-      else result.skipped++
+      if (o.contact_email) {
+        const { subject, html } = dataDeletedEmail({ orgName: o.name, siteUrl: SITE })
+        await sendEmail({ to: o.contact_email, subject, html })
+      }
+      summary.deleted++
     }
   } catch (e) {
     console.error('[cron-trial] error', e)
   }
-  return result
+  return summary
 }
 
 const DEMO_ORG_ID = '12974a7a-fb18-4713-9d2c-28c251b09312'
