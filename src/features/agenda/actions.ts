@@ -8,7 +8,6 @@ import {
   statusSchema,
   serviceSchema,
   businessHourSchema,
-  staffScheduleSchema,
   type Slot,
 } from './types'
 
@@ -19,6 +18,9 @@ export type ActionResult<T = undefined> =
 // Traduce errores crudos del RPC a mensajes de usuario.
 function humanizeError(message: string): string {
   if (message.includes('slot_taken')) return 'Ese horario ya está ocupado. Elige otro.'
+  if (message.includes('no_resource_available'))
+    return 'Ningún profesional está libre a esa hora para ese servicio.'
+  if (message.includes('resource_not_found')) return 'Ese profesional ya no está disponible.'
   if (message.includes('invalid_services')) return 'Servicio inválido o inactivo.'
   if (message.includes('branch_not_found')) return 'Sucursal no encontrada.'
   if (message.includes('forbidden')) return 'No tienes acceso a este recurso.'
@@ -35,15 +37,15 @@ export async function fetchSlots(input: {
   branchId: string
   serviceIds: string[]
   date: string // YYYY-MM-DD
-  staffId?: string | null
+  resourceId?: string | null
   slotInterval?: number
 }): Promise<ActionResult<Slot[]>> {
   const supabase = await createClient()
-  const { data, error } = await supabase.rpc('get_available_slots', {
+  const { data, error } = await supabase.rpc('get_available_slots_v2', {
     p_branch_id: input.branchId,
     p_service_ids: input.serviceIds,
     p_date: input.date,
-    p_staff_id: input.staffId ?? undefined,
+    p_resource_id: input.resourceId ?? undefined,
     p_slot_interval: input.slotInterval ?? 15,
   })
   if (error) return { ok: false, error: humanizeError(error.message) }
@@ -84,12 +86,12 @@ export async function createAppointment(
     }
   }
 
-  const { data, error } = await supabase.rpc('create_appointment', {
+  const { data, error } = await supabase.rpc('create_appointment_v2', {
     p_branch_id: input.branchId,
     p_service_ids: input.serviceIds,
     p_starts_at: input.startsAt,
     p_client_id: clientId ?? undefined,
-    p_staff_id: input.staffId ?? undefined,
+    p_resource_id: input.resourceId ?? undefined,
     p_source: 'staff',
     p_notes: input.notes || undefined,
   })
@@ -107,10 +109,10 @@ export async function rescheduleAppointment(raw: unknown): Promise<ActionResult>
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
   const supabase = await createClient()
-  const { error } = await supabase.rpc('reschedule_appointment', {
+  const { error } = await supabase.rpc('reschedule_appointment_v2', {
     p_appointment_id: parsed.data.appointmentId,
     p_new_starts_at: parsed.data.newStartsAt,
-    p_new_staff_id: parsed.data.newStaffId ?? undefined,
+    p_new_resource_id: parsed.data.newResourceId ?? undefined,
   })
   if (error) return { ok: false, error: humanizeError(error.message) }
   revalidatePath(AGENDA_PATH)
@@ -217,35 +219,5 @@ export async function saveBusinessHour(raw: unknown): Promise<ActionResult> {
   return { ok: true }
 }
 
-// -------------------------------------------------------------------
-// Disponibilidad del staff (agregar/eliminar bloques)
-// -------------------------------------------------------------------
-export async function addStaffSchedule(raw: unknown): Promise<ActionResult> {
-  const parsed = staffScheduleSchema.safeParse(raw)
-  if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
-  }
-  const { branchId, staffId, weekday, startTime, endTime } = parsed.data
-  if (endTime <= startTime) {
-    return { ok: false, error: 'La hora de fin debe ser mayor a la de inicio.' }
-  }
-  const supabase = await createClient()
-  const { error } = await supabase.from('staff_schedules').insert({
-    branch_id: branchId,
-    staff_id: staffId,
-    weekday,
-    start_time: startTime,
-    end_time: endTime,
-  })
-  if (error) return { ok: false, error: humanizeError(error.message) }
-  revalidatePath('/dashboard/agenda/configuracion')
-  return { ok: true }
-}
-
-export async function deleteStaffSchedule(id: string): Promise<ActionResult> {
-  const supabase = await createClient()
-  const { error } = await supabase.from('staff_schedules').delete().eq('id', id)
-  if (error) return { ok: false, error: humanizeError(error.message) }
-  revalidatePath('/dashboard/agenda/configuracion')
-  return { ok: true }
-}
+// La disponibilidad individual vive en features/profesionales/actions.ts
+// (addResourceSchedule / deleteResourceSchedule): es del recurso, no del usuario.

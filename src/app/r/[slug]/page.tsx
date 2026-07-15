@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { PublicBooking } from '@/features/reservas-web/components/public-booking'
+import { DEFAULT_RESOURCE_LABEL } from '@/features/profesionales/types'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,6 +10,8 @@ type Branding = {
   description?: string
   logo_url?: string
   whatsapp_number?: string
+  // Etiqueta del vertical: Profesionales / Salas / Equipos / a medida.
+  resource_label?: string
 } | null
 
 // Deep link de WhatsApp con el pedido prellenado (Ola 3: pedidos por chat).
@@ -23,6 +26,7 @@ type Ctx = {
   org: { name: string; branding: Branding }
   branch: { id: string; name: string; timezone: string } | null
   services: { id: string; name: string; duration_minutes: number; price: number | null }[]
+  resources: { id: string; name: string; photo_url: string | null; service_ids: string[] }[]
   products: { id: string; name: string; price: number | null; image_url: string | null; description: string | null }[]
 }
 
@@ -84,6 +88,8 @@ export default async function PublicBookingPage({
           branchId={ctx.branch.id}
           tz={ctx.branch.timezone}
           services={ctx.services}
+          resources={ctx.resources ?? []}
+          resourceLabel={ctx.org.branding?.resource_label || DEFAULT_RESOURCE_LABEL}
           primaryColor={primary}
         />
 

@@ -52,10 +52,27 @@ function buildSystemPrompt(ctx: AgentContext): string {
     ? ctx.upcoming_appointments
         .map(
           (a) =>
-            `- ${a.services} — ${fmtDateTime(a.starts_at, tz)} (estado: ${a.status}, id: ${a.id})`
+            `- ${a.services} — ${fmtDateTime(a.starts_at, tz)}${
+              a.resource_name ? ` con ${a.resource_name}` : ''
+            } (estado: ${a.status}, id: ${a.id})`
         )
         .join('\n')
     : '(sin citas próximas)'
+
+  // Quién puede atender. service_ids vacío = presta TODOS los servicios.
+  const resourceList = ctx.resources ?? []
+  const resources = resourceList.length
+    ? resourceList
+        .map((r) => {
+          const presta = r.service_ids.length
+            ? r.service_ids
+                .map((id) => ctx.services.find((s) => s.id === id)?.name ?? id)
+                .join(', ')
+            : 'todos los servicios'
+          return `- ${r.name} — id: ${r.id} (presta: ${presta})`
+        })
+        .join('\n')
+    : null
 
   return [
     ctx.config?.system_prompt?.trim() ||
@@ -68,6 +85,13 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
     '- Si el mensaje del cliente contiene una marca [slot:<instante>], eligió ese horario: pasa a book_appointment/reschedule_appointment el instante EXACTO que sigue a "slot:" sin modificarlo.',
+    '- Si la marca es [slot:<instante>|<uuid>], el uuid tras la barra es el resource_id de ESE horario: pásalo tal cual a book_appointment. No lo omitas ni lo cambies, o reservarías con otra persona.',
+    ...(resources
+      ? [
+          '- Si el cliente pide a alguien concreto, pasa su resource_id a check_availability y a book_appointment. Si NO lo pide y hay varias personas que prestan el servicio, pregunta con quién UNA sola vez; si le da igual, omite resource_id y el sistema asigna a quien esté libre.',
+          '- NUNCA ofrezcas a alguien que no preste el servicio pedido (mira la lista de quién presta qué).',
+        ]
+      : []),
     '- Si vas a reservar y NO tienes el instante ISO exacto (devuelto por check_availability en este turno o en una marca [slot:...]), vuelve a llamar check_availability y usa el ISO cuya hora coincida con la que pidió el cliente. NUNCA construyas el instante tú mismo.',
     '- Para CANCELAR o REAGENDAR usa cancel_appointment / reschedule_appointment con el id EXACTO de la lista CITAS PRÓXIMAS DEL CLIENTE. Si tiene varias citas, pregunta cuál UNA sola vez. Si no tiene citas próximas, dilo con amabilidad. Para reagendar, primero consulta disponibilidad con check_availability.',
     '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
@@ -78,6 +102,7 @@ function buildSystemPrompt(ctx: AgentContext): string {
     `SERVICIOS DEL NEGOCIO${ctx.branch ? ` (sucursal ${ctx.branch.name})` : ''}:`,
     services,
     '',
+    ...(resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
     ...(products
       ? [
           'PRODUCTOS DEL NEGOCIO (responde precio/detalles; para apartar uno, dile al cliente que lo confirmas con el equipo y usa request_human_approval con el pedido como borrador):',
@@ -156,8 +181,20 @@ function fmtDateTime(iso: string, tz: string): string {
 // que fecha/hora/servicio sean siempre exactos y en la tz de la sucursal.
 // -------------------------------------------------------------------
 type ChatAction =
-  | { kind: 'booked'; services: string; startsAt: string; manageUrl?: string | null }
-  | { kind: 'rescheduled'; services: string; startsAt: string; manageUrl?: string | null }
+  | {
+      kind: 'booked'
+      services: string
+      startsAt: string
+      manageUrl?: string | null
+      resourceName?: string | null
+    }
+  | {
+      kind: 'rescheduled'
+      services: string
+      startsAt: string
+      manageUrl?: string | null
+      resourceName?: string | null
+    }
   | { kind: 'cancelled'; services: string; startsAt: string }
 
 function buildConfirmation(action: ChatAction, tz: string, branchName: string): string {
@@ -167,13 +204,40 @@ function buildConfirmation(action: ChatAction, tz: string, branchName: string): 
     action.kind !== 'cancelled' && action.manageUrl
       ? `\n🔗 Gestiona tu cita aquí: ${action.manageUrl}`
       : ''
+  // Con quién es la cita. Solo aparece si el negocio tiene profesionales.
+  const who =
+    action.kind !== 'cancelled' && action.resourceName ? `\n👤 Con ${action.resourceName}` : ''
   switch (action.kind) {
     case 'booked':
-      return `✅ *Cita confirmada*\n📅 ${when}\n🔹 ${action.services}\n📍 ${branchName}${link}`
+      return `✅ *Cita confirmada*\n📅 ${when}\n🔹 ${action.services}${who}\n📍 ${branchName}${link}`
     case 'rescheduled':
-      return `🔄 *Cita reagendada*\n📅 Nueva fecha: ${when}\n🔹 ${action.services}\n📍 ${branchName}${link}`
+      return `🔄 *Cita reagendada*\n📅 Nueva fecha: ${when}\n🔹 ${action.services}${who}\n📍 ${branchName}${link}`
     case 'cancelled':
       return `❌ *Cita cancelada*\n📅 Era: ${when}\n🔹 ${action.services}`
+  }
+}
+
+// Nombre del profesional asignado a una cita (o null). El motor puede haberlo
+// elegido solo con "el que sea", así que se relee tras reservar/reagendar.
+//
+// Usa el SERVICE client a propósito: en el webhook el cliente es ANON y las
+// políticas RLS de `appointments` piden get_my_org(), que para anon es null.
+// Leerlo con el cliente del agente devolvería null en silencio y la
+// confirmación jamás diría con quién es la cita. (Gotcha del PRP.)
+// Nunca rompe la reserva: si falla, se omite el nombre.
+async function fetchResourceName(appointmentId: string): Promise<string | null> {
+  try {
+    const admin = createServiceClient()
+    const { data } = await admin
+      .from('appointments')
+      .select('resource:resources(name)')
+      .eq('id', appointmentId)
+      .maybeSingle()
+    const resource = (data as { resource: { name: string } | null } | null)?.resource
+    return resource?.name ?? null
+  } catch (e) {
+    console.error('[agent] fetchResourceName error', e)
+    return null
   }
 }
 
@@ -273,19 +337,32 @@ export async function runAgent(params: {
   const tools = {
     check_availability: tool({
       description:
-        'Consulta los horarios disponibles para uno o más servicios en una fecha. Devuelve horas libres reales (máx 3).',
+        'Consulta los horarios disponibles para uno o más servicios en una fecha. Devuelve horas libres reales (máx 3). Pasa resource_id solo si el cliente pidió a alguien concreto.',
       inputSchema: z.object({
         service_ids: z.array(z.string().uuid()).min(1),
         date: z.string().describe('Fecha en formato YYYY-MM-DD'),
+        resource_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Id de la persona/recurso, solo si el cliente pidió a alguien concreto'),
       }),
-      execute: async ({ service_ids, date }) => {
-        const { data, error } = await supabase.rpc('get_available_slots', {
+      execute: async ({ service_ids, date, resource_id }) => {
+        const { data, error } = await supabase.rpc('get_available_slots_v2', {
           p_branch_id: branchId,
           p_service_ids: service_ids,
           p_date: date,
+          p_resource_id: resource_id,
         })
         if (error) return { error: 'No pude consultar disponibilidad.' }
-        const slots = (data ?? []) as { slot_start: string }[]
+        const all = (data ?? []) as { slot_start: string; resource_id: string | null }[]
+
+        // Sin recurso pedido, el mismo instante llega una vez por persona libre:
+        // se ofrece la hora UNA vez y el motor asigna a quien esté libre al reservar.
+        const slots = resource_id
+          ? all
+          : all.filter((s, i, xs) => xs.findIndex((o) => o.slot_start === s.slot_start) === i)
+
         if (slots.length === 0) return { available: [], note: 'Sin horarios ese día.' }
         // Máx 3 horarios por mensaje (anti-fatiga): mañana / mediodía / tarde
         // cuando hay muchos, para dar opciones repartidas del día.
@@ -294,33 +371,49 @@ export async function runAgent(params: {
             ? slots
             : [slots[0], slots[Math.floor(slots.length / 2)], slots[slots.length - 1]]
         const times = pick.map((s) => fmtTime(s.slot_start, tz))
-        // Botones de opción rápida para el mensaje final (anti-fatiga).
+        // Botones de opción rápida. La marca lleva el recurso SOLO si el cliente
+        // pidió a alguien: si no, reservar sin recurso deja que el motor elija.
         offeredSlots = pick.map((s) => ({
-          id: `slot:${s.slot_start}`,
+          id: resource_id ? `slot:${s.slot_start}|${resource_id}` : `slot:${s.slot_start}`,
           title: fmtTime(s.slot_start, tz),
         }))
-        return { date, available_times: times, iso: pick.map((s) => s.slot_start) }
+        return {
+          date,
+          available_times: times,
+          iso: pick.map((s) => s.slot_start),
+          resource_id: resource_id ?? null,
+        }
       },
     }),
     book_appointment: tool({
       description:
-        'Agenda una cita para el cliente actual. Úsalo solo cuando el cliente confirmó servicio(s) y un horario concreto (usa el valor ISO devuelto por check_availability).',
+        'Agenda una cita para el cliente actual. Úsalo solo cuando el cliente confirmó servicio(s) y un horario concreto (usa el valor ISO devuelto por check_availability). Pasa resource_id si el cliente eligió a alguien; omítelo si le da igual.',
       inputSchema: z.object({
         service_ids: z.array(z.string().uuid()).min(1),
         starts_at: z.string().describe('Instante ISO 8601 del inicio (de check_availability)'),
+        resource_id: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Id de la persona elegida (o el uuid tras la barra de la marca [slot:...|uuid])'),
       }),
-      execute: async ({ service_ids, starts_at }) => {
+      execute: async ({ service_ids, starts_at, resource_id }) => {
         const startsAtUtc = isoWithTz(starts_at, tz)
-        const { data, error } = await supabase.rpc('create_appointment_from_chat', {
+        const { data, error } = await supabase.rpc('create_appointment_from_chat_v2', {
           p_channel_type: channelType,
           p_external_id: externalId,
           p_client_phone: fromHandle,
           p_service_ids: service_ids,
           p_starts_at: startsAtUtc,
+          p_resource_id: resource_id,
         })
         if (error) {
           if (error.message.includes('slot_taken'))
             return { ok: false, error: 'Ese horario acaba de ocuparse. Ofrece otro.' }
+          if (error.message.includes('no_resource_available'))
+            return { ok: false, error: 'Nadie está libre a esa hora para ese servicio. Ofrece otro horario.' }
+          if (error.message.includes('resource_not_found'))
+            return { ok: false, error: 'Esa persona ya no está disponible. Vuelve a consultar quién atiende.' }
           return { ok: false, error: 'No pude agendar. Intenta con otro horario.' }
         }
         const manageUrl = data
@@ -331,13 +424,22 @@ export async function runAgent(params: {
               appointmentId: String(data),
             })
           : null
+        // El motor pudo asignar a alguien aunque no se pidiera ("el que sea"):
+        // se relee para que la confirmación diga con quién es la cita.
+        const resourceName = data ? await fetchResourceName(String(data)) : null
         actions.push({
           kind: 'booked',
           services: serviceNames(service_ids),
           startsAt: startsAtUtc,
           manageUrl,
+          resourceName,
         })
-        return { ok: true, appointment_id: data, confirmed_at: fmtTime(startsAtUtc, tz) }
+        return {
+          ok: true,
+          appointment_id: data,
+          confirmed_at: fmtTime(startsAtUtc, tz),
+          with: resourceName,
+        }
       },
     }),
     cancel_appointment: tool({
@@ -400,6 +502,7 @@ export async function runAgent(params: {
           services: appt.services,
           startsAt: newStartsAtUtc,
           manageUrl,
+          resourceName: await fetchResourceName(appointment_id),
         })
         return { ok: true, confirmed_at: fmtTime(newStartsAtUtc, tz) }
       },

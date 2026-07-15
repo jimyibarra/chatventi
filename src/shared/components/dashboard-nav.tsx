@@ -6,12 +6,14 @@ import { usePathname } from 'next/navigation'
 
 // ---------------------------------------------------------------------
 // Navegación unificada del dashboard (única fuente de navegación):
-//   · Desktop (≥md): sidebar persistente con las 8 secciones.
+//   · Desktop (≥md): sidebar persistente con las 9 secciones.
 //   · Móvil (<md):  bottom-nav fija con Panel · Agenda · Chats · Clientes · Más
 //     ("Más" despliega las secciones secundarias).
 // ---------------------------------------------------------------------
 
-type NavItem = { href: string; label: string; icon: React.ReactNode }
+// `roles`: quién ve el item. Ausente = todos. Esto es COSMÉTICO (no enseñar lo
+// que no puedes usar); el bloqueo real vive en el proxy y en las RPCs.
+type NavItem = { href: string; label: string; icon: React.ReactNode; roles?: string[] }
 
 function Icon({ d }: { d: string }) {
   return (
@@ -42,6 +44,9 @@ const ICONS = {
     'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18',
   plug: 'M9 7V3M15 7V3M7 7h10v4a5 5 0 0 1-5 5 5 5 0 0 1-5-5V7ZM12 16v5',
   card: 'M3 7h18v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7ZM3 10h18M7 14h4',
+  badge:
+    'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5.5 21v-1.5A4.5 4.5 0 0 1 10 15h4a4.5 4.5 0 0 1 4.5 4.5V21',
+  team: 'M17 20h5v-1a3 3 0 0 0-3-3h-1M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1M16.5 5.5a3 3 0 0 1 0 5.6',
   dots: 'M5 12h.01M12 12h.01M19 12h.01',
 } as const
 
@@ -53,11 +58,27 @@ const PRIMARY: NavItem[] = [
 ]
 
 const SECONDARY: NavItem[] = [
+  {
+    href: '/dashboard/profesionales',
+    label: 'Profesionales',
+    icon: <Icon d={ICONS.badge} />,
+    roles: ['owner', 'manager'],
+  },
+  { href: '/dashboard/equipo', label: 'Equipo', icon: <Icon d={ICONS.team} />, roles: ['owner'] },
   { href: '/dashboard/agente', label: 'Recepcionista IA', icon: <Icon d={ICONS.robot} /> },
   { href: '/dashboard/reservas-web', label: 'Reservas Web', icon: <Icon d={ICONS.globe} /> },
-  { href: '/dashboard/conexiones', label: 'Conexiones', icon: <Icon d={ICONS.plug} /> },
-  { href: '/dashboard/facturacion', label: 'Facturación', icon: <Icon d={ICONS.card} /> },
+  { href: '/dashboard/conexiones', label: 'Conexiones', icon: <Icon d={ICONS.plug} />, roles: ['owner'] },
+  {
+    href: '/dashboard/facturacion',
+    label: 'Facturación',
+    icon: <Icon d={ICONS.card} />,
+    roles: ['owner'],
+  },
 ]
+
+function visible(items: NavItem[], role: string): NavItem[] {
+  return items.filter((i) => !i.roles || i.roles.includes(role))
+}
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard'
@@ -80,10 +101,11 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   )
 }
 
-export function DashboardNav() {
+export function DashboardNav({ role }: { role: string }) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
-  const moreActive = SECONDARY.some((i) => isActive(pathname, i.href))
+  const secondary = visible(SECONDARY, role)
+  const moreActive = secondary.some((i) => isActive(pathname, i.href))
 
   return (
     <>
@@ -99,7 +121,7 @@ export function DashboardNav() {
             <NavLink key={item.href} item={item} pathname={pathname} />
           ))}
           <div className="my-2 h-px bg-line-soft" />
-          {SECONDARY.map((item) => (
+          {secondary.map((item) => (
             <NavLink key={item.href} item={item} pathname={pathname} />
           ))}
         </nav>
@@ -147,7 +169,7 @@ export function DashboardNav() {
             className="absolute inset-x-0 bottom-12 rounded-t-2xl border-t border-line bg-white p-3 pb-4 shadow-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            {SECONDARY.map((item) => (
+            {secondary.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

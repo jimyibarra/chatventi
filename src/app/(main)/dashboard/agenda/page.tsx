@@ -1,11 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { AgendaBoard } from '@/features/agenda/components/agenda-board'
-import {
-  getBranches,
-  getServices,
-  getStaff,
-  getAppointmentsRange,
-} from '@/features/agenda/services'
+import { getBranches, getServices, getAppointmentsRange } from '@/features/agenda/services'
+import { getResources, getResourceLabel } from '@/features/profesionales/services'
 import { dayRangeUtc, weekRangeUtc, ymdInTz } from '@/features/agenda/datetime'
 
 export const dynamic = 'force-dynamic'
@@ -37,27 +33,37 @@ export default async function AgendaPage({
   const week = weekRangeUtc(date, tz)
   const range = view === 'week' ? { from: week.from, to: week.to } : dayRangeUtc(date, tz)
 
-  const [appointments, services, staff, hoursCount, schedulesCount] = await Promise.all([
-    getAppointmentsRange(supabase, branch.id, range.from, range.to),
-    getServices(supabase, { onlyActive: true }),
-    getStaff(supabase),
-    supabase
-      .from('business_hours')
-      .select('*', { count: 'exact', head: true })
-      .then((r) => r.count ?? 0),
-    supabase
-      .from('staff_schedules')
-      .select('*', { count: 'exact', head: true })
-      .then((r) => r.count ?? 0),
-  ])
+  const [appointments, services, resources, resourceLabel, hoursCount, schedulesCount] =
+    await Promise.all([
+      getAppointmentsRange(supabase, branch.id, range.from, range.to),
+      getServices(supabase, { onlyActive: true }),
+      getResources(supabase),
+      getResourceLabel(supabase),
+      supabase
+        .from('business_hours')
+        .select('*', { count: 'exact', head: true })
+        .then((r) => r.count ?? 0),
+      supabase
+        .from('staff_schedules')
+        .select('*', { count: 'exact', head: true })
+        .then((r) => r.count ?? 0),
+    ])
 
-  // Sin horario o sin disponibilidad del equipo, get_available_slots no puede
-  // ofrecer NINGÚN horario ("Sin horarios disponibles" sin causa aparente).
+  const activeResources = resources.filter((r) => r.active)
+
+  // Sin horario de sucursal o sin horario de profesionales, get_available_slots_v2
+  // no puede ofrecer NINGÚN hueco ("Sin horarios disponibles" sin causa aparente).
   const missingSetup =
     hoursCount === 0
-      ? 'Aún no defines tu horario de atención, por eso no aparecen horarios al agendar.'
+      ? {
+          text: 'Aún no defines tu horario de atención, por eso no aparecen horarios al agendar.',
+          href: '/dashboard/agenda/configuracion',
+        }
       : schedulesCount === 0
-        ? 'Aún no configuras la disponibilidad del equipo, por eso no aparecen horarios al agendar.'
+        ? {
+            text: `Aún no configuras el horario de tus ${resourceLabel.toLowerCase()}, por eso no aparecen horarios al agendar.`,
+            href: '/dashboard/profesionales',
+          }
         : null
 
   return (
@@ -68,9 +74,9 @@ export default async function AgendaPage({
             className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-warn-bg bg-warn-bg p-4 text-sm text-warn"
             data-testid="agenda-setup-warning"
           >
-            <p>{missingSetup}</p>
+            <p>{missingSetup.text}</p>
             <a
-              href="/dashboard/agenda/configuracion"
+              href={missingSetup.href}
               className="rounded-xl bg-warn-strong px-3 py-1.5 text-sm font-medium text-white hover:bg-warn"
             >
               Configurar ahora
@@ -91,7 +97,8 @@ export default async function AgendaPage({
           name: s.name,
           duration_minutes: s.duration_minutes,
         }))}
-        staff={staff.map((p) => ({ id: p.id, full_name: p.full_name }))}
+        resources={activeResources.map((r) => ({ id: r.id, name: r.name }))}
+        resourceLabel={resourceLabel}
       />
     </>
   )

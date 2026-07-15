@@ -10,6 +10,7 @@ export type BusinessHour = Tables<'business_hours'>
 export type StaffSchedule = Tables<'staff_schedules'>
 export type Branch = Tables<'branches'>
 export type Profile = Tables<'profiles'>
+export type Resource = Tables<'resources'>
 export type Client = Tables<'clients'>
 
 export type AppointmentStatus =
@@ -19,12 +20,14 @@ export type AppointmentStatus =
   | 'cancelled'
   | 'no_show'
 
-export type Slot = { slot_start: string; slot_end: string; staff_id: string | null }
+// Un hueco pertenece a un RECURSO concreto: el mismo instante puede tener N
+// huecos (uno por profesional libre).
+export type Slot = { slot_start: string; slot_end: string; resource_id: string | null }
 
-// Cita enriquecida para la UI (con datos de cliente/staff/servicios).
+// Cita enriquecida para la UI (con datos de cliente/profesional/servicios).
 export type AppointmentView = Appointment & {
   client: Pick<Client, 'id' | 'name' | 'phone'> | null
-  staff: Pick<Profile, 'id' | 'full_name'> | null
+  resource: Pick<Resource, 'id' | 'name'> | null
   services: Pick<ServiceCatalog, 'id' | 'name'>[]
 }
 
@@ -64,7 +67,8 @@ export const createAppointmentSchema = z.object({
   branchId: uuid,
   serviceIds: z.array(uuid).min(1, 'Selecciona al menos un servicio'),
   startsAt: isoDateTime,
-  staffId: uuid.nullish(),
+  // null = "el que sea": el motor asigna el primer profesional libre.
+  resourceId: uuid.nullish(),
   clientName: z.string().trim().max(120).optional(),
   clientPhone: z.string().trim().max(40).optional(),
   notes: z.string().trim().max(500).optional(),
@@ -74,7 +78,7 @@ export type CreateAppointmentInput = z.infer<typeof createAppointmentSchema>
 export const rescheduleSchema = z.object({
   appointmentId: uuid,
   newStartsAt: isoDateTime,
-  newStaffId: uuid.nullish(),
+  newResourceId: uuid.nullish(),
 })
 
 export const statusSchema = z.object({
@@ -98,10 +102,5 @@ export const businessHourSchema = z.object({
   isClosed: z.coerce.boolean().optional(),
 })
 
-export const staffScheduleSchema = z.object({
-  branchId: uuid,
-  staffId: uuid,
-  weekday: z.coerce.number().int().min(0).max(6),
-  startTime: hhmm,
-  endTime: hhmm,
-})
+// El horario individual se gestiona en la feature `profesionales`
+// (resourceScheduleSchema): es del recurso, que puede no tener cuenta.

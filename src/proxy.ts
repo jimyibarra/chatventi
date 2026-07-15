@@ -43,6 +43,16 @@ export async function proxy(request: NextRequest) {
   const isProtected = pathname.startsWith('/dashboard')
   const isBilling = pathname.startsWith('/dashboard/facturacion')
 
+  // Secciones acotadas por rol. Vive AQUI y no en los layouts: el proxy corre
+  // en CADA navegación; los layouts no se re-renderizan en soft-nav y dejarían
+  // el gate abierto (aprendizaje del commit 5e2ce80).
+  const ROLE_GATES: { prefix: string; allow: string[] }[] = [
+    { prefix: '/dashboard/facturacion', allow: ['owner'] },
+    { prefix: '/dashboard/conexiones', allow: ['owner'] },
+    { prefix: '/dashboard/equipo', allow: ['owner'] },
+    { prefix: '/dashboard/profesionales', allow: ['owner', 'manager'] },
+  ]
+
   // Sin sesion + ruta protegida -> login
   if (!user && isProtected) {
     const url = request.nextUrl.clone()
@@ -57,24 +67,58 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Gate de acceso: con la prueba vencida y sin suscripción activa, se redirige
-  // a Facturación (única ruta de /dashboard permitida) para poder pagar. Corre
-  // en cada navegación, así que no hay huecos por soft-nav. Solo si YA hay org
-  // (si aún no existe, el usuario acaba de confirmar correo → onboarding).
-  if (user && isProtected && !isBilling) {
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('trial_ends_at')
+  if (user && isProtected) {
+    // .eq('id') NO es opcional: la policy `profile_select` deja ver TODOS los
+    // perfiles de la org, así que sin el filtro maybeSingle() recibe N filas,
+    // devuelve error, role queda null y los gates de abajo se saltan EN
+    // SILENCIO en cuanto la org tiene más de un miembro. Mismo patrón que
+    // (main)/layout.tsx.
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
       .maybeSingle()
-    if (org) {
-      const { data: sub } = await supabase.from('subscriptions').select('status').maybeSingle()
-      const subActive = !!sub && (sub.status === 'trialing' || sub.status === 'active')
-      const trialOk = !!org.trial_ends_at && new Date(org.trial_ends_at) > new Date()
-      if (!subActive && !trialOk) {
+    const role = profile?.role ?? null
+
+    // Sin profile aún = acaba de confirmar el correo y no ha hecho onboarding.
+    // El super_admin no es un tenant: el layout lo manda a /admin.
+    if (role && role !== 'super_admin') {
+      // ¿La org tiene acceso (prueba vigente o suscripción activa)?
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('trial_ends_at')
+        .maybeSingle()
+
+      let hasAccess = true
+      if (org) {
+        const { data: sub } = await supabase.from('subscriptions').select('status').maybeSingle()
+        const subActive = !!sub && (sub.status === 'trialing' || sub.status === 'active')
+        const trialOk = !!org.trial_ends_at && new Date(org.trial_ends_at) > new Date()
+        hasAccess = subActive || trialOk
+      }
+
+      // Gate de acceso: prueba vencida sin suscripción → a Facturación (única
+      // ruta permitida) para poder pagar.
+      if (!hasAccess && !isBilling) {
         const url = request.nextUrl.clone()
         url.pathname = '/dashboard/facturacion'
         url.searchParams.set('bloqueado', '1')
         return NextResponse.redirect(url)
+      }
+
+      // Gate de rol: SOLO cuando la org tiene acceso. Si no lo tiene, el gate
+      // de arriba manda a todos a Facturación; bloquear ahí a un no-dueño
+      // provocaría un bucle infinito de redirecciones (facturación → dashboard
+      // → facturación). Sin acceso, el no-dueño ve la pantalla de bloqueo y
+      // entiende por qué no puede entrar.
+      if (hasAccess) {
+        const gate = ROLE_GATES.find((g) => pathname.startsWith(g.prefix))
+        if (gate && !gate.allow.includes(role)) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/dashboard'
+          url.search = ''
+          return NextResponse.redirect(url)
+        }
       }
     }
   }

@@ -9,7 +9,7 @@ import { formatTime, formatDateLabel, localMinutes, ymdInTz, addDays } from '../
 import { STATUS_META, type AppointmentStatus, type AppointmentView } from '../types'
 
 type ServiceOpt = { id: string; name: string; duration_minutes: number }
-type StaffOpt = { id: string; full_name: string | null }
+type ResourceOpt = { id: string; name: string }
 type BranchOpt = { id: string; name: string }
 
 const DAY_START = 7 * 60 // 07:00
@@ -31,7 +31,8 @@ export function AgendaBoard({
   weekDays,
   appointments,
   services,
-  staff,
+  resources,
+  resourceLabel,
 }: {
   branchId: string
   branches: BranchOpt[]
@@ -41,7 +42,8 @@ export function AgendaBoard({
   weekDays: string[]
   appointments: AppointmentView[]
   services: ServiceOpt[]
-  staff: StaffOpt[]
+  resources: ResourceOpt[]
+  resourceLabel: string
 }) {
   const router = useRouter()
   const [dialog, setDialog] = useState<DialogState>({ kind: 'none' })
@@ -139,7 +141,7 @@ export function AgendaBoard({
         <DayView
           tz={tz}
           appointments={appointments}
-          staff={staff}
+          resources={resources}
           durationMin={durationMin}
           onSelect={(appt) => setDialog({ kind: 'actions', appt })}
         />
@@ -159,7 +161,8 @@ export function AgendaBoard({
           branchId={branchId}
           tz={tz}
           services={services}
-          staff={staff}
+          resources={resources}
+          resourceLabel={resourceLabel}
           initialDate={date}
           onClose={() => setDialog({ kind: 'none' })}
         />
@@ -178,12 +181,13 @@ export function AgendaBoard({
           branchId={branchId}
           tz={tz}
           services={services}
-          staff={staff}
+          resources={resources}
+          resourceLabel={resourceLabel}
           initialDate={ymdInTz(new Date(dialog.appt.starts_at), tz)}
           appointment={{
             id: dialog.appt.id,
             serviceIds: dialog.appt.services.map((s) => s.id),
-            staffId: dialog.appt.staff_id,
+            resourceId: dialog.appt.resource_id,
           }}
           onClose={() => setDialog({ kind: 'none' })}
         />
@@ -193,24 +197,30 @@ export function AgendaBoard({
 }
 
 // -------------------------------------------------------------------
-// Vista DÍA: columnas por recurso (staff) + "Sin asignar"
+// Vista DÍA: una columna por profesional + "Sin asignar"
+//   "Sin asignar" recoge las citas heredadas (sin recurso), que siguen
+//   bloqueando toda la sucursal. Ver PRP profesionales-equipo.
 // -------------------------------------------------------------------
 function DayView({
   tz,
   appointments,
-  staff,
+  resources,
   durationMin,
   onSelect,
 }: {
   tz: string
   appointments: AppointmentView[]
-  staff: StaffOpt[]
+  resources: ResourceOpt[]
   durationMin: (a: AppointmentView) => number
   onSelect: (a: AppointmentView) => void
 }) {
+  const hasUnassigned = appointments.some((a) => a.resource_id === null)
   const columns: { id: string | null; label: string }[] = [
-    ...staff.map((s) => ({ id: s.id, label: s.full_name ?? 'Sin nombre' })),
-    { id: null, label: 'Sin asignar' },
+    ...resources.map((r) => ({ id: r.id as string | null, label: r.name })),
+    // Solo si hace falta: con profesionales configurados, esta columna sobra.
+    ...(hasUnassigned || resources.length === 0
+      ? [{ id: null, label: 'Sin asignar' }]
+      : []),
   ]
   const hours: number[] = []
   for (let h = DAY_START / 60; h <= DAY_END / 60; h++) hours.push(h)
@@ -237,7 +247,7 @@ function DayView({
 
         {/* Columnas de recursos */}
         {columns.map((col) => {
-          const appts = appointments.filter((a) => a.staff_id === col.id)
+          const appts = appointments.filter((a) => a.resource_id === col.id)
           return (
             <div key={col.id ?? 'none'} className="flex-1 border-r border-line-row last:border-r-0">
               <div className="flex h-8 items-center justify-center border-b border-line-row text-xs font-medium text-ink-muted">

@@ -61,7 +61,7 @@ export function AppointmentActions({
           </p>
           <p>
             <span className="text-ink-faint">Profesional:</span>{' '}
-            {appointment.staff?.full_name || 'Sin asignar'}
+            {appointment.resource?.name || 'Sin asignar'}
           </p>
           <p>
             <span className="text-ink-faint">Servicios:</span>{' '}

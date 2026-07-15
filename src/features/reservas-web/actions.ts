@@ -37,7 +37,22 @@ export async function saveWebConfig(raw: unknown): Promise<ActionResult> {
   const { data: orgId } = await supabase.rpc('get_my_org')
   if (!orgId) return { ok: false, error: 'No tienes una organización.' }
 
+  // MERGE, no reemplazo: branding es un jsonb compartido. Escribir un objeto
+  // nuevo borraria las claves que gestionan otras pantallas (hoy
+  // resource_label, de Profesionales; mañana lo que venga).
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('branding')
+    .eq('id', orgId)
+    .single()
+
+  const current =
+    org?.branding && typeof org.branding === 'object' && !Array.isArray(org.branding)
+      ? (org.branding as Record<string, unknown>)
+      : {}
+
   const branding = {
+    ...current,
     primary_color: primaryColor || null,
     description: description || null,
     logo_url: logoUrl || null,

@@ -37,12 +37,20 @@ export type AgentContext = {
   knowledge: string[]
   // Citas futuras activas del cliente (max 5). El agente cancela/reagenda
   // SOLO por ids de esta lista (nunca ids inventados).
+  // Quién puede atender: activos, de la sucursal y con horario configurado.
+  // service_ids vacío = presta TODOS los servicios (regla del motor).
+  resources: {
+    id: string
+    name: string
+    service_ids: string[]
+  }[]
   upcoming_appointments: {
     id: string
     starts_at: string
     ends_at: string
     status: string
     services: string
+    resource_name: string | null
   }[]
   messages: {
     direction: 'inbound' | 'outbound'

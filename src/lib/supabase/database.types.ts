@@ -140,14 +140,17 @@ export type Database = {
         Row: {
           branch_id: string
           client_id: string | null
+          confirmed_by_client_at: string | null
           created_at: string
           ends_at: string
           followup_sent_at: string | null
           id: string
+          manage_token: string
           notes: string | null
           organization_id: string
           reminder_24h_sent_at: string | null
           reminder_2h_sent_at: string | null
+          resource_id: string | null
           source: string
           staff_id: string | null
           starts_at: string
@@ -156,14 +159,17 @@ export type Database = {
         Insert: {
           branch_id: string
           client_id?: string | null
+          confirmed_by_client_at?: string | null
           created_at?: string
           ends_at: string
           followup_sent_at?: string | null
           id?: string
+          manage_token?: string
           notes?: string | null
           organization_id: string
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
+          resource_id?: string | null
           source?: string
           staff_id?: string | null
           starts_at: string
@@ -172,14 +178,17 @@ export type Database = {
         Update: {
           branch_id?: string
           client_id?: string | null
+          confirmed_by_client_at?: string | null
           created_at?: string
           ends_at?: string
           followup_sent_at?: string | null
           id?: string
+          manage_token?: string
           notes?: string | null
           organization_id?: string
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
+          resource_id?: string | null
           source?: string
           staff_id?: string | null
           starts_at?: string
@@ -205,6 +214,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
             referencedColumns: ["id"]
           },
           {
@@ -291,78 +307,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      push_subscriptions: {
-        Row: {
-          id: string
-          user_id: string | null
-          endpoint: string
-          p256dh: string
-          auth: string
-          device_name: string | null
-          browser: string | null
-          user_agent: string | null
-          created_at: string
-          last_used_at: string
-        }
-        Insert: {
-          id?: string
-          user_id?: string | null
-          endpoint: string
-          p256dh: string
-          auth: string
-          device_name?: string | null
-          browser?: string | null
-          user_agent?: string | null
-          created_at?: string
-          last_used_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string | null
-          endpoint?: string
-          p256dh?: string
-          auth?: string
-          device_name?: string | null
-          browser?: string | null
-          user_agent?: string | null
-          created_at?: string
-          last_used_at?: string
-        }
-        Relationships: []
-      }
-      notifications: {
-        Row: {
-          id: string
-          user_id: string
-          type: string
-          title: string
-          body: string | null
-          data: Json
-          read: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          type: string
-          title: string
-          body?: string | null
-          data?: Json
-          read?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          type?: string
-          title?: string
-          body?: string | null
-          data?: Json
-          read?: boolean
-          created_at?: string
-        }
-        Relationships: []
       }
       channels: {
         Row: {
@@ -624,10 +568,45 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          data: Json | null
+          id: string
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          data?: Json | null
+          id?: string
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       organizations: {
         Row: {
           branding: Json | null
+          city: string | null
           contact_email: string | null
+          country: string | null
           created_at: string
           data_deleted_at: string | null
           delete_scheduled_at: string | null
@@ -644,7 +623,9 @@ export type Database = {
         }
         Insert: {
           branding?: Json | null
+          city?: string | null
           contact_email?: string | null
+          country?: string | null
           created_at?: string
           data_deleted_at?: string | null
           delete_scheduled_at?: string | null
@@ -661,7 +642,9 @@ export type Database = {
         }
         Update: {
           branding?: Json | null
+          city?: string | null
           contact_email?: string | null
+          country?: string | null
           created_at?: string
           data_deleted_at?: string | null
           delete_scheduled_at?: string | null
@@ -729,7 +712,10 @@ export type Database = {
           is_active: boolean
           organization_id: string | null
           phone: string | null
+          resource_scope: string
           role: string
+          terms_accepted_at: string | null
+          terms_version: string | null
         }
         Insert: {
           assigned_branch_id?: string | null
@@ -740,7 +726,10 @@ export type Database = {
           is_active?: boolean
           organization_id?: string | null
           phone?: string | null
+          resource_scope?: string
           role?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
         }
         Update: {
           assigned_branch_id?: string | null
@@ -751,7 +740,10 @@ export type Database = {
           is_active?: boolean
           organization_id?: string | null
           phone?: string | null
+          resource_scope?: string
           role?: string
+          terms_accepted_at?: string | null
+          terms_version?: string | null
         }
         Relationships: [
           {
@@ -766,6 +758,133 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          browser: string | null
+          created_at: string | null
+          device_name: string | null
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          auth: string
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          auth?: string
+          browser?: string | null
+          created_at?: string | null
+          device_name?: string | null
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      resource_services: {
+        Row: {
+          resource_id: string
+          service_id: string
+        }
+        Insert: {
+          resource_id: string
+          service_id: string
+        }
+        Update: {
+          resource_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resource_services_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resource_services_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalogs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resources: {
+        Row: {
+          active: boolean
+          branch_id: string | null
+          created_at: string
+          id: string
+          name: string
+          organization_id: string
+          photo_url: string | null
+          profile_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          organization_id: string
+          photo_url?: string | null
+          profile_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          branch_id?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          organization_id?: string
+          photo_url?: string | null
+          profile_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resources_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resources_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -816,7 +935,8 @@ export type Database = {
           branch_id: string
           end_time: string
           id: string
-          staff_id: string
+          resource_id: string | null
+          staff_id: string | null
           start_time: string
           weekday: number
         }
@@ -824,7 +944,8 @@ export type Database = {
           branch_id: string
           end_time: string
           id?: string
-          staff_id: string
+          resource_id?: string | null
+          staff_id?: string | null
           start_time: string
           weekday: number
         }
@@ -832,7 +953,8 @@ export type Database = {
           branch_id?: string
           end_time?: string
           id?: string
-          staff_id?: string
+          resource_id?: string | null
+          staff_id?: string | null
           start_time?: string
           weekday?: number
         }
@@ -842,6 +964,13 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "staff_schedules_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
             referencedColumns: ["id"]
           },
           {
@@ -858,24 +987,34 @@ export type Database = {
           ends_at: string
           id: string
           reason: string | null
-          staff_id: string
+          resource_id: string | null
+          staff_id: string | null
           starts_at: string
         }
         Insert: {
           ends_at: string
           id?: string
           reason?: string | null
-          staff_id: string
+          resource_id?: string | null
+          staff_id?: string | null
           starts_at: string
         }
         Update: {
           ends_at?: string
           id?: string
           reason?: string | null
-          staff_id?: string
+          resource_id?: string | null
+          staff_id?: string | null
           starts_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "staff_time_off_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "staff_time_off_staff_id_fkey"
             columns: ["staff_id"]
@@ -982,40 +1121,118 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          organization_id: string
+          resource_id: string | null
+          resource_scope: string
+          role: string
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id: string
+          resource_id?: string | null
+          resource_scope?: string
+          role: string
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          organization_id?: string
+          resource_id?: string | null
+          resource_scope?: string
+          role?: string
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_invitations_resource_id_fkey"
+            columns: ["resource_id"]
+            isOneToOne: false
+            referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      _resolve_chat_appointment: {
+        Args: {
+          p_appointment_id: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+        }
+        Returns: string
+      }
+      _resolve_token_appointment: { Args: { p_token: string }; Returns: string }
+      accept_team_invitation: { Args: { p_token: string }; Returns: Json }
       admin_global_stats: { Args: never; Returns: Json }
       admin_list_organizations: {
         Args: never
         Returns: {
-          id: string
-          name: string
-          country: string | null
-          city: string | null
+          ai_tier: string
+          appointments_count: number
+          city: string
+          clients_count: number
+          conversations_count: number
+          country: string
           created_at: string
-          owner_email: string | null
-          owner_name: string | null
+          current_period_end: string
+          has_domain: boolean
+          id: string
+          last_activity: string
+          name: string
+          owner_email: string
+          owner_name: string
           plan: string
           sub_status: string
-          ai_tier: string
-          has_domain: boolean
           team_seats: number
-          trial_end: string | null
-          current_period_end: string | null
+          trial_end: string
           users_count: number
-          conversations_count: number
-          appointments_count: number
-          clients_count: number
-          last_activity: string | null
         }[]
       }
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
-      claim_reminder: {
-        Args: { p_appointment_id: string; p_kind: string }
-        Returns: boolean
+      cancel_appointment_by_token: {
+        Args: { p_token: string }
+        Returns: undefined
       }
       cancel_appointment_from_chat: {
         Args: {
@@ -1025,6 +1242,23 @@ export type Database = {
           p_external_id: string
         }
         Returns: undefined
+      }
+      claim_reminder: {
+        Args: { p_appointment_id: string; p_kind: string }
+        Returns: boolean
+      }
+      confirm_appointment_by_token: {
+        Args: { p_token: string }
+        Returns: undefined
+      }
+      confirm_appointment_from_chat: {
+        Args: {
+          p_appointment_id: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+        }
+        Returns: Json
       }
       create_ai_approval: {
         Args: { p_action?: Json; p_conversation_id: string; p_draft: string }
@@ -1054,6 +1288,30 @@ export type Database = {
         }
         Returns: string
       }
+      create_appointment_from_chat_v2: {
+        Args: {
+          p_branch_id?: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+          p_resource_id?: string
+          p_service_ids: string[]
+          p_starts_at: string
+        }
+        Returns: string
+      }
+      create_appointment_v2: {
+        Args: {
+          p_branch_id: string
+          p_client_id?: string
+          p_notes?: string
+          p_resource_id?: string
+          p_service_ids: string[]
+          p_source?: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
       create_organization_with_owner: {
         Args: {
           p_branch_name?: string
@@ -1076,6 +1334,27 @@ export type Database = {
         }
         Returns: string
       }
+      create_public_appointment_v2: {
+        Args: {
+          p_client_name: string
+          p_client_phone: string
+          p_resource_id?: string
+          p_service_ids: string[]
+          p_slug: string
+          p_starts_at: string
+        }
+        Returns: string
+      }
+      create_team_invitation: {
+        Args: {
+          p_email: string
+          p_enforce_seats?: boolean
+          p_resource_id?: string
+          p_role: string
+          p_scope?: string
+        }
+        Returns: Json
+      }
       get_agent_context: {
         Args: {
           p_channel_type: string
@@ -1084,6 +1363,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_appointment_by_token: { Args: { p_token: string }; Returns: Json }
       get_available_slots: {
         Args: {
           p_branch_id: string
@@ -1098,7 +1378,31 @@ export type Database = {
           staff_id: string
         }[]
       }
+      get_available_slots_v2: {
+        Args: {
+          p_branch_id: string
+          p_date: string
+          p_resource_id?: string
+          p_service_ids: string[]
+          p_slot_interval?: number
+        }
+        Returns: {
+          resource_id: string
+          slot_end: string
+          slot_start: string
+        }[]
+      }
       get_due_reminders: { Args: { p_kind: string }; Returns: Json }
+      get_invitation_preview: { Args: { p_token: string }; Returns: Json }
+      get_manage_token_from_chat: {
+        Args: {
+          p_appointment_id: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+        }
+        Returns: string
+      }
       get_my_branch: { Args: never; Returns: string }
       get_my_org: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
@@ -1114,7 +1418,7 @@ export type Database = {
       }
       org_has_ai: { Args: { p_org: string }; Returns: boolean }
       org_is_active: { Args: { p_org: string }; Returns: boolean }
-      wipe_organization_business_data: { Args: { p_org: string }; Returns: undefined }
+      org_seats_used: { Args: { p_org: string }; Returns: number }
       pause_ai: {
         Args: { p_conversation_id: string; p_minutes?: number }
         Returns: undefined
@@ -1123,6 +1427,18 @@ export type Database = {
         Args: {
           p_appointment_id: string
           p_new_staff_id?: string
+          p_new_starts_at: string
+        }
+        Returns: undefined
+      }
+      reschedule_appointment_by_token: {
+        Args: { p_new_starts_at: string; p_token: string }
+        Returns: undefined
+      }
+      reschedule_appointment_v2: {
+        Args: {
+          p_appointment_id: string
+          p_new_resource_id?: string
           p_new_starts_at: string
         }
         Returns: undefined
@@ -1141,44 +1457,8 @@ export type Database = {
         Args: { p_approval_id: string; p_approved: boolean }
         Returns: Json
       }
-      resume_ai: {
-        Args: { p_conversation_id: string }
-        Returns: undefined
-      }
-      get_appointment_by_token: {
-        Args: { p_token: string }
-        Returns: Json
-      }
-      confirm_appointment_by_token: {
-        Args: { p_token: string }
-        Returns: undefined
-      }
-      cancel_appointment_by_token: {
-        Args: { p_token: string }
-        Returns: undefined
-      }
-      reschedule_appointment_by_token: {
-        Args: { p_token: string; p_new_starts_at: string }
-        Returns: undefined
-      }
-      get_manage_token_from_chat: {
-        Args: {
-          p_channel_type: string
-          p_external_id: string
-          p_client_phone: string
-          p_appointment_id: string
-        }
-        Returns: string
-      }
-      confirm_appointment_from_chat: {
-        Args: {
-          p_channel_type: string
-          p_external_id: string
-          p_client_phone: string
-          p_appointment_id: string
-        }
-        Returns: Json
-      }
+      resume_ai: { Args: { p_conversation_id: string }; Returns: undefined }
+      revoke_team_invitation: { Args: { p_id: string }; Returns: undefined }
       route_inbound_message: {
         Args: {
           p_body: string
@@ -1200,6 +1480,23 @@ export type Database = {
       }
       set_conversation_status: {
         Args: { p_conversation_id: string; p_status: string }
+        Returns: undefined
+      }
+      set_member_active: {
+        Args: { p_active: boolean; p_profile_id: string }
+        Returns: undefined
+      }
+      set_member_role: {
+        Args: {
+          p_profile_id: string
+          p_resource_id?: string
+          p_role: string
+          p_scope?: string
+        }
+        Returns: undefined
+      }
+      wipe_organization_business_data: {
+        Args: { p_org: string }
         Returns: undefined
       }
     }

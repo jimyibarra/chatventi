@@ -306,6 +306,21 @@ npm run lint         # ESLint
 - **Fix**: Siempre usar `npm run dev` (auto-detecta puerto)
 - **Aplicar en**: Todos los proyectos
 
+### 2026-07-15: `maybeSingle()`/`single()` exigen filtro que garantice ≤1 fila
+- **Error**: en `proxy.ts`, `from('profiles').select('role').maybeSingle()` SIN `.eq('id', user.id)`. La policy `profile_select` deja ver todos los perfiles de la org → con 2+ miembros devuelve N filas → `maybeSingle()` da error → `data = null` → **los gates de acceso se saltaron en silencio** (incluido el de prueba vencida: cualquier org con equipo habría entrado gratis).
+- **Fix**: `.eq('id', user.id)` antes de `maybeSingle()`.
+- **Reglas**:
+  - La **RLS** decide cuántas filas ves, no tu intención. "Lógicamente es una fila" no basta.
+  - Una guarda cuya query falla y devuelve `null` **abre** el paso. Al escribir un gate: *si esta query falla, ¿pasa todo el mundo?* Si sí, está al revés.
+  - Refactorizar una guarda que ya funcionaba **es tocar código de seguridad**: revalidarla entera.
+- **Detección**: no lo cazó typecheck, ni lint, ni SQL. Solo salió al **entrar con el navegador como un usuario del rol restringido**. Validar los gates SIEMPRE así.
+- **Aplicar en**: TODO el proyecto (proxy, layouts, guardas, Server Actions).
+
+### 2026-07-15: Verificar las capacidades en las HERRAMIENTAS, no en el repo
+- **Error**: afirmé "no hay Playwright instalado" tras mirar `package.json`. Falso: el **MCP de Playwright** está conectado y da un navegador real. `package.json` no dice nada de las herramientas de la sesión.
+- **Fix**: antes de declarar que algo no existe, mirar las herramientas disponibles e **intentarlo**. Un `grep` que no encuentra algo prueba que no está *ahí*, no que no exista.
+- **Aplicar en**: todo. Un error escrito como "aprendizaje" se fosiliza y contamina las sesiones futuras.
+
 ---
 
 *V4: Todo es un Skill. Agent-First. El usuario habla, tu construyes.*

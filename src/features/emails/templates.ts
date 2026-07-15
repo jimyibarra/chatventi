@@ -56,6 +56,34 @@ function layout(opts: {
 const check = (t: string) =>
   `<tr><td style="padding:3px 0;color:#16a34a;font-weight:bold;width:20px;vertical-align:top">&#10003;</td><td style="padding:3px 0">${t}</td></tr>`
 
+/** Invitación a formar parte del equipo de un negocio. */
+export function teamInvitationEmail(o: {
+  orgName: string
+  roleLabel: string
+  inviterName: string | null
+  acceptUrl: string
+}): Built {
+  const quien = o.inviterName ? `<strong>${o.inviterName}</strong>` : 'El equipo'
+  const body = `
+    <p style="margin:0 0 14px">${quien} te invitó a unirte a <strong>${o.orgName}</strong> en ChatVenti.</p>
+    <p style="margin:0 0 14px">Tu rol será <strong>${o.roleLabel}</strong>. Al aceptar, creas tu contraseña y entras directo al panel del negocio.</p>
+    <table style="margin:0 0 8px;font-size:14.5px;line-height:1.5">
+      ${check('Ves la agenda y las citas del negocio')}
+      ${check('Atiendes los chats de los clientes')}
+      ${check('No necesitas configurar nada: ya está todo listo')}
+    </table>
+  `
+  return {
+    subject: `Te invitaron a ${o.orgName} en ChatVenti`,
+    html: layout({
+      title: `Únete al equipo de ${o.orgName}`,
+      bodyHtml: body,
+      cta: { label: 'Aceptar invitación →', href: o.acceptUrl },
+      note: 'Esta invitación caduca en 7 días. Si no esperabas este correo, puedes ignorarlo: no se creará ninguna cuenta.',
+    }),
+  }
+}
+
 /** Al crear la cuenta (arranca el uso del panel). */
 export function welcomeEmail(o: { orgName: string; siteUrl: string }): Built {
   const body = `

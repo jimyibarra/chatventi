@@ -30,6 +30,11 @@ export default async function MainLayout({
     redirect('/admin')
   }
 
+  // El rol decide qué secciones se MUESTRAN (cosmético). El bloqueo real de
+  // Facturación/Conexiones/Equipo vive en el proxy, que corre en cada
+  // navegación, y en las RPCs, que son la barrera de verdad.
+  const role = adminProfile?.role ?? 'staff'
+
   // El gate de acceso (prueba vencida sin suscripción → redirige a Facturación)
   // vive en el proxy/middleware, que corre en CADA navegación (los layouts no
   // se re-renderizan en soft-nav).
@@ -49,7 +54,7 @@ export default async function MainLayout({
         </div>
       </header>
       <div className="md:flex">
-        <DashboardNav />
+        <DashboardNav role={role} />
         {/* pb-16 en móvil: que la bottom-nav no tape el contenido */}
         <main className="min-w-0 flex-1 pb-16 md:pb-0">{children}</main>
       </div>

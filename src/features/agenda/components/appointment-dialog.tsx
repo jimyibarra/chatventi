@@ -8,14 +8,15 @@ import { fetchSlots, createAppointment, rescheduleAppointment } from '../actions
 import type { Slot } from '../types'
 
 type ServiceOpt = { id: string; name: string; duration_minutes: number }
-type StaffOpt = { id: string; full_name: string | null }
+type ResourceOpt = { id: string; name: string }
 
 export function AppointmentDialog({
   mode,
   branchId,
   tz,
   services,
-  staff,
+  resources,
+  resourceLabel,
   initialDate,
   appointment,
   onClose,
@@ -24,9 +25,10 @@ export function AppointmentDialog({
   branchId: string
   tz: string
   services: ServiceOpt[]
-  staff: StaffOpt[]
+  resources: ResourceOpt[]
+  resourceLabel: string
   initialDate: string
-  appointment?: { id: string; serviceIds: string[]; staffId: string | null }
+  appointment?: { id: string; serviceIds: string[]; resourceId: string | null }
   onClose: () => void
 }) {
   const router = useRouter()
@@ -35,7 +37,7 @@ export function AppointmentDialog({
   const [serviceIds, setServiceIds] = useState<string[]>(
     mode === 'reschedule' ? (appointment?.serviceIds ?? []) : []
   )
-  const [staffId, setStaffId] = useState<string>(appointment?.staffId ?? '')
+  const [resourceId, setResourceId] = useState<string>(appointment?.resourceId ?? '')
   const [date, setDate] = useState<string>(initialDate)
   const [slotsResult, setSlotsResult] = useState<{ key: string; slots: Slot[] } | null>(null)
   const [pickedSlot, setPickedSlot] = useState<string>('')
@@ -46,18 +48,28 @@ export function AppointmentDialog({
 
   const serviceKey = serviceIds.join(',')
   // Slots, loading y selección se derivan de la clave de la request vigente:
-  // al cambiar fecha/servicios/staff la clave cambia y lo anterior queda invalidado solo.
+  // al cambiar fecha/servicios/profesional la clave cambia y lo anterior queda invalidado solo.
   const requestKey =
-    serviceIds.length === 0 ? null : `${branchId}|${serviceKey}|${date}|${staffId}`
-  const slots = slotsResult && slotsResult.key === requestKey ? slotsResult.slots : []
+    serviceIds.length === 0 ? null : `${branchId}|${serviceKey}|${date}|${resourceId}`
+  const rawSlots = slotsResult && slotsResult.key === requestKey ? slotsResult.slots : []
+
+  // Con "cualquiera", el mismo instante llega una vez por profesional libre.
+  // Se muestra una sola hora: el motor elige a quién asignar al reservar.
+  const slots =
+    resourceId === ''
+      ? rawSlots.filter(
+          (s, i, all) => all.findIndex((o) => o.slot_start === s.slot_start) === i
+        )
+      : rawSlots
+
   const loadingSlots = requestKey !== null && slotsResult?.key !== requestKey
   const selectedSlot = slots.some((s) => s.slot_start === pickedSlot) ? pickedSlot : ''
 
-  // Carga de disponibilidad al cambiar fecha/servicios/staff.
+  // Carga de disponibilidad al cambiar fecha/servicios/profesional.
   useEffect(() => {
     if (!requestKey) return
     let active = true
-    fetchSlots({ branchId, serviceIds, date, staffId: staffId || null }).then((res) => {
+    fetchSlots({ branchId, serviceIds, date, resourceId: resourceId || null }).then((res) => {
       if (!active) return
       if (res.ok) {
         setSlotsResult({ key: requestKey, slots: res.data ?? [] })
@@ -91,7 +103,7 @@ export function AppointmentDialog({
               branchId,
               serviceIds,
               startsAt: selectedSlot,
-              staffId: staffId || null,
+              resourceId: resourceId || null,
               clientName: clientName || undefined,
               clientPhone: clientPhone || undefined,
               notes: notes || undefined,
@@ -99,7 +111,7 @@ export function AppointmentDialog({
           : await rescheduleAppointment({
               appointmentId: appointment!.id,
               newStartsAt: selectedSlot,
-              newStaffId: staffId || null,
+              newResourceId: resourceId || null,
             })
       if (res.ok) {
         router.refresh()
@@ -159,18 +171,18 @@ export function AppointmentDialog({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-ink-muted">
-              Profesional
+              {resourceLabel}
             </label>
             <select
-              value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
-              data-testid="staff-select"
+              value={resourceId}
+              onChange={(e) => setResourceId(e.target.value)}
+              data-testid="resource-select"
               className="w-full rounded-lg border border-line px-3 py-2 text-sm"
             >
-              <option value="">Cualquiera / sin asignar</option>
-              {staff.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.full_name ?? 'Sin nombre'}
+              <option value="">El que sea</option>
+              {resources.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
                 </option>
               ))}
             </select>
@@ -193,7 +205,7 @@ export function AppointmentDialog({
             <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
               {slots.map((slot) => (
                 <button
-                  key={`${slot.slot_start}-${slot.staff_id}`}
+                  key={`${slot.slot_start}-${slot.resource_id ?? 'any'}`}
                   type="button"
                   onClick={() => setPickedSlot(slot.slot_start)}
                   data-testid="slot-option"

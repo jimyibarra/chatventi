@@ -4,7 +4,6 @@ import type {
   Branch,
   BusinessHour,
   ServiceCatalog,
-  StaffSchedule,
   Profile,
 } from './types'
 
@@ -27,7 +26,8 @@ export async function getServices(
   return data ?? []
 }
 
-// Equipo (profiles de la org) que puede atender.
+// Miembros del equipo (profiles con cuenta). Ya NO define quién atiende:
+// eso son los recursos (ver features/profesionales).
 export async function getStaff(supabase: ServerClient): Promise<Profile[]> {
   const { data } = await supabase
     .from('profiles')
@@ -49,19 +49,7 @@ export async function getBusinessHours(
   return data ?? []
 }
 
-export async function getStaffSchedules(
-  supabase: ServerClient,
-  branchId: string
-): Promise<StaffSchedule[]> {
-  const { data } = await supabase
-    .from('staff_schedules')
-    .select('*')
-    .eq('branch_id', branchId)
-    .order('weekday')
-  return data ?? []
-}
-
-// Citas de una sucursal en un rango [from, to) con cliente/staff/servicios.
+// Citas de una sucursal en un rango [from, to) con cliente/profesional/servicios.
 export async function getAppointmentsRange(
   supabase: ServerClient,
   branchId: string,
@@ -73,7 +61,7 @@ export async function getAppointmentsRange(
     .select(
       `*,
        client:clients(id, name, phone),
-       staff:profiles(id, full_name),
+       resource:resources(id, name),
        appointment_services(service:service_catalogs(id, name))`
     )
     .eq('branch_id', branchId)
