@@ -280,8 +280,15 @@ export async function runAgent(params: {
   fromHandle: string
   supabase: AnyClient
   senders: AgentSenders
+  // Modo prueba del dashboard (/dashboard/agente/probar): corre contra el
+  // contexto REAL de la org pero con CERO efectos secundarios. Salta los gates
+  // (habilitación/pausa/billing), SIMULA las escrituras (reservar/cancelar/
+  // reagendar no tocan la BD) y no crea aprobaciones ni notifica a los dueños.
+  // Aditivo: los llamadores existentes (webhooks WA/TG, /api/demo-chat) no lo pasan.
+  sandbox?: boolean
 }): Promise<RunAgentResult> {
   const { channelType, externalId, fromHandle, supabase, senders } = params
+  const sandbox = params.sandbox ?? false
 
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return { handled: false, reason: 'sin OPENROUTER_API_KEY' }
@@ -294,7 +301,9 @@ export async function runAgent(params: {
   if (ctxErr || !ctxData) return { handled: false, reason: 'sin contexto' }
 
   const ctx = ctxData as unknown as AgentContext
-  if (!ctx.conversation?.should_respond) {
+  // En sandbox respondemos aunque el agente esté apagado/pausado: es una prueba,
+  // no atención real. (should_respond depende de agent_configs.enabled.)
+  if (!sandbox && !ctx.conversation?.should_respond) {
     return { handled: false, reason: 'no debe responder (pausa/desactivado/pendiente)' }
   }
   if (!ctx.branch) return { handled: false, reason: 'sin sucursal' }
@@ -302,8 +311,8 @@ export async function runAgent(params: {
   // Gating del módulo IA: con el cobro activo, la org debe tener el módulo
   // Recepcionista IA vigente (trial/activo). Con BILLING_ENFORCED apagado no
   // bloquea nada (rollout suave). Se consulta con service_role (el cliente del
-  // webhook es anon y no puede ejecutar org_has_ai).
-  if (process.env.BILLING_ENFORCED === 'true') {
+  // webhook es anon y no puede ejecutar org_has_ai). En sandbox no se cobra.
+  if (!sandbox && process.env.BILLING_ENFORCED === 'true') {
     try {
       const admin = createServiceClient()
       const { data: hasAi } = await admin.rpc('org_has_ai', { p_org: ctx.org_id })
@@ -399,6 +408,20 @@ export async function runAgent(params: {
       }),
       execute: async ({ service_ids, starts_at, resource_id }) => {
         const startsAtUtc = isoWithTz(starts_at, tz)
+        // Sandbox: NO se crea la cita; solo se arma la confirmación (misma UI).
+        if (sandbox) {
+          const resourceName = resource_id
+            ? (ctx.resources?.find((r) => r.id === resource_id)?.name ?? null)
+            : null
+          actions.push({
+            kind: 'booked',
+            services: serviceNames(service_ids),
+            startsAt: startsAtUtc,
+            manageUrl: null,
+            resourceName,
+          })
+          return { ok: true, appointment_id: 'sandbox', confirmed_at: fmtTime(startsAtUtc, tz), with: resourceName }
+        }
         const { data, error } = await supabase.rpc('create_appointment_from_chat_v2', {
           p_channel_type: channelType,
           p_external_id: externalId,
@@ -451,6 +474,11 @@ export async function runAgent(params: {
       execute: async ({ appointment_id }) => {
         const appt = upcomingById(appointment_id)
         if (!appt) return { ok: false, error: 'Esa cita no está en la lista del cliente.' }
+        // Sandbox: cancelación simulada (no toca la BD).
+        if (sandbox) {
+          actions.push({ kind: 'cancelled', services: appt.services, startsAt: appt.starts_at })
+          return { ok: true }
+        }
         const { error } = await supabase.rpc('cancel_appointment_from_chat', {
           p_channel_type: channelType,
           p_external_id: externalId,
@@ -477,6 +505,17 @@ export async function runAgent(params: {
         const appt = upcomingById(appointment_id)
         if (!appt) return { ok: false, error: 'Esa cita no está en la lista del cliente.' }
         const newStartsAtUtc = isoWithTz(new_starts_at, tz)
+        // Sandbox: reagenda simulada (no toca la BD).
+        if (sandbox) {
+          actions.push({
+            kind: 'rescheduled',
+            services: appt.services,
+            startsAt: newStartsAtUtc,
+            manageUrl: null,
+            resourceName: appt.resource_name ?? null,
+          })
+          return { ok: true, confirmed_at: fmtTime(newStartsAtUtc, tz) }
+        }
         const { error } = await supabase.rpc('reschedule_appointment_from_chat', {
           p_channel_type: channelType,
           p_external_id: externalId,
@@ -535,6 +574,8 @@ export async function runAgent(params: {
     text = result.text?.trim() ?? ''
   } catch (err) {
     console.error('[agent] generateText error', err)
+    // En sandbox no escalamos ni notificamos: solo devolvemos el fallback.
+    if (sandbox) return { handled: true, mode: 'sent', reply: FALLBACK_REPLY }
     // FALLBACK: el cliente NUNCA se queda en silencio. Respuesta estática,
     // registro como 'system' y escalamiento a humano (pausa la IA).
     try {
@@ -567,8 +608,11 @@ export async function runAgent(params: {
   }
 
   const approvalMode = ctx.config?.approval_mode ?? 'low_confidence'
+  // En sandbox nunca se crea aprobación ni se notifica a los dueños: el dueño
+  // solo quiere ver la respuesta. Se envía el borrador tal cual (más abajo).
   const needsApproval =
-    approvalMode === 'always' || (approvalMode === 'low_confidence' && approvalRequested)
+    !sandbox &&
+    (approvalMode === 'always' || (approvalMode === 'low_confidence' && approvalRequested))
 
   // Confirmación estructurada determinista (fecha/hora exactas en tz de la
   // sucursal) cuando hubo acciones; el texto del modelo va antes, como cierre.

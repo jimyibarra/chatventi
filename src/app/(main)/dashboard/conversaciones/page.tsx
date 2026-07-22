@@ -17,7 +17,7 @@ type Row = {
   ai_paused_until: string | null
   last_message_at: string | null
   client: { name: string | null; phone: string | null } | null
-  channel: { type: string } | null
+  channel: { type: string; external_id: string } | null
 }
 
 export default async function ConversacionesPage() {
@@ -26,12 +26,16 @@ export default async function ConversacionesPage() {
     .from('conversations')
     .select(
       `id, status, ai_enabled, ai_paused_until, last_message_at,
-       client:clients(name, phone), channel:channels(type)`
+       client:clients(name, phone), channel:channels(type, external_id)`
     )
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .limit(100)
 
-  const rows = (data as Row[] | null) ?? []
+  // Excluye el hilo del sandbox "Prueba el Chat IA" (canal web sandbox:<orgId>):
+  // es una conversación de práctica del dueño, no un chat de cliente real.
+  const rows = ((data as Row[] | null) ?? []).filter(
+    (c) => !c.channel?.external_id?.startsWith('sandbox:')
+  )
 
   return (
     <>
