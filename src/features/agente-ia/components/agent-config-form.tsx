@@ -6,7 +6,6 @@ import { saveAgentConfig } from '../actions'
 
 type Config = {
   enabled: boolean
-  model: string
   approval_mode: string
   approval_telegram_chat_id: string | null
   system_prompt: string | null
@@ -16,7 +15,6 @@ export function AgentConfigForm({ config }: { config: Config }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [enabled, setEnabled] = useState(config?.enabled ?? false)
-  const [model, setModel] = useState(config?.model ?? 'openai/gpt-4o-mini')
   const [approvalMode, setApprovalMode] = useState(config?.approval_mode ?? 'low_confidence')
   const [chatId, setChatId] = useState(config?.approval_telegram_chat_id ?? '')
   const [systemPrompt, setSystemPrompt] = useState(config?.system_prompt ?? '')
@@ -27,7 +25,6 @@ export function AgentConfigForm({ config }: { config: Config }) {
     startTransition(async () => {
       const res = await saveAgentConfig({
         enabled,
-        model,
         approvalMode,
         approvalTelegramChatId: chatId || undefined,
         systemPrompt: systemPrompt || undefined,
@@ -76,32 +73,23 @@ export function AgentConfigForm({ config }: { config: Config }) {
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">Modelo</label>
-            <input
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-              data-testid="agent-model"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-            />
-            <p className="mt-1 text-xs text-ink-faint">Id de OpenRouter (ej. openai/gpt-4o-mini).</p>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">
-              Aprobación humana
-            </label>
-            <select
-              value={approvalMode}
-              onChange={(e) => setApprovalMode(e.target.value)}
-              data-testid="approval-mode"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-            >
-              <option value="off">Nunca (el agente responde solo)</option>
-              <option value="low_confidence">Cuando el agente lo pida (recomendado)</option>
-              <option value="always">Siempre (revisar cada respuesta)</option>
-            </select>
-          </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium text-ink-muted">
+            Aprobación humana
+          </label>
+          <select
+            value={approvalMode}
+            onChange={(e) => setApprovalMode(e.target.value)}
+            data-testid="approval-mode"
+            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
+          >
+            <option value="off">Nunca (el agente responde solo)</option>
+            <option value="low_confidence">Cuando el agente lo pida (recomendado)</option>
+            <option value="always">Siempre (revisar cada respuesta)</option>
+          </select>
+          <p className="mt-1 text-xs text-ink-faint">
+            Controla cuándo una respuesta espera tu visto bueno antes de enviarse.
+          </p>
         </div>
 
         <div>

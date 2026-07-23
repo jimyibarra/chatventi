@@ -4,13 +4,18 @@ import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { BUSINESS_TEMPLATES } from './business-templates'
 import { sendToCustomerByChannel } from './senders'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
+// NOTA: `model` NO viaja aquí. Es del sistema y lo administra el SUPERADMIN
+// (/admin/agente). En el upsert se OMITE la columna a propósito: en conflicto se
+// preserva el modelo existente y en un insert nuevo aplica el default de la BD
+// (openai/gpt-4o-mini). Si se incluyera con un form que ya no lo manda, lo
+// pondría en null y violaría el NOT NULL.
 const configSchema = z.object({
   enabled: z.coerce.boolean().optional(),
-  model: z.string().trim().min(1).max(120),
   approvalMode: z.enum(['off', 'low_confidence', 'always']),
   approvalTelegramChatId: z.string().trim().max(64).optional(),
   systemPrompt: z.string().trim().max(4000).optional(),
@@ -29,7 +34,6 @@ export async function saveAgentConfig(raw: unknown): Promise<ActionResult> {
     {
       organization_id: orgId,
       enabled: parsed.data.enabled ?? false,
-      model: parsed.data.model,
       approval_mode: parsed.data.approvalMode,
       approval_telegram_chat_id: parsed.data.approvalTelegramChatId || null,
       system_prompt: parsed.data.systemPrompt || null,
@@ -38,6 +42,81 @@ export async function saveAgentConfig(raw: unknown): Promise<ActionResult> {
     { onConflict: 'organization_id' }
   )
   if (error) return { ok: false, error: 'No se pudo guardar la configuración.' }
+  revalidatePath('/dashboard/agente')
+  return { ok: true }
+}
+
+// Persiste el rubro del negocio (para plantillas del agente y usos futuros).
+export async function setBusinessType(businessType: string): Promise<ActionResult> {
+  const key = (businessType ?? '').trim()
+  if (!key || !BUSINESS_TEMPLATES.some((t) => t.key === key)) {
+    return { ok: false, error: 'Tipo de negocio inválido.' }
+  }
+  const supabase = await createClient()
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return { ok: false, error: 'No tienes una organización.' }
+  const { error } = await supabase
+    .from('organizations')
+    .update({ business_type: key })
+    .eq('id', orgId)
+  if (error) return { ok: false, error: 'No se pudo guardar el tipo de negocio.' }
+  revalidatePath('/dashboard/agente')
+  return { ok: true }
+}
+
+// Aplica la plantilla del rubro: fija el prompt propuesto y (opcional) agrega el
+// conocimiento base, SIN duplicar frases ya cargadas. También persiste el rubro.
+// El prompt SÍ se reemplaza: la UI avisa cuando ya había uno propio.
+export async function applyBusinessTemplate(
+  businessType: string,
+  includeKnowledge: boolean
+): Promise<ActionResult> {
+  const template = BUSINESS_TEMPLATES.find((t) => t.key === (businessType ?? '').trim())
+  if (!template) return { ok: false, error: 'Tipo de negocio inválido.' }
+
+  const supabase = await createClient()
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return { ok: false, error: 'No tienes una organización.' }
+
+  const { data: org } = await supabase
+    .from('organizations')
+    .select('name')
+    .eq('id', orgId)
+    .maybeSingle()
+  const orgName = org?.name ?? 'tu negocio'
+
+  // Rubro + prompt propuesto (upsert que preserva enabled/model/approval).
+  const { error: orgErr } = await supabase
+    .from('organizations')
+    .update({ business_type: template.key })
+    .eq('id', orgId)
+  if (orgErr) return { ok: false, error: 'No se pudo guardar el tipo de negocio.' }
+
+  const { error: cfgErr } = await supabase.from('agent_configs').upsert(
+    {
+      organization_id: orgId,
+      system_prompt: template.prompt(orgName),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'organization_id' }
+  )
+  if (cfgErr) return { ok: false, error: 'No se pudo aplicar la plantilla.' }
+
+  if (includeKnowledge && template.knowledge.length > 0) {
+    const { data: existing } = await supabase
+      .from('knowledge_base')
+      .select('content')
+      .eq('organization_id', orgId)
+    const have = new Set((existing ?? []).map((k) => k.content.trim()))
+    const toAdd = template.knowledge
+      .filter((c) => !have.has(c.trim()))
+      .map((content) => ({ organization_id: orgId, content, source: 'plantilla' }))
+    if (toAdd.length > 0) {
+      const { error: kbErr } = await supabase.from('knowledge_base').insert(toAdd)
+      if (kbErr) return { ok: false, error: 'Se aplicó el prompt pero no el conocimiento base.' }
+    }
+  }
+
   revalidatePath('/dashboard/agente')
   return { ok: true }
 }

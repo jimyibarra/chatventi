@@ -45,6 +45,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             >
               Organizaciones
             </Link>
+            <Link
+              href="/admin/agente"
+              className="rounded-lg px-3 py-1.5 font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
+            >
+              Agente IA
+            </Link>
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <span className="hidden text-xs text-slate-400 sm:inline">{user.email}</span>

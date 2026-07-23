@@ -604,6 +604,7 @@ export type Database = {
       organizations: {
         Row: {
           branding: Json | null
+          business_type: string | null
           city: string | null
           contact_email: string | null
           country: string | null
@@ -623,6 +624,7 @@ export type Database = {
         }
         Insert: {
           branding?: Json | null
+          business_type?: string | null
           city?: string | null
           contact_email?: string | null
           country?: string | null
@@ -642,6 +644,7 @@ export type Database = {
         }
         Update: {
           branding?: Json | null
+          business_type?: string | null
           city?: string | null
           contact_email?: string | null
           country?: string | null
@@ -1205,6 +1208,19 @@ export type Database = {
       _resolve_token_appointment: { Args: { p_token: string }; Returns: string }
       accept_team_invitation: { Args: { p_token: string }; Returns: Json }
       admin_global_stats: { Args: never; Returns: Json }
+      admin_list_agent_models: {
+        Args: never
+        Returns: {
+          enabled: boolean
+          model: string
+          org_id: string
+          org_name: string
+        }[]
+      }
+      admin_set_agent_model: {
+        Args: { p_model: string; p_org: string }
+        Returns: undefined
+      }
       admin_list_organizations: {
         Args: never
         Returns: {

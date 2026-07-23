@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { signupSchema, type SignupInput } from '@/lib/validations/auth'
 import { LEGAL } from '@/shared/constants/legal'
+import { BUSINESS_TEMPLATES } from '@/features/agente-ia/business-templates'
 import { PasswordInput } from './password-input'
 
 const COUNTRIES = [
@@ -65,7 +66,7 @@ export function SignupForm() {
     formState: { errors, isSubmitting },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { country: 'México' },
+    defaultValues: { country: 'México', businessType: BUSINESS_TEMPLATES[0].key },
   })
 
   async function onSubmit(values: SignupInput) {
@@ -84,6 +85,7 @@ export function SignupForm() {
           // acceso autenticado (soporta confirmacion de correo activada).
           pending_org_name: values.orgName,
           pending_owner_name: values.ownerName,
+          pending_business_type: values.businessType,
           pending_country: values.country,
           pending_city: values.city,
           pending_phone: values.phone,
@@ -140,6 +142,22 @@ export function SignupForm() {
           className={INPUT}
         />
         {errors.orgName && <p className="mt-1 text-sm text-red-600">{errors.orgName.message}</p>}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-ink-muted">Tipo de negocio</label>
+        <select {...register('businessType')} className={INPUT}>
+          {BUSINESS_TEMPLATES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.emoji} {t.label}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-ink-faint">
+          Preparamos las instrucciones de tu recepcionista IA según tu giro (lo podrás editar).
+        </p>
+        {errors.businessType && (
+          <p className="mt-1 text-sm text-red-600">{errors.businessType.message}</p>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

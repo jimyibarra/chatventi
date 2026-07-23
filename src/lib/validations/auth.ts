@@ -9,6 +9,7 @@ export const signupSchema = z
   .object({
     // Sobre tu negocio
     orgName: z.string().min(2, 'Nombre del negocio requerido'),
+    businessType: z.string().min(1, 'Elige tu tipo de negocio'),
     country: z.string().min(2, 'País requerido'),
     city: z.string().min(2, 'Ciudad requerida'),
     // Sobre ti
