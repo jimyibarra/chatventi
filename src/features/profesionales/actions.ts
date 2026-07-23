@@ -154,7 +154,8 @@ export async function setResourceServices(raw: unknown): Promise<ActionResult> {
 
 // -------------------------------------------------------------------
 // Horario individual del profesional
-//   staff_id se deja NULL a proposito: el profesional no tiene cuenta.
+//   El horario cuelga del recurso, no de una cuenta: un profesional no
+//   necesita login (staff_id se retiro en la Fase 7 de la Ola 4).
 // -------------------------------------------------------------------
 export async function addResourceSchedule(raw: unknown): Promise<ActionResult> {
   const parsed = resourceScheduleSchema.safeParse(raw)

@@ -152,7 +152,6 @@ export type Database = {
           reminder_2h_sent_at: string | null
           resource_id: string | null
           source: string
-          staff_id: string | null
           starts_at: string
           status: string
         }
@@ -171,7 +170,6 @@ export type Database = {
           reminder_2h_sent_at?: string | null
           resource_id?: string | null
           source?: string
-          staff_id?: string | null
           starts_at: string
           status?: string
         }
@@ -190,7 +188,6 @@ export type Database = {
           reminder_2h_sent_at?: string | null
           resource_id?: string | null
           source?: string
-          staff_id?: string | null
           starts_at?: string
           status?: string
         }
@@ -221,13 +218,6 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "resources"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "appointments_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -938,8 +928,7 @@ export type Database = {
           branch_id: string
           end_time: string
           id: string
-          resource_id: string | null
-          staff_id: string | null
+          resource_id: string
           start_time: string
           weekday: number
         }
@@ -947,8 +936,7 @@ export type Database = {
           branch_id: string
           end_time: string
           id?: string
-          resource_id?: string | null
-          staff_id?: string | null
+          resource_id: string
           start_time: string
           weekday: number
         }
@@ -956,8 +944,7 @@ export type Database = {
           branch_id?: string
           end_time?: string
           id?: string
-          resource_id?: string | null
-          staff_id?: string | null
+          resource_id?: string
           start_time?: string
           weekday?: number
         }
@@ -976,13 +963,6 @@ export type Database = {
             referencedRelation: "resources"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "staff_schedules_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       staff_time_off: {
@@ -990,24 +970,21 @@ export type Database = {
           ends_at: string
           id: string
           reason: string | null
-          resource_id: string | null
-          staff_id: string | null
+          resource_id: string
           starts_at: string
         }
         Insert: {
           ends_at: string
           id?: string
           reason?: string | null
-          resource_id?: string | null
-          staff_id?: string | null
+          resource_id: string
           starts_at: string
         }
         Update: {
           ends_at?: string
           id?: string
           reason?: string | null
-          resource_id?: string | null
-          staff_id?: string | null
+          resource_id?: string
           starts_at?: string
         }
         Relationships: [
@@ -1016,13 +993,6 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "resources"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "staff_time_off_staff_id_fkey"
-            columns: ["staff_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1280,30 +1250,6 @@ export type Database = {
         Args: { p_action?: Json; p_conversation_id: string; p_draft: string }
         Returns: Json
       }
-      create_appointment: {
-        Args: {
-          p_branch_id: string
-          p_client_id?: string
-          p_notes?: string
-          p_service_ids: string[]
-          p_source?: string
-          p_staff_id?: string
-          p_starts_at: string
-        }
-        Returns: string
-      }
-      create_appointment_from_chat: {
-        Args: {
-          p_branch_id?: string
-          p_channel_type: string
-          p_client_phone: string
-          p_external_id: string
-          p_service_ids: string[]
-          p_staff_id?: string
-          p_starts_at: string
-        }
-        Returns: string
-      }
       create_appointment_from_chat_v2: {
         Args: {
           p_branch_id?: string
@@ -1340,16 +1286,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_public_appointment: {
-        Args: {
-          p_client_name: string
-          p_client_phone: string
-          p_service_ids: string[]
-          p_slug: string
-          p_starts_at: string
-        }
-        Returns: string
-      }
       create_public_appointment_v2: {
         Args: {
           p_client_name: string
@@ -1380,20 +1316,6 @@ export type Database = {
         Returns: Json
       }
       get_appointment_by_token: { Args: { p_token: string }; Returns: Json }
-      get_available_slots: {
-        Args: {
-          p_branch_id: string
-          p_date: string
-          p_service_ids: string[]
-          p_slot_interval?: number
-          p_staff_id?: string
-        }
-        Returns: {
-          slot_end: string
-          slot_start: string
-          staff_id: string
-        }[]
-      }
       get_available_slots_v2: {
         Args: {
           p_branch_id: string
@@ -1437,14 +1359,6 @@ export type Database = {
       org_seats_used: { Args: { p_org: string }; Returns: number }
       pause_ai: {
         Args: { p_conversation_id: string; p_minutes?: number }
-        Returns: undefined
-      }
-      reschedule_appointment: {
-        Args: {
-          p_appointment_id: string
-          p_new_staff_id?: string
-          p_new_starts_at: string
-        }
         Returns: undefined
       }
       reschedule_appointment_by_token: {
