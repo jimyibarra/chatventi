@@ -1505,6 +1505,7 @@ export type Database = {
         }[]
       }
       get_due_client_reminders: { Args: never; Returns: Json }
+      get_crm_overview: { Args: never; Returns: Json }
       get_due_reminders: { Args: { p_kind: string }; Returns: Json }
       get_invitation_preview: { Args: { p_token: string }; Returns: Json }
       get_manage_token_from_chat: {
@@ -1608,6 +1609,10 @@ export type Database = {
           p_scope?: string
         }
         Returns: undefined
+      }
+      upsert_client_manual: {
+        Args: { p_name: string; p_phone: string }
+        Returns: string
       }
       wipe_organization_business_data: {
         Args: { p_org: string }
