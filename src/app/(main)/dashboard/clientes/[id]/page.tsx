@@ -31,7 +31,9 @@ export default async function ClienteDetallePage({
     .eq('id', id)
     .maybeSingle()
 
-  if (!client) notFound()
+  // Los contactos internos del sandbox (handle sandbox:<userId>) no son
+  // clientes reales: su ficha no debe ser accesible desde el CRM.
+  if (!client || client.phone?.startsWith('sandbox:')) notFound()
 
   const [{ data: allTags }, { data: assigned }, { data: appointments }, { data: conversations }] =
     await Promise.all([

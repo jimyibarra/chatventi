@@ -37,7 +37,11 @@ export default async function ClientesPage({
     supabase.from('tags').select('id, name, color').order('name'),
   ])
 
-  const rows = (clients as ClientRow[] | null) ?? []
+  // Excluye los contactos internos del sandbox "Prueba el Chat IA" (handle
+  // sandbox:<userId>): son artefactos de prueba del dueño, no clientes reales.
+  const rows = ((clients as ClientRow[] | null) ?? []).filter(
+    (c) => !c.phone?.startsWith('sandbox:')
+  )
 
   return (
     <>
@@ -85,7 +89,9 @@ export default async function ClientesPage({
                   >
                     {c.name || c.phone || 'Cliente sin nombre'}
                   </Link>
-                  <span className="text-xs text-ink-faint">{c.phone}</span>
+                  {/* El teléfono a la derecha solo si ya hay nombre: sin nombre
+                      el título YA es el teléfono y se veía repetido. */}
+                  {c.name && <span className="text-xs text-ink-faint">{c.phone}</span>}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {(c.client_tags ?? [])
