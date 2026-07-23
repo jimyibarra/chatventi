@@ -316,6 +316,16 @@ npm run lint         # ESLint
 - **Detección**: no lo cazó typecheck, ni lint, ni SQL. Solo salió al **entrar con el navegador como un usuario del rol restringido**. Validar los gates SIEMPRE así.
 - **Aplicar en**: TODO el proyecto (proxy, layouts, guardas, Server Actions).
 
+### 2026-07-23: Antes de dropear una función, buscar quién la llama POR SU NOMBRE
+- **Error**: en la Fase 7 (CONTRACT) se iban a dropear las RPCs v1 que llevaban `p_staff_id`. Se verificó `pg_proc.prosrc ilike '%staff_id%'` → 0 dependientes → se dropearon. **Falso negativo**: `reschedule_appointment_by_token` y `reschedule_appointment_from_chat` sí llamaban a la v1, pero pasando el 3er argumento como `null` **posicional**, sin nombrar el parámetro. Resultado: **el enlace mágico `/c/<token>` y la reagenda del agente IA quedaron rotos en producción**.
+- **Fix**: repuntar ambos wrappers a `_v2` (migración `20260723060000`).
+- **Reglas**:
+  - Buscar dependientes por el **nombre de la función** que vas a dropear, no por el parámetro que retiras: `prosrc ~ 'nombre_funcion\s*\('`.
+  - Postgres **no registra** las llamadas dentro de cuerpos `plpgsql` como dependencias: `drop function` no falla aunque otra función la use. El DDL verde no prueba nada.
+  - Un `grep`/consulta que no encuentra algo prueba que no está **con ese patrón**, no que no exista.
+- **Detección**: no lo cazó typecheck, ni lint, ni el SQL de verificación. Solo el **E2E con navegador contra producción**, haciendo clic en el flujo real.
+- **Aplicar en**: toda migración destructiva (`drop function` / `drop column` / `rename`).
+
 ### 2026-07-15: Verificar las capacidades en las HERRAMIENTAS, no en el repo
 - **Error**: afirmé "no hay Playwright instalado" tras mirar `package.json`. Falso: el **MCP de Playwright** está conectado y da un navegador real. `package.json` no dice nada de las herramientas de la sesión.
 - **Fix**: antes de declarar que algo no existe, mirar las herramientas disponibles e **intentarlo**. Un `grep` que no encuentra algo prueba que no está *ahí*, no que no exista.
