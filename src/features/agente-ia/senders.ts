@@ -102,10 +102,16 @@ export async function tgEditMessageText(
 // WhatsApp (Cloud API / Graph). Token por canal (channels.credentials).
 // -------------------------------------------------------------------
 
-// México: el wa_id entrante llega como 521XXXXXXXXXX pero Cloud API espera
-// 52XXXXXXXXXX al enviar (el sandbox rechaza el formato 521 con #131030).
+// México: Cloud API espera 52XXXXXXXXXX al enviar. Dos formatos a corregir:
+//  - el wa_id entrante llega como 521XXXXXXXXXX (el sandbox rechaza 521 con #131030);
+//  - tras la fusión de duplicados (normalize_phone_mx), el `phone` de un cliente
+//    puede quedar en formato nacional de 10 dígitos (p.ej. 5521410491), que Cloud
+//    API rechaza por no llevar código de país.
+// Un número ya en 52XXXXXXXXXX (12 díg) o de otro país se deja intacto.
 function waNormalizeTo(to: string): string {
-  return /^521\d{10}$/.test(to) ? `52${to.slice(3)}` : to
+  if (/^521\d{10}$/.test(to)) return `52${to.slice(3)}`
+  if (/^\d{10}$/.test(to)) return `52${to}`
+  return to
 }
 
 export async function waSendMessage(
