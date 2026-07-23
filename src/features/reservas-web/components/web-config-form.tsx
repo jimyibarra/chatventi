@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { saveWebConfig } from '../actions'
+import { ImageUpload } from '@/shared/components/image-upload'
+import { saveWebConfig, saveLogo } from '../actions'
 
 const BASE = 'https://www.chatventi.com'
 
@@ -14,9 +15,11 @@ type Branding = {
 } | null
 
 export function WebConfigForm({
+  orgId,
   webSlug,
   branding,
 }: {
+  orgId: string
   webSlug: string | null
   branding: Branding
 }) {
@@ -25,7 +28,6 @@ export function WebConfigForm({
   const [slug, setSlug] = useState(webSlug ?? '')
   const [color, setColor] = useState(branding?.primary_color ?? '#2563eb')
   const [description, setDescription] = useState(branding?.description ?? '')
-  const [logoUrl, setLogoUrl] = useState(branding?.logo_url ?? '')
   const [whatsappNumber, setWhatsappNumber] = useState(branding?.whatsapp_number ?? '')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
@@ -42,7 +44,6 @@ export function WebConfigForm({
         slug,
         primaryColor: color || undefined,
         description: description || undefined,
-        logoUrl: logoUrl || undefined,
         whatsappNumber: whatsappNumber || undefined,
       })
       if (res.ok) {
@@ -99,12 +100,15 @@ export function WebConfigForm({
             </div>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">URL del logo</label>
-            <input
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://…/logo.png"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
+            <label className="mb-1 block text-sm font-medium text-ink-muted">Logo del negocio</label>
+            <ImageUpload
+              orgId={orgId}
+              folder="logo"
+              currentUrl={branding?.logo_url ?? null}
+              shape="square"
+              label="Subir logo"
+              hint="PNG o JPG, cuadrado (mín. 200×200 px), fondo claro. Máx 5 MB."
+              onChange={async (url) => (await saveLogo(url)).ok}
             />
           </div>
         </div>

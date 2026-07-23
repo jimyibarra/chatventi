@@ -20,10 +20,11 @@ export default async function ProfesionalesPage() {
   }
 
   const branch = branches[0]
-  const [resources, services, label] = await Promise.all([
+  const [resources, services, label, { data: orgId }] = await Promise.all([
     getResources(supabase),
     getServices(supabase, { onlyActive: true }),
     getResourceLabel(supabase),
+    supabase.rpc('get_my_org'),
   ])
 
   return (
@@ -36,6 +37,7 @@ export default async function ProfesionalesPage() {
       </div>
 
       <ResourceManager
+        orgId={orgId ?? ''}
         resources={resources}
         services={services}
         branchId={branch.id}

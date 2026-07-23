@@ -8,11 +8,13 @@ import { RESOURCE_LABEL_PRESETS, toSingular, type ResourceView } from '../types'
 import { ResourceCard } from './resource-card'
 
 export function ResourceManager({
+  orgId,
   resources,
   services,
   branchId,
   label,
 }: {
+  orgId: string
   resources: ResourceView[]
   services: ServiceCatalog[]
   branchId: string
@@ -148,6 +150,7 @@ export function ResourceManager({
           {resources.map((r) => (
             <ResourceCard
               key={r.id}
+              orgId={orgId}
               resource={r}
               services={services}
               branchId={branchId}

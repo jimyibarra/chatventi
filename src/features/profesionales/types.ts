@@ -46,8 +46,8 @@ const hhmm = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Hora inválida (HH:M
 export const resourceSchema = z.object({
   id: uuid.optional(),
   name: z.string().trim().min(1, 'El nombre es obligatorio').max(120),
-  // v1: URL de texto. La subida a Storage es la fase de Branding del roadmap.
-  photoUrl: z.string().trim().url('URL de foto inválida.').optional().or(z.literal('')),
+  // La foto se gestiona aparte con setResourcePhoto (subida a Storage), NO aquí:
+  // así guardar el nombre no toca la foto (evita borrarla sin querer).
   branchId: uuid.nullish(),
   active: z.coerce.boolean().optional(),
 })

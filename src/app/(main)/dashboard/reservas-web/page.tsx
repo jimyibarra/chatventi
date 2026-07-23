@@ -11,12 +11,12 @@ export default async function ReservasWebPage() {
 
   const { data: org } = await supabase
     .from('organizations')
-    .select('web_slug, branding')
+    .select('id, web_slug, branding')
     .maybeSingle()
 
   const { data: products } = await supabase
     .from('products')
-    .select('id, name, price, description')
+    .select('id, name, price, description, image_url')
     .order('name')
 
   return (
@@ -31,10 +31,11 @@ export default async function ReservasWebPage() {
         </div>
 
         <WebConfigForm
+          orgId={org?.id ?? ''}
           webSlug={org?.web_slug ?? null}
           branding={(org?.branding ?? null) as Branding}
         />
-        <ProductManager products={products ?? []} />
+        <ProductManager orgId={org?.id ?? ''} products={products ?? []} />
       </div>
     </>
   )

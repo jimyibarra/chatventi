@@ -1,7 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
+import { removeMediaByUrl } from '@/features/storage/media'
 import {
   resourceSchema,
   resourceServicesSchema,
@@ -37,15 +39,15 @@ export async function saveResource(raw: unknown): Promise<ActionResult<{ id: str
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { id, name, photoUrl, branchId, active } = parsed.data
+  const { id, name, branchId, active } = parsed.data
   const supabase = await createClient()
 
   if (id) {
+    // La foto NO se toca aquí (la gestiona setResourcePhoto).
     const { error } = await supabase
       .from('resources')
       .update({
         name,
-        photo_url: photoUrl || null,
         branch_id: branchId ?? null,
         active: active ?? true,
       })
@@ -63,7 +65,6 @@ export async function saveResource(raw: unknown): Promise<ActionResult<{ id: str
     .insert({
       organization_id: orgId,
       name,
-      photo_url: photoUrl || null,
       branch_id: branchId ?? null,
       active: active ?? true,
     })
@@ -72,6 +73,35 @@ export async function saveResource(raw: unknown): Promise<ActionResult<{ id: str
   if (error) return { ok: false, error: humanizeError(error.message) }
   revalidateAll()
   return { ok: true, data: { id: data.id } }
+}
+
+// Foto del profesional (o null para quitarla). Subida desde el dispositivo:
+// la URL viene del bucket `media`. Borra la anterior si cambió.
+const mediaUrlSchema = z.string().trim().url().nullable()
+
+export async function setResourcePhoto(
+  resourceId: string,
+  rawUrl: string | null
+): Promise<ActionResult> {
+  const parsed = mediaUrlSchema.safeParse(rawUrl)
+  if (!parsed.success) return { ok: false, error: 'Imagen inválida.' }
+  const url = parsed.data
+  const supabase = await createClient()
+  // RLS: sólo devuelve el recurso si es de la org del usuario.
+  const { data: res } = await supabase
+    .from('resources')
+    .select('photo_url')
+    .eq('id', resourceId)
+    .maybeSingle()
+  if (!res) return { ok: false, error: 'Profesional no encontrado.' }
+  const old = res.photo_url
+
+  const { error } = await supabase.from('resources').update({ photo_url: url }).eq('id', resourceId)
+  if (error) return { ok: false, error: humanizeError(error.message) }
+
+  if (old && old !== url) await removeMediaByUrl(old)
+  revalidateAll()
+  return { ok: true }
 }
 
 // Desactivar en vez de borrar: el historial de citas apunta al recurso.

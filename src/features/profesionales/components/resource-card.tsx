@@ -2,23 +2,27 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { ImageUpload } from '@/shared/components/image-upload'
 import { WEEKDAYS, type ServiceCatalog } from '@/features/agenda/types'
 import {
   saveResource,
   deactivateResource,
   reactivateResource,
   setResourceServices,
+  setResourcePhoto,
   addResourceSchedule,
   deleteResourceSchedule,
 } from '../actions'
 import type { ResourceView } from '../types'
 
 export function ResourceCard({
+  orgId,
   resource,
   services,
   branchId,
   singularLabel,
 }: {
+  orgId: string
   resource: ResourceView
   services: ServiceCatalog[]
   branchId: string
@@ -30,7 +34,6 @@ export function ResourceCard({
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState(resource.name)
-  const [photoUrl, setPhotoUrl] = useState(resource.photo_url ?? '')
   const [picked, setPicked] = useState<string[]>(resource.serviceIds)
 
   const [weekday, setWeekday] = useState('1')
@@ -111,29 +114,30 @@ export function ResourceCard({
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
               Datos
             </h3>
+            <div className="mb-3">
+              <label className="mb-1 block text-xs text-ink-soft">Foto del {singularLabel.toLowerCase()}</label>
+              <ImageUpload
+                orgId={orgId}
+                folder="resources"
+                currentUrl={resource.photo_url}
+                shape="round"
+                label="Subir foto"
+                hint="La verá el cliente al elegir con quién agendar. PNG o JPG, cuadrada, máx 5 MB."
+                onChange={async (url) => (await setResourcePhoto(resource.id, url)).ok}
+              />
+            </div>
             <div className="flex flex-wrap items-end gap-2">
-              <div>
+              <div className="min-w-[14rem] flex-1">
                 <label className="mb-1 block text-xs text-ink-soft">Nombre</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="rounded-lg border border-line px-3 py-1.5 text-sm"
-                />
-              </div>
-              <div className="min-w-[16rem] flex-1">
-                <label className="mb-1 block text-xs text-ink-soft">Foto (URL)</label>
-                <input
-                  value={photoUrl}
-                  onChange={(e) => setPhotoUrl(e.target.value)}
-                  placeholder="https://…"
                   className="w-full rounded-lg border border-line px-3 py-1.5 text-sm"
                 />
               </div>
               <button
                 onClick={() =>
-                  run(() =>
-                    saveResource({ id: resource.id, name, photoUrl, branchId, active: resource.active })
-                  )
+                  run(() => saveResource({ id: resource.id, name, branchId, active: resource.active }))
                 }
                 disabled={pending || !name.trim()}
                 className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"

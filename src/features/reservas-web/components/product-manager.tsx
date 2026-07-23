@@ -2,11 +2,18 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { addProduct, deleteProduct } from '../actions'
+import { ImageUpload } from '@/shared/components/image-upload'
+import { addProduct, deleteProduct, setProductImage } from '../actions'
 
-type Product = { id: string; name: string; price: number | null; description: string | null }
+type Product = {
+  id: string
+  name: string
+  price: number | null
+  description: string | null
+  image_url: string | null
+}
 
-export function ProductManager({ products }: { products: Product[] }) {
+export function ProductManager({ orgId, products }: { orgId: string; products: Product[] }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [name, setName] = useState('')
@@ -92,11 +99,22 @@ export function ProductManager({ products }: { products: Product[] }) {
           <li className="py-2 text-sm text-ink-faint">Aún no hay productos.</li>
         )}
         {products.map((p) => (
-          <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-            <span className="text-ink-muted">
-              {p.name}
-              {p.price != null ? ` · $${p.price}` : ''}
-            </span>
+          <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-3 text-sm">
+            <div className="flex min-w-0 items-center gap-3">
+              <ImageUpload
+                orgId={orgId}
+                folder="products"
+                currentUrl={p.image_url}
+                shape="square"
+                label="Subir foto"
+                hint="Foto del producto. PNG o JPG, máx 5 MB."
+                onChange={async (url) => (await setProductImage(p.id, url)).ok}
+              />
+              <span className="text-ink-muted">
+                {p.name}
+                {p.price != null ? ` · $${p.price}` : ''}
+              </span>
+            </div>
             <button
               onClick={() => remove(p.id)}
               disabled={pending}
