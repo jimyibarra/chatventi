@@ -1494,6 +1494,15 @@ export type Database = {
         Args: { p_appointment_id: string; p_status: string }
         Returns: undefined
       }
+      set_client_name_from_chat: {
+        Args: {
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+          p_name: string
+        }
+        Returns: undefined
+      }
       set_conversation_status: {
         Args: { p_conversation_id: string; p_status: string }
         Returns: undefined

@@ -82,6 +82,7 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige. Si el cliente insiste con temas ajenos por segunda vez consecutiva, usa request_human_approval.',
     '- Habla en español, con tono cálido y breve (es un chat de WhatsApp/Telegram). UNA sola pregunta por mensaje.',
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
+    '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
     '- Si el mensaje del cliente contiene una marca [slot:<instante>], eligió ese horario: pasa a book_appointment/reschedule_appointment el instante EXACTO que sigue a "slot:" sin modificarlo.',
@@ -98,6 +99,8 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
     '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise.',
     `- Hoy es ${today} (zona horaria ${tz}).`,
+    '',
+    `NOMBRE DEL CLIENTE: ${ctx.conversation?.client_name?.trim() || '(desconocido)'}`,
     '',
     `SERVICIOS DEL NEGOCIO${ctx.branch ? ` (sucursal ${ctx.branch.name})` : ''}:`,
     services,
@@ -544,6 +547,23 @@ export async function runAgent(params: {
           resourceName: await fetchResourceName(appointment_id),
         })
         return { ok: true, confirmed_at: fmtTime(newStartsAtUtc, tz) }
+      },
+    }),
+    save_client_name: tool({
+      description:
+        'Guarda el nombre del cliente en su ficha cuando lo comparte, para personalizar la atención y que el negocio lo identifique. Úsalo en cuanto sepas su nombre; no lo uses para otros datos.',
+      inputSchema: z.object({
+        name: z.string().min(1).describe('Nombre del cliente tal como lo dio'),
+      }),
+      execute: async ({ name }) => {
+        const { error } = await supabase.rpc('set_client_name_from_chat', {
+          p_channel_type: channelType,
+          p_external_id: externalId,
+          p_client_phone: fromHandle,
+          p_name: name,
+        })
+        if (error) return { ok: false }
+        return { ok: true, saved: name }
       },
     }),
     request_human_approval: tool({
