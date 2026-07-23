@@ -298,6 +298,179 @@ export type Database = {
           },
         ]
       }
+      client_files: {
+        Row: {
+          client_id: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          mime_type: string
+          note: string | null
+          organization_id: string
+          path: string
+          size_bytes: number
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          mime_type: string
+          note?: string | null
+          organization_id: string
+          path: string
+          size_bytes: number
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          mime_type?: string
+          note?: string | null
+          organization_id?: string
+          path?: string
+          size_bytes?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_files_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_files_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_files_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_records: {
+        Row: {
+          amount: number | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          detail: string | null
+          id: string
+          kind: string
+          occurred_at: string
+          organization_id: string
+          title: string
+        }
+        Insert: {
+          amount?: number | null
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          id?: string
+          kind?: string
+          occurred_at?: string
+          organization_id: string
+          title: string
+        }
+        Update: {
+          amount?: number | null
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          detail?: string | null
+          id?: string
+          kind?: string
+          occurred_at?: string
+          organization_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_records_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_records_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_reminders: {
+        Row: {
+          active: boolean
+          client_id: string
+          created_at: string
+          id: string
+          interval_days: number
+          last_sent_at: string | null
+          message: string
+          next_due_at: string
+          organization_id: string
+        }
+        Insert: {
+          active?: boolean
+          client_id: string
+          created_at?: string
+          id?: string
+          interval_days: number
+          last_sent_at?: string | null
+          message: string
+          next_due_at: string
+          organization_id: string
+        }
+        Update: {
+          active?: boolean
+          client_id?: string
+          created_at?: string
+          id?: string
+          interval_days?: number
+          last_sent_at?: string | null
+          message?: string
+          next_due_at?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_reminders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_reminders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       channels: {
         Row: {
           created_at: string
@@ -1229,6 +1402,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      claim_client_reminder: { Args: { p_id: string }; Returns: boolean }
       claim_reminder: {
         Args: { p_appointment_id: string; p_kind: string }
         Returns: boolean
@@ -1330,6 +1504,7 @@ export type Database = {
           slot_start: string
         }[]
       }
+      get_due_client_reminders: { Args: never; Returns: Json }
       get_due_reminders: { Args: { p_kind: string }; Returns: Json }
       get_invitation_preview: { Args: { p_token: string }; Returns: Json }
       get_manage_token_from_chat: {

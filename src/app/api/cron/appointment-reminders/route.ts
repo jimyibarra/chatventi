@@ -177,6 +177,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Recordatorios recurrentes del expediente ("vuelve a cortarte", "limpieza
+  // dental cada 6 meses"). Independientes de las citas.
+  const recurring = await runClientReminders(service)
+
   // Funnel de la prueba gratis: recordatorio → bloqueo → aviso → borrado.
   const trialSummary = await runTrialFunnel(service)
 
@@ -188,7 +192,90 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // credenciales de correo en producción son correctas.
   const emailsStatus = await verifyTransport()
 
-  return NextResponse.json({ ok: true, summary, trial: trialSummary, emails: emailsStatus })
+  return NextResponse.json({
+    ok: true,
+    summary,
+    recurring,
+    trial: trialSummary,
+    emails: emailsStatus,
+  })
+}
+
+type DueClientReminder = {
+  reminder_id: string
+  message: string
+  conversation_id: string | null
+  channel_type: string | null
+  channel_external_id: string | null
+  send_to: string | null
+  client_name: string | null
+  org_name: string
+}
+
+/**
+ * Recordatorios recurrentes del expediente del cliente.
+ *
+ * Idempotencia: `claim_client_reminder` adelanta `next_due_at` al futuro dentro
+ * de la misma transacción, así que una segunda corrida ya no lo ve vencido. No
+ * hace falta una columna de "ya enviado".
+ *
+ * Igual que los recordatorios de cita, solo alcanza a clientes CON conversación:
+ * sin canal no hay por dónde escribir. Esos se reportan como `no_channel` y NO
+ * se reclaman, para que salgan en cuanto el cliente escriba por primera vez.
+ */
+async function runClientReminders(
+  service: ReturnType<typeof createServiceClient>
+): Promise<{ sent: number; skipped: number; no_channel: number }> {
+  const out = { sent: 0, skipped: 0, no_channel: 0 }
+  const { data, error } = await service.rpc('get_due_client_reminders')
+  if (error) {
+    console.error('[cron-recurring] get_due_client_reminders error', error.message)
+    return out
+  }
+  const items = (data as unknown as DueClientReminder[]) ?? []
+
+  for (const item of items) {
+    if (!item.conversation_id || !item.channel_type || !item.channel_external_id || !item.send_to) {
+      out.no_channel++
+      continue
+    }
+
+    const { data: claimed } = await service.rpc('claim_client_reminder', {
+      p_id: item.reminder_id,
+    })
+    if (!claimed) {
+      out.skipped++
+      continue
+    }
+
+    let extId: string | null = null
+    try {
+      extId = await sendToCustomerByChannel(
+        service,
+        item.channel_type,
+        item.channel_external_id,
+        item.send_to,
+        item.message
+      )
+    } catch (err) {
+      console.error('[cron-recurring] error enviando', err)
+    }
+
+    await service.from('messages').insert({
+      conversation_id: item.conversation_id,
+      direction: 'outbound',
+      sender: 'system',
+      body: item.message,
+      external_id: extId,
+    })
+    await service
+      .from('conversations')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', item.conversation_id)
+
+    out.sent++
+  }
+  return out
 }
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')

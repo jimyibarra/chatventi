@@ -2,6 +2,14 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ClientDetail } from '@/features/crm/components/client-detail'
+import { ClientFiles } from '@/features/expediente/components/client-files'
+import { ClientRecords } from '@/features/expediente/components/client-records'
+import { ClientReminders } from '@/features/expediente/components/client-reminders'
+import type {
+  ClientFile,
+  ClientRecord,
+  ClientReminder,
+} from '@/features/expediente/types'
 import { STATUS_META, type AppointmentStatus } from '@/features/agenda/types'
 
 export const dynamic = 'force-dynamic'
@@ -35,22 +43,47 @@ export default async function ClienteDetallePage({
   // clientes reales: su ficha no debe ser accesible desde el CRM.
   if (!client || client.phone?.startsWith('sandbox:')) notFound()
 
-  const [{ data: allTags }, { data: assigned }, { data: appointments }, { data: conversations }] =
-    await Promise.all([
-      supabase.from('tags').select('id, name, color').order('name'),
-      supabase.from('client_tags').select('tag_id').eq('client_id', id),
-      supabase
-        .from('appointments')
-        .select('id, starts_at, status, appointment_services(service:service_catalogs(name))')
-        .eq('client_id', id)
-        .order('starts_at', { ascending: false })
-        .limit(50),
-      supabase
-        .from('conversations')
-        .select('id, status, last_message_at, channel:channels(type)')
-        .eq('client_id', id)
-        .order('last_message_at', { ascending: false, nullsFirst: false }),
-    ])
+  const [
+    { data: allTags },
+    { data: assigned },
+    { data: appointments },
+    { data: conversations },
+    { data: orgId },
+    { data: files },
+    { data: records },
+    { data: reminders },
+  ] = await Promise.all([
+    supabase.from('tags').select('id, name, color').order('name'),
+    supabase.from('client_tags').select('tag_id').eq('client_id', id),
+    supabase
+      .from('appointments')
+      .select('id, starts_at, status, appointment_services(service:service_catalogs(name))')
+      .eq('client_id', id)
+      .order('starts_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('conversations')
+      .select('id, status, last_message_at, channel:channels(type)')
+      .eq('client_id', id)
+      .order('last_message_at', { ascending: false, nullsFirst: false }),
+    supabase.rpc('get_my_org'),
+    supabase
+      .from('client_files')
+      .select('*')
+      .eq('client_id', id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('client_records')
+      .select('*')
+      .eq('client_id', id)
+      .order('occurred_at', { ascending: false })
+      .limit(100),
+    supabase
+      .from('client_reminders')
+      .select('*')
+      .eq('client_id', id)
+      .order('next_due_at'),
+  ])
 
   const assignedIds = ((assigned as { tag_id: string }[] | null) ?? []).map((a) => a.tag_id)
 
@@ -87,6 +120,22 @@ export default async function ClienteDetallePage({
           client={client}
           allTags={(allTags as Tag[] | null) ?? []}
           assignedTagIds={assignedIds}
+        />
+
+        <ClientRecords clientId={id} records={(records as ClientRecord[] | null) ?? []} />
+
+        {orgId && (
+          <ClientFiles
+            clientId={id}
+            orgId={orgId as string}
+            files={(files as ClientFile[] | null) ?? []}
+          />
+        )}
+
+        <ClientReminders
+          clientId={id}
+          reminders={(reminders as ClientReminder[] | null) ?? []}
+          canReach={convs.length > 0}
         />
 
         <section className="rounded-card border border-line bg-white p-5">
