@@ -5,6 +5,21 @@
 
 ---
 
+## Estado (actualizado 2026-07-22)
+
+| # | Brecha | Estado |
+|---|--------|--------|
+| 1 | Profesionales/Recursos | ✅ **Hecho y en prod** (Ola 4, `4158e99`) |
+| 2 | Equipo + Roles | ✅ **Hecho y en prod** (Ola 4, `4158e99`) |
+| + | Sandbox "Prueba el Chat IA en vivo" | ✅ **Hecho y en prod** (`c7d4fab`) — extra detectado del demo de CitaFlow |
+| 3 | Branding real (logo a Storage) | ⏳ Pendiente — **siguiente candidato a PRP** |
+| 4 | CRM: estadísticas/segmentación/import-export | ⏳ Pendiente |
+| 5 | Funnel de marketing | ⏳ Parcial (trial+correos ya viven; falta quiz/upsell) |
+
+> 🔴 Correcciones a este documento (eran optimistas/erróneas): (a) el proyecto **NO usa Resend**, usa **nodemailer + SMTP de Hostinger** (`src/features/emails/mailer.ts`); (b) el backend **NO** "ya soportaba Equipo": hizo falta una RPC `SECURITY DEFINER` nueva.
+
+---
+
 ## TL;DR
 
 ChatVenti tiene un núcleo sólido (recepcionista IA omnicanal + agenda + CRM básico + billing + Super Admin). Lo que falta es la **capa de "gestión del negocio"** que CitaFlow ya tiene madura. **La mayoría de brechas ya están soportadas en el esquema de datos; falta la interfaz.** No hay que reinventar, hay que construir UI encima de lo existente.
@@ -13,7 +28,9 @@ ChatVenti tiene un núcleo sólido (recepcionista IA omnicanal + agenda + CRM b�
 
 ---
 
-## 1. EQUIPO / Profesionales — brecha #1
+## 1. EQUIPO / Profesionales — brecha #1 · ✅ HECHO (Ola 4, `4158e99`)
+
+> Construido: entidad `resources` desacoplada del login (foto, servicios que presta, horario propio), `/dashboard/profesionales` (CRUD), agenda con columna por profesional y "el que sea", selector en `/r/[slug]`, y el agente IA pregunta "¿con quién?" y respeta el horario individual. Etiqueta por vertical en `branding.resource_label`. Regla: recurso sin `resource_services` presta TODOS los servicios. Detalle en `.claude/PRPs/prp-profesionales-equipo.md`. (Pendiente sólo la Fase 7 CONTRACT: dropear el viejo `staff_id`.)
 
 **CitaFlow:** modela un **"Recurso" genérico** ("Personal que realiza los servicios") y lo re-etiqueta según vertical: *Nuestros Profesionales / Salas / Equipos / Personalizado*. A cada recurso le asigna qué servicios presta y un horario individual (se cruza con el del negocio). El cliente puede elegir profesional al reservar (o "el que sea"). Atribución en Cobros: "Quién atendió" vs "Quién cobró".
 
@@ -28,14 +45,16 @@ ChatVenti tiene un núcleo sólido (recepcionista IA omnicanal + agenda + CRM b�
 
 ---
 
-## 2. ROLES y permisos — brecha #2 (delegar el negocio)
+## 2. ROLES y permisos — brecha #2 · ✅ HECHO (Ola 4, `4158e99`)
+
+> Construido: `/dashboard/equipo` (invitar por email, invitaciones pendientes, reenviar/revocar, contador "X de N accesos" con gate por `team_seats` = 1 + team_seats, dueño incluido) + `/invitacion/[token]`. 4 roles planos **Dueño / Administrador / Recepción / Profesional** sobre `owner|manager|staff` + `profiles.resource_scope`. Requirió una RPC `SECURITY DEFINER` nueva (el backend NO lo soportaba solo con `profile_update_self`). Gate de rol en el proxy (no en layouts). Fichaje horario: diferido.
 
 **CitaFlow:** módulo **Equipo** con pestañas *Miembros · Organización · Roles y permisos · Fichaje horario*. Invitar por email + invitaciones pendientes + límite por plan ("1 de 2 accesos en uso"). Matriz granular de ~7 roles × acciones (Ver/Crear/Editar/Eliminar/Invitar/Gestionar permisos/Ver datos sensibles) por módulo, con alcance "Ver lo propio / de su sucursal / todo". Fichaje horario.
 
 **ChatVenti hoy:** roles existen en esquema (`super_admin/owner/manager/staff`), RLS los aplica, add-on `team_seats` existe en billing. Pero **NO hay UI para invitar/gestionar equipo ni asignar roles.** Solo se crea el `owner` en el registro.
 
 **Recomendación:**
-- Construir la página **"Equipo"** (backend ya la soporta): invitar por email (Resend ya existe) → asignar rol → invitación pendiente; cambiar rol desde tabla de miembros.
+- Construir la página **"Equipo"**: invitar por email (por **SMTP de Hostinger**, no Resend) → asignar rol → invitación pendiente; cambiar rol desde tabla de miembros. (Nota: el backend NO lo soportaba solo; hizo falta una RPC `SECURITY DEFINER`.)
 - Empezar simple, sin matriz de 7 roles. Con **Dueño / Administrador (delega todo) / Recepción-Asistente (agenda + CRM, no billing/config) / Profesional (solo su agenda)** se cubre el 95%.
 - Fichaje horario: diferir (nice-to-have).
 
@@ -50,8 +69,16 @@ ChatVenti tiene un núcleo sólido (recepcionista IA omnicanal + agenda + CRM b�
 **Recomendación:**
 1. **Subida de logo a Supabase Storage** (drag & drop) — lo primero, lo que más se nota.
 2. Añadir color secundario/acento + imagen de portada + galería.
-3. **Meter el logo en los correos** (Resend) y en `/r/[slug]` y `/c/[token]`. Que el cliente final vea la marca del negocio, no "ChatVenti".
+3. **Meter el logo en los correos** (SMTP de Hostinger, `src/features/emails/`) y en `/r/[slug]` y `/c/[token]`. Que el cliente final vea la marca del negocio, no "ChatVenti".
 4. (Estrategia) Evaluar white-label parcial como argumento de venta diferenciador.
+
+---
+
+## + Sandbox "Prueba el Chat IA en vivo" — extra del demo · ✅ HECHO (`c7d4fab`)
+
+**CitaFlow:** página `/demo/chatbot` dentro del panel donde el dueño prueba SU propio agente (misma IA que reciben sus clientes por WhatsApp), con panel lateral de "base de conocimiento del negocio" y preguntas sugeridas.
+
+**ChatVenti:** `/dashboard/agente/probar`. Reusa el motor de producción (`runAgent`) contra el contexto REAL de la org (servicios/conocimiento/profesionales/prompt). **Disponibilidad REAL de solo lectura + escrituras SIMULADAS** → cero efectos secundarios (0 citas reales, sin notificaciones, hilo excluido del inbox). Sin migraciones. Validado E2E. PRP: `.claude/PRPs/prp-sandbox-chat-ia.md`.
 
 ---
 
@@ -93,14 +120,15 @@ Prioridad media. La **segmentación** es la de mayor valor de marketing (permite
 
 ## Prioridad final
 
-1. **Equipo/Profesionales como recurso** (entidad + servicios por profesional + selección al reservar + que el agente IA lo use). ← lo más pedido; desbloquea peluquerías/clínicas reales.
-2. **Gestión de Equipo + Roles** (invitar, asignar rol, delegar). ← desbloquea "delegar a una asistente".
-3. **Branding real** (subir logo a Storage + logo en emails/web).
-4. **CRM: estadísticas + segmentación + import/export.**
-5. **Funnel de marketing** (quiz, email fin de trial con extender/llamada, upsell 39€).
+1. ✅ ~~**Equipo/Profesionales como recurso**~~ — HECHO y en prod (Ola 4, `4158e99`).
+2. ✅ ~~**Gestión de Equipo + Roles**~~ — HECHO y en prod (Ola 4, `4158e99`).
+   - ✅ Extra: **Sandbox "Prueba el Chat IA"** — HECHO y en prod (`c7d4fab`).
+3. ⏳ **Branding real** (subir logo a Storage + logo en emails/web). ← **siguiente candidato a PRP.**
+4. ⏳ **CRM: estadísticas + segmentación + import/export.**
+5. ⏳ **Funnel de marketing** (quiz, email fin de trial con extender/llamada, upsell 39€). Trial 30d + correos de ciclo de vida ya viven; falta el quiz y el upsell.
 
 ---
 
 ## Siguiente paso propuesto
 
-Convertir la **Fase 1 (Profesionales/Recursos)** en un PRP (plan por fases) para aprobar y arrancar. Alternativa: PRP que agrupe Fase 1 + Fase 2 (Equipo/Roles) porque comparten el modelo de datos.
+Convertir la **Brecha #3 (Branding real: subida de logo a Supabase Storage + logo en correos y web pública)** en un PRP. Ojo: `organizations.branding` es un jsonb compartido con ≥2 escritores que hacen merge (`saveWebConfig`, `saveResourceLabel`) — cualquier escritor nuevo debe hacer merge también o borrará claves ajenas.
