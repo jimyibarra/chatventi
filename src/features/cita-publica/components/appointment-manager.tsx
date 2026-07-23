@@ -19,7 +19,7 @@ export type PublicAppointment = {
   }
   services: { id: string; name: string; duration_minutes: number }[]
   branch: { id: string; name: string; timezone: string }
-  org: { name: string }
+  org: { name: string; branding?: { logo_url?: string | null } | null }
 }
 
 function fmtDateTime(iso: string, tz: string): string {
@@ -100,10 +100,20 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
   return (
     <div className="space-y-4 rounded-card border border-line bg-white p-5">
       <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-ink-faint">Tu cita en</p>
-          <h1 className="text-lg font-bold text-ink">{org.name}</h1>
-          <p className="text-sm text-ink-soft">{branch.name}</p>
+        <div className="flex items-start gap-3">
+          {org.branding?.logo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={org.branding.logo_url}
+              alt={org.name}
+              className="h-12 w-12 shrink-0 rounded-xl object-cover"
+            />
+          )}
+          <div>
+            <p className="text-xs uppercase tracking-wide text-ink-faint">Tu cita en</p>
+            <h1 className="text-lg font-bold text-ink">{org.name}</h1>
+            <p className="text-sm text-ink-soft">{branch.name}</p>
+          </div>
         </div>
         <span
           className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.badge}`}
