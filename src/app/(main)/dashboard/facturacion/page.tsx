@@ -9,6 +9,7 @@ import {
 import { BillingClient } from '@/features/billing/components/billing-client'
 import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout'
 import { TrialEndedBanner } from '@/features/billing/components/subscription-required'
+import { OnboardingHelpCard } from '@/features/marketing/components/onboarding-help-card'
 import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 
 export const dynamic = 'force-dynamic'
@@ -25,7 +26,14 @@ export default async function FacturacionPage({
   if (!user) redirect('/login')
 
   const { success, canceled } = await searchParams
-  const [sub, orgTrial] = await Promise.all([getMySubscription(), getMyOrgTrial()])
+  const [sub, orgTrial, { data: orgId }] = await Promise.all([
+    getMySubscription(),
+    getMyOrgTrial(),
+    supabase.rpc('get_my_org'),
+  ])
+  const { data: org } = orgId
+    ? await supabase.from('organizations').select('business_type').eq('id', orgId).maybeSingle()
+    : { data: null }
   const active = subIsActive(sub)
   // Banner de "prueba terminada" si el acceso está bloqueado (sin éxito reciente).
   const blocked = !!orgTrial && !hasAppAccess(orgTrial, sub) && !success
@@ -70,7 +78,10 @@ export default async function FacturacionPage({
             : null
         }
         active={active}
+        businessType={org?.business_type ?? null}
       />
+
+      {!active && <OnboardingHelpCard />}
     </div>
   )
 }

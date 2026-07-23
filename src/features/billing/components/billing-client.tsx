@@ -14,6 +14,7 @@ import {
   type AiTierId,
 } from '@/features/billing/plans'
 import { createCheckoutSession, createPortalSession } from '@/features/billing/actions'
+import { businessNoun } from '@/features/marketing/config'
 
 interface Props {
   sub: {
@@ -23,14 +24,24 @@ interface Props {
     cancel_at_period_end: boolean
   } | null
   active: boolean
+  businessType?: string | null
 }
 
 function money(usd: number): string {
   return `$${usd}`
 }
 
-export function BillingClient({ sub, active }: Props) {
+// Quiz de 1 pregunta: el volumen esperado recomienda un tier de IA.
+const VOLUME_OPTIONS: { key: string; label: string; hint: string; tier: AiTierId }[] = [
+  { key: 'none', label: 'Solo quiero agenda', hint: 'Reservas por web y sin IA', tier: 'none' },
+  { key: 'low', label: 'Pocos al mes', hint: '~300 conversaciones', tier: '300' },
+  { key: 'mid', label: 'Un flujo constante', hint: '~1.000 conversaciones', tier: '1000' },
+  { key: 'high', label: 'Muchísimos', hint: '~3.000 conversaciones', tier: '3000' },
+]
+
+export function BillingClient({ sub, active, businessType }: Props) {
   const [aiTier, setAiTier] = useState<AiTierId>('1000')
+  const [quizPick, setQuizPick] = useState<string | null>(null)
   const [domain, setDomain] = useState(false)
   const [teamSeats, setTeamSeats] = useState(0)
   const [error, setError] = useState('')
@@ -105,8 +116,56 @@ export function BillingClient({ sub, active }: Props) {
   }
 
   // -------- Sin suscripción: calculadora + checkout ----------------------
+  const recommended = quizPick ? VOLUME_OPTIONS.find((o) => o.key === quizPick) : null
+
   return (
     <div className="space-y-6">
+      {/* Quiz de recomendación: personaliza el plan según el volumen esperado */}
+      <div className="rounded-card border border-brand-200 bg-brand-50 p-6">
+        <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">
+          Te ayudamos a elegir
+        </p>
+        <h2 className="mt-1 text-lg font-bold text-ink">
+          ¿Cuántos clientes le escriben a {businessNoun(businessType)} al mes?
+        </h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          Sin idea exacta no pasa nada: elige lo más cercano y ajustamos abajo.
+        </p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          {VOLUME_OPTIONS.map((o) => {
+            const picked = quizPick === o.key
+            return (
+              <button
+                key={o.key}
+                type="button"
+                data-testid={`quiz-${o.key}`}
+                onClick={() => {
+                  setQuizPick(o.key)
+                  setAiTier(o.tier)
+                }}
+                className={`rounded-xl border px-4 py-3 text-left transition-all ${
+                  picked
+                    ? 'border-brand-600 bg-white ring-1 ring-brand-600'
+                    : 'border-brand-200 bg-white/70 hover:border-brand-400'
+                }`}
+              >
+                <span className="block font-medium text-ink">{o.label}</span>
+                <span className="text-sm text-ink-soft">{o.hint}</span>
+              </button>
+            )
+          })}
+        </div>
+        {recommended && (
+          <p className="mt-3 text-sm text-brand-700" data-testid="quiz-reco">
+            {recommended.tier === 'none'
+              ? 'Perfecto: con la base te alcanza. Puedes sumar la IA cuando quieras.'
+              : `Te recomendamos el módulo de Recepcionista IA de ${aiTierById(
+                  recommended.tier
+                ).detail}. Ya lo dejamos marcado abajo — el total se actualizó.`}
+          </p>
+        )}
+      </div>
+
       <div className="rounded-card border border-line bg-white p-6">
         <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Paso 1</p>
         <h2 className="mt-1 text-lg font-bold text-ink">

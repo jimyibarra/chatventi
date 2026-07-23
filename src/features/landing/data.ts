@@ -94,7 +94,7 @@ export const FEATURES = [
     tint: '#E9F9EF',
     stroke: '#1DA851',
     title: 'Recordatorios automáticos',
-    body: 'Recordatorio 24 horas y 2 horas antes de cada cita, por el canal del cliente. Menos inasistencias sin que tú mandes un solo mensaje.',
+    body: 'Recordatorio 24 h y 2 h antes de cada cita, y recordatorios recurrentes para invitar a volver ("tu próximo corte", "limpieza cada 6 meses"). Menos inasistencias y más clientes que regresan, sin que muevas un dedo.',
   },
   {
     icon: 'refresh' as const,
@@ -115,7 +115,7 @@ export const FEATURES = [
     tint: '#EFEDFB',
     stroke: '#5B4FE0',
     title: 'Panel de control + CRM',
-    body: 'Tu día de un vistazo: citas, conversaciones y tus clientes con etiquetas, notas e historial. Interviene en cualquier chat cuando quieras.',
+    body: 'Tu día de un vistazo, y tus clientes ordenados solos: segmentados en Nuevos, Regulares y VIP, con expediente, archivos y quién lleva tiempo sin volver para reactivarlo. Interviene en cualquier chat cuando quieras.',
   },
 ]
 

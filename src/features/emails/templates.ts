@@ -3,6 +3,7 @@
 // con clientes de correo). El logo se referencia por URL pública absoluta.
 
 import { PROMO_CODE, PROMO_LABEL, TRIAL_DAYS } from '@/features/billing/plans'
+import { CALL_URL } from '@/features/marketing/config'
 
 const LOGO = 'https://www.chatventi.com/brand/chatventi-logo.png'
 
@@ -25,9 +26,10 @@ function layout(opts: {
   title: string
   bodyHtml: string
   cta?: { label: string; href: string }
+  secondaryCta?: { label: string; href: string }
   note?: string
 }): string {
-  const { title, bodyHtml, cta, note } = opts
+  const { title, bodyHtml, cta, secondaryCta, note } = opts
   return `<div style="max-width:520px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
   <div style="padding:28px 8px 18px;text-align:center">
     <img src="${LOGO}" alt="ChatVenti" width="188" style="width:188px;max-width:72%;height:auto" />
@@ -39,6 +41,13 @@ function layout(opts: {
       cta
         ? `<p style="text-align:center;margin:24px 0 6px">
       <a href="${cta.href}" style="display:inline-block;background:#5b4fe0;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:13px 30px;border-radius:10px">${cta.label}</a>
+    </p>`
+        : ''
+    }
+    ${
+      secondaryCta
+        ? `<p style="text-align:center;margin:6px 0 0;font-size:13px;color:#6b7280">¿Dudas antes de decidir?
+      <a href="${secondaryCta.href}" style="color:#5b4fe0;text-decoration:underline;font-weight:bold">${secondaryCta.label}</a>
     </p>`
         : ''
     }
@@ -175,6 +184,7 @@ export function trialEndingEmail(o: {
       title: 'Tu prueba gratuita está por terminar',
       bodyHtml: body,
       cta: { label: 'Suscribirme ahora →', href: `${o.siteUrl}/dashboard/facturacion` },
+      secondaryCta: { label: 'Agéndame una llamada', href: CALL_URL },
       note: 'Sin permanencias: puedes cambiar de plan o cancelar cuando quieras.',
     }),
   }
@@ -200,6 +210,7 @@ export function trialEndedEmail(o: {
       title: 'Tu prueba gratuita terminó',
       bodyHtml: body,
       cta: { label: 'Suscribirme y continuar →', href: `${o.siteUrl}/dashboard/facturacion` },
+      secondaryCta: { label: 'Agéndame una llamada', href: CALL_URL },
       note: 'Tus datos siguen a salvo hasta la fecha indicada. Sin permanencias.',
     }),
   }
