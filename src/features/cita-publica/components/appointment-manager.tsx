@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { formatTime, ymdInTz } from '@/features/agenda/datetime'
 import { STATUS_META, type AppointmentStatus } from '@/features/agenda/types'
 
-type Slot = { slot_start: string; slot_end: string; staff_id: string | null }
+type Slot = { slot_start: string; slot_end: string; resource_id: string | null }
 
 export type PublicAppointment = {
   appointment: {
@@ -57,7 +57,7 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
     if (!requestKey) return
     let active = true
     supabase
-      .rpc('get_available_slots', {
+      .rpc('get_available_slots_v2', {
         p_branch_id: branch.id,
         p_service_ids: serviceIds,
         p_date: date,
