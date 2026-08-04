@@ -1460,6 +1460,21 @@ export type Database = {
         }
         Returns: string
       }
+      create_organization_with_owner_v2: {
+        Args: {
+          p_branch_name?: string
+          p_business_type?: string
+          p_city?: string
+          p_country?: string
+          p_org_name: string
+          p_owner_name?: string
+          p_phone?: string
+          p_signup_ip?: string
+          p_terms_version?: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       create_public_appointment_v2: {
         Args: {
           p_client_name: string
