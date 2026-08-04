@@ -285,11 +285,20 @@ una página con inyección explícita no cambia el comportamiento del agente.
 - **Regla**: en un esquema donde una parte es la frontera de seguridad (enums cerrados) y otra es cosmética (texto libre), la cosmética se **normaliza**; hacerla estricta convierte un dato de adorno en un punto único de fallo.
 - **Detección**: no lo cazó typecheck ni lint. Salió al ejecutar un script suelto contra la función pura.
 
-### 2026-08-05 (Fase 3): la Fase 3 NO está validada contra base de datos
-- **Situación**: en la sesión de implementación el MCP de Supabase estaba desconectado y `.env.local` no tiene cadena de conexión a Postgres. **No se pudo aplicar la migración `20260805000000_voz_de_marca.sql` ni consultar la base.**
-- **Consecuencia**: el código está escrito, tipado y probado en su parte pura (presets, saneado, cláusula de subordinación, prompt idéntico sin voz), pero **nadie ha visto la voz cambiar el tono de una respuesta real**.
-- **Riesgo abierto**: la migración hace `create or replace` de `get_agent_context`, que usan los webhooks de WhatsApp y Telegram en producción. El cuerpo se copió del archivo de migración, no de la base viva. **Antes de aplicarla hay que diferenciarla contra `pg_get_functiondef`** — está escrito como aviso al inicio del propio archivo. Es exactamente el patrón que rompió la reagenda en la Fase 7 CONTRACT.
-- **Mitigación ya en el código**: sin las columnas, `voice_preset`/`voice_profile` llegan `undefined`, `renderVoiceBlock` devuelve `null` y el prompt queda **idéntico** al anterior. La lectura de la voz en `/dashboard/agente` va en una consulta aparte para que la página no reviente si el código llega antes que la migración.
+### 2026-08-05 (Fase 3): PARCHEAR la definición viva en vez de reemplazarla por una copia
+- **Problema**: para exponer la voz había que tocar `get_agent_context`, una función `SECURITY DEFINER` que usan los webhooks de WhatsApp y Telegram **en producción**. Lo evidente era `create or replace` con el cuerpo copiado de la última migración — y eso da por hecho que la base es lo que dice el repo. Si hubiera derivado, se revertirían en silencio los cambios posteriores. Es exactamente cómo se rompió la reagenda en la Fase 7 CONTRACT: DDL en verde, funcionalidad rota.
+- **Solución aplicada**: la migración lee la definición **viva** con `pg_get_functiondef`, le inserta las dos claves en un ancla exacta y ejecuta el resultado. Es **idempotente** (si ya expone la voz no hace nada) y **aborta** si el ancla no aparece, en lugar de dejar la función a medias.
+- **Comprobado antes de tocar nada**: `ya_tiene_voz = 0`, `ancla = 2086`, `usa_canonical = 650` → la función viva coincidía con la migración de la que se partió.
+- **Regla**: para modificar una función que ya está en producción, partir de lo que hay **en la base**, no de lo que dice el repositorio. Y que el script se niegue a actuar si no reconoce el terreno.
+
+### 2026-08-05 (Fase 3): validada de extremo a extremo contra producción
+- Aplicada la migración `20260805000000_voz_de_marca.sql` (4 columnas + parche de la RPC). Verificado: `parche_ok = 2136`, 4 columnas creadas.
+- **Prueba real por el chat de demo de la landing** (`/api/demo-chat`, usa `runAgent` con la org demo `12974a7a…` y **no requiere login** — es la vía para probar el agente sin credenciales):
+  - sin voz → *"Si **deseas** agendar… ¡**dímelo**!"* (tuteo, exclamaciones)
+  - preset Formal → *"Si **requiere** más información o **desea** agendar, por favor **hágamelo** saber."* (usted, sin exclamaciones ni emojis)
+  - **disciplina intacta**: preguntado por un servicio NO configurado, no inventó precio ni disponibilidad, y mantuvo el tono formal.
+  - quitada la voz → vuelve al tuteo. El ciclo poner/cambiar/quitar funciona.
+- La org demo se dejó **como estaba** (`voice_preset` y `voice_profile` a NULL): alimenta el chat público de la landing.
 
 ### 2026-08-04 (Fase 1): Next NO hace deep-merge de `openGraph` ni de `twitter`
 - **Error**: la home declaraba `openGraph: { url, title, description }` y `twitter: { title, description }`. Next **reemplaza el objeto entero** del layout en lugar de fusionarlo → se perdieron `og:type`, `og:site_name` y `og:locale`, y `twitter:card` cayó al default `summary` (imagen pequeña) en vez de `summary_large_image`. La tarjeta al compartir habría salido degradada.
