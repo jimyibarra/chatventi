@@ -43,7 +43,7 @@ const APP_LD = {
   operatingSystem: 'Web',
   url: LEGAL.siteUrl,
   description:
-    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Telegram y web 24/7 para peluquerías, dentistas, clínicas, spas y consultorios.',
+    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Telegram y web 24/7 para peluquerías, dentistas, veterinarias, spas y consultorios.',
   offers: {
     '@type': 'Offer',
     price: String(STARTER_PRICE_USD),
@@ -132,7 +132,7 @@ export default function Home() {
                 <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
               </p>
               <p style={{ margin: 0, fontSize: 14, color: '#5F5A75', maxWidth: 480 }}>
-                Hecho para <strong style={{ color: '#201B36' }}>peluquerías, barberías, dentistas, spas y consultorios</strong> — cualquier negocio que vive de su agenda.
+                Hecho para <strong style={{ color: '#201B36' }}>peluquerías, barberías, dentistas, veterinarias, spas y consultorios</strong> — cualquier negocio que vive de su agenda.
               </p>
             </div>
 

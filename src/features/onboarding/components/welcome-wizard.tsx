@@ -19,7 +19,9 @@ const INPUT =
 
 // Asistente de bienvenida en 2 pasos. Se llega aquí con el correo YA
 // verificado; el gate del proxy manda a esta ruta a toda cuenta sin negocio.
-export function WelcomeWizard() {
+// `defaultBusinessType` llega del giro de la landing por la que entró el
+// usuario (/para/<giro>). El servidor ya lo validó contra las plantillas.
+export function WelcomeWizard({ defaultBusinessType }: { defaultBusinessType?: string }) {
   const [step, setStep] = useState<1 | 2>(1)
   const [serverError, setServerError] = useState<string | null>(null)
 
@@ -30,7 +32,10 @@ export function WelcomeWizard() {
     formState: { errors, isSubmitting },
   } = useForm<WelcomeInput>({
     resolver: zodResolver(welcomeSchema),
-    defaultValues: { country: 'México', businessType: BUSINESS_TEMPLATES[0].key },
+    defaultValues: {
+      country: 'México',
+      businessType: defaultBusinessType ?? BUSINESS_TEMPLATES[0].key,
+    },
     mode: 'onTouched',
   })
 

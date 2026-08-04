@@ -149,6 +149,13 @@ export const INDUSTRIES = [
     stat: '↑ Más consultas de valoración',
   },
   {
+    vertical: 'veterinaria',
+    emoji: '🐾',
+    title: 'Veterinarias',
+    body: 'Consultas, vacunas y baño en una sola agenda. La IA pregunta por la mascota, agenda con el veterinario correcto y recuerda la próxima vacuna.',
+    stat: '↑ Más consultas recurrentes',
+  },
+  {
     vertical: 'spa',
     emoji: '💆',
     title: 'Spas y masajes',

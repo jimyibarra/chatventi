@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { signupSchema } from '@/lib/validations/auth'
 import { LEGAL } from '@/shared/constants/legal'
 import { canonicalEmail } from '@/shared/security/email-canonical'
+import { verticalBySlug } from '@/features/verticales/data'
 import { isDisposableEmail } from '@/shared/security/disposable-domains'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { getClientIp, getUserAgent } from '@/shared/security/request-context'
@@ -59,7 +60,12 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { email, password, turnstileToken } = parsed.data
+  const { email, password, turnstileToken, vertical } = parsed.data
+
+  // El giro llega de la URL (/para/<giro> → /signup?giro=…), así que es texto
+  // que escribe cualquiera: se resuelve contra el catálogo y si no encaja se
+  // descarta en silencio. Nunca llega crudo a user_metadata.
+  const pendingBusinessType = verticalBySlug(vertical)?.businessType ?? null
 
   const requestHeaders = await headers()
   const ip = getClientIp(requestHeaders)
@@ -157,6 +163,9 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
         // Huella del alta, para investigar patrones de abuso después.
         signup_ip: ip,
         signup_user_agent: userAgent,
+        // Giro de la landing de procedencia, ya resuelto a clave de plantilla.
+        // /bienvenida lo usa para preseleccionar "¿A qué se dedica?".
+        ...(pendingBusinessType ? { pending_business_type: pendingBusinessType } : {}),
       },
     },
   })

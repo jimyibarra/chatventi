@@ -56,8 +56,7 @@ export const VERTICALS: Vertical[] = [
     emoji: '🐾',
     label: 'Veterinarias',
     noun: 'tu veterinaria',
-    // Hoy vacío para no alterar el aspecto de la home en esta fase.
-    trustLabels: [],
+    trustLabels: ['🐾 Veterinarias'],
   },
   {
     slug: 'spa',
