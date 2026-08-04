@@ -137,7 +137,7 @@ export const INDUSTRIES = [
   {
     vertical: 'dentista',
     emoji: '🦷',
-    title: 'Dentistas y consultorios',
+    title: 'Dentistas y clínicas dentales',
     body: 'Primera consulta, limpieza o urgencia: la IA responde, agenda en el horario correcto y el sistema confirma antes de la cita.',
     stat: '↓ Menos inasistencias',
   },
@@ -161,6 +161,16 @@ export const INDUSTRIES = [
     title: 'Spas y masajes',
     body: 'Cabinas y terapeutas coordinados en una sola agenda, con recordatorios y seguimiento que rellenan los huecos de última hora.',
     stat: '↑ Mayor ocupación de cabinas',
+  },
+  // Cada giro con landing propia necesita su tarjeta aquí: es el único
+  // enlace desde el cuerpo de la home. Sin ella, /para/consultorio-medico
+  // solo entraba por el footer.
+  {
+    vertical: 'consultorio-medico',
+    emoji: '🩺',
+    title: 'Consultorios médicos',
+    body: 'Atiende y agenda consultas 24/7 por WhatsApp, con confirmación automática antes de la cita. Sin dar nunca consejo médico.',
+    stat: '↓ Menos ausencias en consulta',
   },
 ]
 
