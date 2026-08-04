@@ -767,6 +767,7 @@ export type Database = {
       organizations: {
         Row: {
           branding: Json | null
+          ai_cap_exempt: boolean
           business_type: string | null
           city: string | null
           contact_email: string | null
@@ -781,12 +782,15 @@ export type Database = {
           phone: string | null
           trial_ended_email_sent_at: string | null
           trial_ending_email_sent_at: string | null
+          trial_ai_capped_at: string | null
+          trial_ai_messages_used: number
           trial_ends_at: string | null
           web_slug: string | null
           welcome_email_sent_at: string | null
         }
         Insert: {
           branding?: Json | null
+          ai_cap_exempt?: boolean
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -801,12 +805,15 @@ export type Database = {
           phone?: string | null
           trial_ended_email_sent_at?: string | null
           trial_ending_email_sent_at?: string | null
+          trial_ai_capped_at?: string | null
+          trial_ai_messages_used?: number
           trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
         }
         Update: {
           branding?: Json | null
+          ai_cap_exempt?: boolean
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -821,6 +828,8 @@ export type Database = {
           phone?: string | null
           trial_ended_email_sent_at?: string | null
           trial_ending_email_sent_at?: string | null
+          trial_ai_capped_at?: string | null
+          trial_ai_messages_used?: number
           trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { runDashboardLifecycleEmails } from '@/features/emails/lifecycle'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { STATUS_LABELS } from '@/features/billing/plans'
+import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
 import { getSetupChecklist } from '@/features/onboarding/checklist'
 import { SetupChecklistCard } from '@/features/onboarding/components/setup-checklist'
 import { getPanelMetrics } from '@/features/dashboard/metrics'
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
   // --- Datos del negocio (RLS los acota a la org del usuario) ----------------
   const { data: org } = await supabase
     .from('organizations')
-    .select('name, created_at')
+    .select('name, created_at, trial_ai_capped_at')
     .maybeSingle()
 
   const sub = await getMySubscription()
@@ -75,6 +76,22 @@ export default async function DashboardPage() {
         </div>
         <ButtonLink href="/dashboard/agenda">+ Nueva cita</ButtonLink>
       </div>
+
+      {/* Tope de IA de la prueba alcanzado. Va ARRIBA del aviso de plan: es
+          más urgente, porque significa que el agente ya no está respondiendo
+          a los clientes del negocio y el dueño podría no haberse enterado. */}
+      {!active && org?.trial_ai_capped_at && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-warn-bg bg-warn-bg p-4">
+          <p className="text-sm text-warn">
+            <span className="font-semibold">Tu recepcionista IA dejó de responder.</span> Alcanzaste
+            los {TRIAL_AI_MESSAGE_CAP} mensajes incluidos en la prueba gratis. Activa tu plan para
+            que vuelva a atender a tus clientes sin límite.
+          </p>
+          <ButtonLink href="/dashboard/facturacion" className="text-sm">
+            Activar mi plan
+          </ButtonLink>
+        </div>
+      )}
 
       {!active && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-200 bg-brand-50 p-4">
