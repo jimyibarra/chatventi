@@ -97,25 +97,47 @@ export default async function VerticalPage({ params }: { params: Promise<{ giro:
       <main>
         {/* ============ HERO ============ */}
         <section aria-label={`ChatVenti para ${vertical.label}`} style={{ background: 'linear-gradient(180deg, #F4F2FE 0%, #FBFAF6 78%)' }}>
-          <div className="cv-container" style={{ padding: '72px 24px 56px', maxWidth: 820 }}>
-            <p style={{ display: 'inline-flex', alignItems: 'center', gap: 8, margin: '0 0 22px', background: '#EFEDFB', color: '#4A3FC4', fontSize: 14, fontWeight: 600, padding: '8px 16px', borderRadius: 999 }}>
-              <span aria-hidden>{vertical.emoji}</span> Hecho para {vertical.label.toLowerCase()}
-            </p>
-            <h1 className="cv-h1" style={{ fontSize: 'clamp(34px, 4.6vw, 52px)', lineHeight: 1.1, margin: '0 0 20px' }}>
-              {content.h1}
-            </h1>
-            <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', lineHeight: 1.6, color: '#5F5A75', margin: '0 0 30px' }}>
-              {content.subtitle}
-            </p>
-            <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-              <Link href={signupHref} className="cv-btn-primary" style={{ padding: '16px 34px', fontSize: 17 }}>
-                Empezar prueba gratis
-              </Link>
-              <Link href="/#demo" className="cv-btn-ghost" style={{ padding: '15px 24px', fontSize: 16 }}>Ver el producto</Link>
+          <div className="cv-container" style={{ padding: '72px 24px 56px', display: 'flex', gap: 48, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 420px', minWidth: 300 }}>
+              <p style={{ display: 'inline-flex', alignItems: 'center', gap: 8, margin: '0 0 22px', background: '#EFEDFB', color: '#4A3FC4', fontSize: 14, fontWeight: 600, padding: '8px 16px', borderRadius: 999 }}>
+                <span aria-hidden>{vertical.emoji}</span> Hecho para {vertical.label.toLowerCase()}
+              </p>
+              <h1 className="cv-h1" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', lineHeight: 1.1, margin: '0 0 20px' }}>
+                {content.h1}
+              </h1>
+              <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', lineHeight: 1.6, color: '#5F5A75', margin: '0 0 30px' }}>
+                {content.subtitle}
+              </p>
+              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+                <Link href={signupHref} className="cv-btn-primary" style={{ padding: '16px 34px', fontSize: 17 }}>
+                  Empezar prueba gratis
+                </Link>
+                <Link href="/#demo" className="cv-btn-ghost" style={{ padding: '15px 24px', fontSize: 16 }}>Ver el producto</Link>
+              </div>
+              <p style={{ fontSize: 14, color: '#7A758F', margin: 0, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
+              </p>
             </div>
-            <p style={{ fontSize: 14, color: '#7A758F', margin: 0, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
-            </p>
+
+            {/* Foto del giro. `priority` porque es el LCP de esta página. */}
+            <div style={{ flex: '1 1 380px', minWidth: 280 }}>
+              <Image
+                src={`/verticales/${vertical.slug}.webp`}
+                alt={content.imageAlt}
+                width={1024}
+                height={1024}
+                priority
+                sizes="(max-width: 900px) 100vw, 45vw"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: 420,
+                  objectFit: 'cover',
+                  borderRadius: 20,
+                  boxShadow: '0 18px 44px rgba(32,27,54,0.16)',
+                }}
+              />
+            </div>
           </div>
         </section>
 
