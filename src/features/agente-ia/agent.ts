@@ -6,6 +6,7 @@ import type { Database } from '@/lib/supabase/database.types'
 import { createServiceClient } from '@/lib/supabase/service'
 import { notifyOrgOwners } from '@/features/notifications/send'
 import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
+import { renderVoiceBlock, resolveVoiceProfile } from './voice'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -75,13 +76,29 @@ function buildSystemPrompt(ctx: AgentContext): string {
         .join('\n')
     : null
 
+  // Voz de marca. Va ANTES de REGLAS IMPORTANTES y lleva su propia cláusula de
+  // subordinación, pero la garantía real es que se compone de enums cerrados
+  // (ver voice.ts): no hay texto libre que pueda leerse como instrucción.
+  // Sin voz configurada, voiceBlock es null y el prompt queda idéntico al de
+  // antes de esta feature.
+  const voiceBlock = renderVoiceBlock(
+    resolveVoiceProfile(ctx.config?.voice_preset, ctx.config?.voice_profile)
+  )
+
   return [
     ctx.config?.system_prompt?.trim() ||
       'Eres el recepcionista virtual de un negocio de servicios. Ayudas a los clientes a agendar, reagendar o cancelar citas y respondes dudas sobre el negocio.',
+    ...(voiceBlock ? ['', voiceBlock] : []),
     '',
     'REGLAS IMPORTANTES:',
     '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige. Si el cliente insiste con temas ajenos por segunda vez consecutiva, usa request_human_approval.',
-    '- Habla en español, con tono cálido y breve (es un chat de WhatsApp/Telegram). UNA sola pregunta por mensaje.',
+    // El tono estaba mezclado con la disciplina en esta línea. "UNA sola
+    // pregunta por mensaje" ES disciplina y se queda siempre; "cálido y breve"
+    // es tono y chocaría con un preset Formal, así que solo se mantiene cuando
+    // NO hay voz configurada — así el prompt de quien no la use queda idéntico.
+    voiceBlock
+      ? '- Habla en español (es un chat de WhatsApp/Telegram). UNA sola pregunta por mensaje.'
+      : '- Habla en español, con tono cálido y breve (es un chat de WhatsApp/Telegram). UNA sola pregunta por mensaje.',
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
     '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',

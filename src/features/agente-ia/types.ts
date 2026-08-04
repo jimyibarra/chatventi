@@ -19,6 +19,11 @@ export type AgentContext = {
     model: string
     approval_mode: 'off' | 'low_confidence' | 'always'
     approval_chat_id: string | null
+    // Voz de marca. Opcionales: hasta que se aplique la migración que las
+    // añade a get_agent_context llegan como undefined, y el agente se comporta
+    // exactamente igual que antes (ver voice.ts).
+    voice_preset?: string | null
+    voice_profile?: unknown
   } | null
   branch: { id: string; name: string; timezone: string } | null
   services: {

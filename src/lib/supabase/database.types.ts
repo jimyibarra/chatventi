@@ -25,6 +25,10 @@ export type Database = {
           organization_id: string
           system_prompt: string | null
           updated_at: string
+          voice_preset: string | null
+          voice_profile: Json | null
+          voice_source_url: string | null
+          voice_updated_at: string | null
         }
         Insert: {
           approval_mode?: string
@@ -36,6 +40,10 @@ export type Database = {
           organization_id: string
           system_prompt?: string | null
           updated_at?: string
+          voice_preset?: string | null
+          voice_profile?: Json | null
+          voice_source_url?: string | null
+          voice_updated_at?: string | null
         }
         Update: {
           approval_mode?: string
@@ -47,6 +55,10 @@ export type Database = {
           organization_id?: string
           system_prompt?: string | null
           updated_at?: string
+          voice_preset?: string | null
+          voice_profile?: Json | null
+          voice_source_url?: string | null
+          voice_updated_at?: string | null
         }
         Relationships: [
           {

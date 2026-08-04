@@ -279,6 +279,18 @@ una página con inyección explícita no cambia el comportamiento del agente.
 
 > Se llena durante la implementación. El mismo error nunca ocurre dos veces.
 
+### 2026-08-05 (Fase 3): validar por CONTENIDO tumba el objeto entero; sanear no
+- **Error**: `quirks` usaba `z.string().max(24)` por elemento. Una sola muletilla larga hacía fallar el parse del **objeto completo** → `parseVoiceProfile` devolvía `null` → el dueño perdía TODA su voz por escribir una palabra de más. En la Fase 4 sería peor: una muletilla larga devuelta por el analizador tiraría la extracción entera del sitio web.
+- **Fix**: las muletillas **sanean y truncan**, nunca rechazan (`z.array(z.string()).catch([]).transform(...)`). Solo los **enums** pueden invalidar un perfil.
+- **Regla**: en un esquema donde una parte es la frontera de seguridad (enums cerrados) y otra es cosmética (texto libre), la cosmética se **normaliza**; hacerla estricta convierte un dato de adorno en un punto único de fallo.
+- **Detección**: no lo cazó typecheck ni lint. Salió al ejecutar un script suelto contra la función pura.
+
+### 2026-08-05 (Fase 3): la Fase 3 NO está validada contra base de datos
+- **Situación**: en la sesión de implementación el MCP de Supabase estaba desconectado y `.env.local` no tiene cadena de conexión a Postgres. **No se pudo aplicar la migración `20260805000000_voz_de_marca.sql` ni consultar la base.**
+- **Consecuencia**: el código está escrito, tipado y probado en su parte pura (presets, saneado, cláusula de subordinación, prompt idéntico sin voz), pero **nadie ha visto la voz cambiar el tono de una respuesta real**.
+- **Riesgo abierto**: la migración hace `create or replace` de `get_agent_context`, que usan los webhooks de WhatsApp y Telegram en producción. El cuerpo se copió del archivo de migración, no de la base viva. **Antes de aplicarla hay que diferenciarla contra `pg_get_functiondef`** — está escrito como aviso al inicio del propio archivo. Es exactamente el patrón que rompió la reagenda en la Fase 7 CONTRACT.
+- **Mitigación ya en el código**: sin las columnas, `voice_preset`/`voice_profile` llegan `undefined`, `renderVoiceBlock` devuelve `null` y el prompt queda **idéntico** al anterior. La lectura de la voz en `/dashboard/agente` va en una consulta aparte para que la página no reviente si el código llega antes que la migración.
+
 ### 2026-08-04 (Fase 1): Next NO hace deep-merge de `openGraph` ni de `twitter`
 - **Error**: la home declaraba `openGraph: { url, title, description }` y `twitter: { title, description }`. Next **reemplaza el objeto entero** del layout en lugar de fusionarlo → se perdieron `og:type`, `og:site_name` y `og:locale`, y `twitter:card` cayó al default `summary` (imagen pequeña) en vez de `summary_large_image`. La tarjeta al compartir habría salido degradada.
 - **Fix**: helper `pageMetadata()` en `src/shared/lib/seo.ts` que construye el objeto **completo** (canonical + openGraph + twitter). Toda página pública debe usarlo. Evita repetir el fallo en las 5 landings de la Fase 2.
