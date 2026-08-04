@@ -6,9 +6,12 @@
 // =====================================================================
 
 export const CURRENCY = 'usd' as const
-// Prueba GRATIS sin tarjeta (días desde el registro). Debe coincidir con el
-// interval de create_organization_with_owner en la migración.
-export const TRIAL_DAYS = 10
+// Prueba GRATIS sin tarjeta (días desde el registro).
+// 🔴 DEBE coincidir con el `interval` de create_organization_with_owner (v1 y
+// v2) en la base: ahí es donde se sella trial_ends_at al crear la org. Si se
+// cambia aquí sin cambiarlo allí, la web promete una cosa y el trial dura otra.
+// Última sincronización: migración 20260805010000 (10 → 14 días).
+export const TRIAL_DAYS = 14
 // Días desde el registro tras los cuales, sin suscripción, se borran los datos
 // operativos del negocio (se conserva la cuenta del dueño).
 export const DATA_RETENTION_DAYS = 30

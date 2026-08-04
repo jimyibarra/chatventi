@@ -8,7 +8,10 @@ export const LEGAL = {
   // TODO(confirmar): razón social del operador. Si se deja así, aplica la marca.
   legalName: 'ChatVenti',
   domain: 'chatventi.com',
-  siteUrl: 'https://chatventi.com',
+  // Host CANÓNICO = www. El apex responde 308 → https://www.chatventi.com/
+  // (verificado en producción 2026-08-04). Usar el apex aquí hacía que el
+  // JSON-LD, los canonical y las URLs de OpenGraph apuntaran a una redirección.
+  siteUrl: 'https://www.chatventi.com',
   // Correo real (buzón hola@ con alias soporte@ en Hostinger). Funciona para Meta.
   contactEmail: 'soporte@chatventi.com',
   privacyEmail: 'soporte@chatventi.com',

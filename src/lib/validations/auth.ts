@@ -26,6 +26,10 @@ export const signupSchema = z.object({
   // Token del widget de Cloudflare. Opcional en el esquema porque en
   // desarrollo (sin claves) no hay widget; el servidor decide si lo exige.
   turnstileToken: z.string().optional(),
+  // Giro de procedencia (slug de /para/<giro>). Solo atribución: viaja a
+  // user_metadata para llegar preseleccionado a /bienvenida. El servidor lo
+  // valida contra el catálogo y lo ignora si no encaja — nunca se confía en él.
+  vertical: z.string().max(40).optional(),
 })
 
 export const recoverSchema = z.object({

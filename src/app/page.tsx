@@ -4,6 +4,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Inter, Manrope } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
+import { pageMetadata } from '@/shared/lib/seo'
 import { STARTER_PRICE_USD } from '@/features/billing/plans'
 import {
   FAQS,
@@ -15,6 +16,7 @@ import {
   TESTIMONIALS,
   TRIAL_DAYS,
 } from '@/features/landing/data'
+import { TRUST_LABELS } from '@/features/verticales/data'
 import { Icon, PhoneIcon, WhatsAppIcon } from '@/features/landing/icons'
 import { LandingEffects } from '@/features/landing/effects'
 import { DemoChat } from '@/features/landing/demo-chat'
@@ -23,10 +25,14 @@ import '@/features/landing/landing.css'
 const manrope = Manrope({ subsets: ['latin'], weight: ['500', '700', '800'], variable: '--font-manrope' })
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
-export const metadata: Metadata = {
-  title: 'ChatVenti — Recepcionista IA que agenda citas por WhatsApp 24/7',
-  description: `ChatVenti es el recepcionista con IA para agendar citas por WhatsApp, Telegram y web. Contesta al instante, evita dobles reservas y llena tu agenda 24/7. Prueba gratis ${TRIAL_DAYS} días.`,
-}
+const HOME_TITLE = 'ChatVenti — Recepcionista IA que agenda citas por WhatsApp 24/7'
+const HOME_DESC = `ChatVenti es el recepcionista con IA para agendar citas por WhatsApp, Telegram y web. Contesta al instante, evita dobles reservas y llena tu agenda 24/7. Prueba gratis ${TRIAL_DAYS} días.`
+
+export const metadata: Metadata = pageMetadata({
+  title: HOME_TITLE,
+  description: HOME_DESC,
+  path: '/',
+})
 
 // JSON-LD: producto (sin ratings inventados) + FAQ sincronizado con la página.
 const APP_LD = {
@@ -37,7 +43,7 @@ const APP_LD = {
   operatingSystem: 'Web',
   url: LEGAL.siteUrl,
   description:
-    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Telegram y web 24/7 para peluquerías, dentistas, clínicas, spas y consultorios.',
+    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Telegram y web 24/7 para peluquerías, dentistas, veterinarias, spas y consultorios.',
   offers: {
     '@type': 'Offer',
     price: String(STARTER_PRICE_USD),
@@ -126,7 +132,7 @@ export default function Home() {
                 <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
               </p>
               <p style={{ margin: 0, fontSize: 14, color: '#5F5A75', maxWidth: 480 }}>
-                Hecho para <strong style={{ color: '#201B36' }}>peluquerías, barberías, dentistas, spas y consultorios</strong> — cualquier negocio que vive de su agenda.
+                Hecho para <strong style={{ color: '#201B36' }}>peluquerías, barberías, dentistas, veterinarias, spas y consultorios</strong> — cualquier negocio que vive de su agenda.
               </p>
             </div>
 
@@ -172,7 +178,7 @@ export default function Home() {
         <section aria-label="Tipos de negocio para los que está hecho ChatVenti" style={{ borderTop: '1px solid #ECE9F5', borderBottom: '1px solid #ECE9F5', background: '#fff' }}>
           <div className="cv-container" style={{ padding: '26px 24px', display: 'flex', alignItems: 'center', gap: '12px 34px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <p style={{ margin: 0, fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9B96B0' }}>Hecho para negocios de citas</p>
-            {['✂ Peluquerías', '🦷 Dentistas', '💆 Spas', '💈 Barberías', '✨ Clínicas estéticas', '🩺 Consultorios'].map((t) => (
+            {TRUST_LABELS.map((t) => (
               <span key={t} style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 17, color: '#6A6580' }}>{t}</span>
             ))}
           </div>

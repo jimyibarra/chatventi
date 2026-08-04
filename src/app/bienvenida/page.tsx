@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { WelcomeWizard } from '@/features/onboarding/components/welcome-wizard'
+import { BUSINESS_TEMPLATES } from '@/features/agente-ia/business-templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,6 +27,16 @@ export default async function BienvenidaPage() {
   // Ya tiene negocio: aquí no pinta nada.
   if (profile) redirect('/dashboard')
 
+  // Giro de la landing por la que entró (/para/<giro> → /signup?giro=…). Se
+  // revalida contra las plantillas: user_metadata es escribible por el propio
+  // usuario, así que su contenido no se da por bueno. Si no encaja, el
+  // asistente cae a su valor por defecto.
+  const pending = user.user_metadata?.pending_business_type
+  const defaultBusinessType =
+    typeof pending === 'string' && BUSINESS_TEMPLATES.some((t) => t.key === pending)
+      ? pending
+      : undefined
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-soft px-4 py-10">
       <div className="w-full max-w-md space-y-6 rounded-card border border-line bg-white p-8 shadow-sm">
@@ -45,7 +56,7 @@ export default async function BienvenidaPage() {
             Solo faltan dos datos para dejar tu agenda y tu recepcionista IA funcionando.
           </p>
         </div>
-        <WelcomeWizard />
+        <WelcomeWizard defaultBusinessType={defaultBusinessType} />
       </div>
     </main>
   )

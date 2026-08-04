@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { runDashboardLifecycleEmails } from '@/features/emails/lifecycle'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
-import { STATUS_LABELS } from '@/features/billing/plans'
+import { STATUS_LABELS, TRIAL_DAYS } from '@/features/billing/plans'
 import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
 import { getSetupChecklist } from '@/features/onboarding/checklist'
 import { SetupChecklistCard } from '@/features/onboarding/components/setup-checklist'
@@ -97,7 +97,7 @@ export default async function DashboardPage() {
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-200 bg-brand-50 p-4">
           <p className="text-sm text-brand-900">
             {sub ? `Tu suscripción está: ${STATUS_LABELS[sub.status] ?? sub.status}. ` : ''}
-            Activa tu plan para desbloquear todo ChatVenti. 14 días de prueba gratis.
+            Activa tu plan para desbloquear todo ChatVenti. {TRIAL_DAYS} días de prueba gratis.
           </p>
           <ButtonLink href="/dashboard/facturacion" className="text-sm">
             Ver planes

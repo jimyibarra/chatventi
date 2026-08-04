@@ -1,4 +1,5 @@
 // Constantes de marketing / conversión (compartidas cliente + servidor).
+import { verticalByBusinessType } from '@/features/verticales/data'
 
 export const SUPPORT_EMAIL = 'soporte@chatventi.com'
 
@@ -15,19 +16,9 @@ export const CALL_URL =
 export const ONBOARDING_HELP_PRICE_USD = 39
 
 // Etiqueta legible del negocio por rubro, para personalizar el copy del quiz.
+// Deriva del catálogo único de verticales: era la 4ª copia de la taxonomía y
+// se desincronizaba sola. `generico` y cualquier valor desconocido caen al
+// genérico a propósito (el catálogo solo contiene giros con landing propia).
 export function businessNoun(businessType: string | null | undefined): string {
-  switch (businessType) {
-    case 'barberia_estetica':
-      return 'tu barbería o estética'
-    case 'dental':
-      return 'tu clínica dental'
-    case 'veterinaria':
-      return 'tu veterinaria'
-    case 'spa_unas':
-      return 'tu spa'
-    case 'medico':
-      return 'tu consultorio'
-    default:
-      return 'tu negocio'
-  }
+  return verticalByBusinessType(businessType)?.noun ?? 'tu negocio'
 }

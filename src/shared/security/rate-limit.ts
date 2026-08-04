@@ -13,7 +13,15 @@
 import { createWebhookClient } from '@/lib/supabase/webhook'
 
 /** Cubos en uso. Tipado para que un typo no cree un cubo fantasma sin tope. */
-export type RateBucket = 'signup_ip' | 'signup_email' | 'demo_ip' | 'sandbox_org' | 'login_ip'
+export type RateBucket =
+  | 'signup_ip'
+  | 'signup_email'
+  | 'demo_ip'
+  | 'sandbox_org'
+  | 'login_ip'
+  // Análisis del sitio web para la voz de marca: cada intento hace que el
+  // servidor descargue una URL escrita por el usuario y gaste una llamada de IA.
+  | 'voice_extract'
 
 export interface RateLimitOptions {
   bucket: RateBucket

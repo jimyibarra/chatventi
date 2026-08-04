@@ -120,28 +120,43 @@ export const FEATURES = [
 ]
 
 // ---------------------------------------------------------------------
-// Industrias
+// Industrias (tarjetas de la home).
+//   `vertical` enlaza cada tarjeta con su landing /para/<slug> del catálogo
+//   único (features/verticales/data.ts). Ojo: NO es 1:1 — "Clínicas estéticas"
+//   y "Spas y masajes" son dos ángulos de copy del mismo giro (`spa`), porque
+//   `spa_unas` es una sola plantilla de agente. El catálogo manda.
 // ---------------------------------------------------------------------
 export const INDUSTRIES = [
   {
+    vertical: 'barberia',
     emoji: '✂️',
     title: 'Peluquerías y barberías',
     body: 'Agenda por estilista, servicios con duraciones distintas y clientas que reservan a las 11 de la noche sin molestarte.',
     stat: '↑ Más citas fuera de horario',
   },
   {
+    vertical: 'dentista',
     emoji: '🦷',
     title: 'Dentistas y consultorios',
     body: 'Primera consulta, limpieza o urgencia: la IA responde, agenda en el horario correcto y el sistema confirma antes de la cita.',
     stat: '↓ Menos inasistencias',
   },
   {
+    vertical: 'spa',
     emoji: '✨',
     title: 'Clínicas estéticas',
     body: 'Responde dudas de tratamientos y precios al momento — justo cuando la clienta está decidida — y cierra la cita ahí mismo.',
     stat: '↑ Más consultas de valoración',
   },
   {
+    vertical: 'veterinaria',
+    emoji: '🐾',
+    title: 'Veterinarias',
+    body: 'Consultas, vacunas y baño en una sola agenda. La IA pregunta por la mascota, agenda con el veterinario correcto y recuerda la próxima vacuna.',
+    stat: '↑ Más consultas recurrentes',
+  },
+  {
+    vertical: 'spa',
     emoji: '💆',
     title: 'Spas y masajes',
     body: 'Cabinas y terapeutas coordinados en una sola agenda, con recordatorios y seguimiento que rellenan los huecos de última hora.',
