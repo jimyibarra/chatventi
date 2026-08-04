@@ -21,8 +21,11 @@ export default async function AgentePage() {
     supabase.from('organizations').select('name, business_type').maybeSingle(),
   ])
 
-  // Sugerencia de rubro: lo que el dueño eligió en el signup (metadata), por si
-  // aún no lo persistió en la org.
+  // Sugerencia de rubro para cuentas ANTIGUAS: hasta el alta en dos pasos
+  // (2026-08-04) el rubro se elegía en el registro y se quedaba en los
+  // metadatos sin persistirse nunca. Las cuentas nuevas ya traen
+  // organizations.business_type desde /bienvenida, así que este respaldo solo
+  // sirve a las de antes; puede retirarse cuando ya no queden.
   const suggestedType =
     ((user?.user_metadata ?? {}) as { pending_business_type?: string }).pending_business_type ?? null
   const hasCustomPrompt = !!config?.system_prompt?.trim()

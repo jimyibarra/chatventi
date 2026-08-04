@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
+import { consumeRateLimit } from '@/shared/security/rate-limit'
+import { ONE_DAY_SECONDS, SANDBOX_MAX_PER_ORG_PER_DAY } from '@/shared/security/limits'
 
 export const runtime = 'nodejs'
 
@@ -11,8 +13,10 @@ export const runtime = 'nodejs'
 // contexto REAL de su org, pero con CERO efectos secundarios (ver runAgent
 // sandbox:true — escrituras simuladas, sin aprobaciones/notificaciones).
 const SANDBOX_CHANNEL_TYPE = 'web'
-// Tope de mensajes por hilo (protege el saldo de OpenRouter). El botón
-// "Reiniciar" limpia el hilo y reinicia el contador.
+// Tope por hilo: sigue existiendo para que una conversación de prueba no se
+// alargue sin fin, pero NO es el tope real — "Reiniciar conversación" borra
+// el hilo y lo pone a cero. El tope de verdad es por ORGANIZACIÓN y DÍA
+// (abajo), contado en base de datos e inmune al botón de reinicio.
 const MAX_MESSAGES_PER_THREAD = 25
 
 const bodySchema = z.object({
@@ -21,6 +25,9 @@ const bodySchema = z.object({
 
 const LIMIT_REPLY =
   'Llegaste al límite de la prueba 😊 Toca "Reiniciar conversación" para empezar de nuevo. Cuando lo conectes, tu recepcionista atiende a tus clientes sin límite.'
+
+const DAILY_LIMIT_REPLY =
+  'Ya probaste bastante por hoy 😊 Mañana puedes seguir practicando. Cuando conectes tu WhatsApp, tu recepcionista atiende a tus clientes sin este límite.'
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null))
@@ -46,6 +53,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const externalId = `sandbox:${orgId}`
   const fromHandle = `sandbox:${user.id}`
+
+  // Tope REAL: por organización y día, contado en base de datos. El tope por
+  // hilo de más abajo se saltaba entero con "Reiniciar conversación", así que
+  // en la práctica el sandbox era ilimitado y cada mensaje cuesta OpenRouter.
+  const dailyOk = await consumeRateLimit({
+    bucket: 'sandbox_org',
+    key: orgId,
+    limit: SANDBOX_MAX_PER_ORG_PER_DAY,
+    windowSeconds: ONE_DAY_SECONDS,
+  })
+  if (!dailyOk) {
+    return NextResponse.json({ reply: DAILY_LIMIT_REPLY, limited: true, remaining: 0 })
+  }
 
   // 2. A partir de aquí, service_role: el motor y las RPCs (route_inbound_message,
   //    get_agent_context) están pensados para el webhook anon; aquí replicamos

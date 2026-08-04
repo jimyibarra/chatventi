@@ -767,6 +767,7 @@ export type Database = {
       organizations: {
         Row: {
           branding: Json | null
+          ai_cap_exempt: boolean
           business_type: string | null
           city: string | null
           contact_email: string | null
@@ -781,12 +782,15 @@ export type Database = {
           phone: string | null
           trial_ended_email_sent_at: string | null
           trial_ending_email_sent_at: string | null
+          trial_ai_capped_at: string | null
+          trial_ai_messages_used: number
           trial_ends_at: string | null
           web_slug: string | null
           welcome_email_sent_at: string | null
         }
         Insert: {
           branding?: Json | null
+          ai_cap_exempt?: boolean
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -801,12 +805,15 @@ export type Database = {
           phone?: string | null
           trial_ended_email_sent_at?: string | null
           trial_ending_email_sent_at?: string | null
+          trial_ai_capped_at?: string | null
+          trial_ai_messages_used?: number
           trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
         }
         Update: {
           branding?: Json | null
+          ai_cap_exempt?: boolean
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -821,6 +828,8 @@ export type Database = {
           phone?: string | null
           trial_ended_email_sent_at?: string | null
           trial_ending_email_sent_at?: string | null
+          trial_ai_capped_at?: string | null
+          trial_ai_messages_used?: number
           trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
@@ -1457,6 +1466,21 @@ export type Database = {
           p_owner_name?: string
           p_phone?: string
           p_terms_version?: string
+        }
+        Returns: string
+      }
+      create_organization_with_owner_v2: {
+        Args: {
+          p_branch_name?: string
+          p_business_type?: string
+          p_city?: string
+          p_country?: string
+          p_org_name: string
+          p_owner_name?: string
+          p_phone?: string
+          p_signup_ip?: string
+          p_terms_version?: string
+          p_user_agent?: string
         }
         Returns: string
       }

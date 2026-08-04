@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { runDashboardLifecycleEmails } from '@/features/emails/lifecycle'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { STATUS_LABELS } from '@/features/billing/plans'
+import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
 import { getSetupChecklist } from '@/features/onboarding/checklist'
 import { SetupChecklistCard } from '@/features/onboarding/components/setup-checklist'
 import { getPanelMetrics } from '@/features/dashboard/metrics'
@@ -21,49 +22,22 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // --- Onboarding safety-net -----------------------------------------------
-  // Si el usuario confirmó su correo pero aún no tiene negocio, lo creamos aquí
-  // con los datos "pendientes" guardados en el signup.
+  // --- Red de seguridad del onboarding ---------------------------------------
+  // Desde 2026-08-04 el negocio se crea en /bienvenida y el gate del proxy
+  // manda allí a toda cuenta sin perfil, así que aquí no debería llegar
+  // ninguna. Se conserva la comprobación porque el proxy podría no haber
+  // corrido (acceso directo al RSC, despliegue a medias) y sin ella las
+  // consultas de abajo devolverían null y el panel se pintaría vacío.
+  //
+  // Ya NO se crea la organización aquí: el bloque que leía los `pending_*` de
+  // user_metadata se retiró con el alta en dos pasos.
   const { data: profile } = await supabase
     .from('profiles')
     .select('id, full_name, role, organization_id')
     .eq('id', user.id)
     .maybeSingle()
 
-  if (!profile) {
-    const meta = (user.user_metadata ?? {}) as {
-      pending_org_name?: string
-      pending_owner_name?: string
-      pending_country?: string
-      pending_city?: string
-      pending_phone?: string
-      pending_terms_version?: string
-    }
-    if (meta.pending_org_name) {
-      await supabase.rpc('create_organization_with_owner', {
-        p_org_name: meta.pending_org_name,
-        p_owner_name: meta.pending_owner_name,
-        p_country: meta.pending_country,
-        p_city: meta.pending_city,
-        p_phone: meta.pending_phone,
-        p_terms_version: meta.pending_terms_version,
-      })
-      // Redirigimos en vez de re-consultar: evita el read-after-write lag de
-      // Supabase (el SELECT inmediato tras el RPC puede pegar en una réplica
-      // que aún no propagó la escritura). El siguiente request lee consistente.
-      redirect('/dashboard')
-    }
-    // Sin perfil y sin onboarding pendiente: cuenta huérfana. Mostramos aviso
-    // (NO redirigir a /login: el proxy la devolvería a /dashboard -> bucle).
-    return (
-      <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
-          Tu cuenta aún no tiene un negocio asociado. Cierra sesión y regístrate
-          de nuevo para crear tu negocio.
-        </div>
-      </div>
-    )
-  }
+  if (!profile) redirect('/bienvenida')
 
   // Correos de ciclo de vida (bienvenida / onboarding). En segundo plano con
   // after(): no bloquea el render y es idempotente (marcas en la org).
@@ -72,7 +46,7 @@ export default async function DashboardPage() {
   // --- Datos del negocio (RLS los acota a la org del usuario) ----------------
   const { data: org } = await supabase
     .from('organizations')
-    .select('name, created_at')
+    .select('name, created_at, trial_ai_capped_at')
     .maybeSingle()
 
   const sub = await getMySubscription()
@@ -102,6 +76,22 @@ export default async function DashboardPage() {
         </div>
         <ButtonLink href="/dashboard/agenda">+ Nueva cita</ButtonLink>
       </div>
+
+      {/* Tope de IA de la prueba alcanzado. Va ARRIBA del aviso de plan: es
+          más urgente, porque significa que el agente ya no está respondiendo
+          a los clientes del negocio y el dueño podría no haberse enterado. */}
+      {!active && org?.trial_ai_capped_at && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-warn-bg bg-warn-bg p-4">
+          <p className="text-sm text-warn">
+            <span className="font-semibold">Tu recepcionista IA dejó de responder.</span> Alcanzaste
+            los {TRIAL_AI_MESSAGE_CAP} mensajes incluidos en la prueba gratis. Activa tu plan para
+            que vuelva a atender a tus clientes sin límite.
+          </p>
+          <ButtonLink href="/dashboard/facturacion" className="text-sm">
+            Activar mi plan
+          </ButtonLink>
+        </div>
+      )}
 
       {!active && (
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-200 bg-brand-50 p-4">

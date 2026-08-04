@@ -42,6 +42,7 @@ export async function proxy(request: NextRequest) {
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup')
   const isProtected = pathname.startsWith('/dashboard')
   const isBilling = pathname.startsWith('/dashboard/facturacion')
+  const isWelcome = pathname.startsWith('/bienvenida')
 
   // Secciones acotadas por rol. Vive AQUI y no en los layouts: el proxy corre
   // en CADA navegación; los layouts no se re-renderizan en soft-nav y dejarían
@@ -54,7 +55,7 @@ export async function proxy(request: NextRequest) {
   ]
 
   // Sin sesion + ruta protegida -> login
-  if (!user && isProtected) {
+  if (!user && (isProtected || isWelcome)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
@@ -65,6 +66,36 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
+  }
+
+  // Gate de onboarding (2026-08-04): cuenta verificada SIN negocio -> al
+  // asistente. Solo mira /dashboard y /bienvenida; el resto del sitio
+  // (landing, /r/[slug], /c/[token], /invitacion/[token], /terms…) queda
+  // fuera a propósito.
+  //
+  // 🔴 /invitacion NO puede entrar aquí: quien acepta una invitación crea su
+  // perfil por otro camino (accept_team_invitation) y, atrapado en el
+  // asistente, acabaría creando una organización propia en vez de entrar en
+  // la de quien le invitó.
+  if (user && (isProtected || isWelcome)) {
+    const { data: onboarded } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    if (!onboarded && !isWelcome) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/bienvenida'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
+    if (onboarded && isWelcome) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      url.search = ''
+      return NextResponse.redirect(url)
+    }
   }
 
   if (user && isProtected) {
