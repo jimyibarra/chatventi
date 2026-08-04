@@ -5,6 +5,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 import { createServiceClient } from '@/lib/supabase/service'
 import { notifyOrgOwners } from '@/features/notifications/send'
+import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -273,6 +274,12 @@ const FALLBACK_REPLY =
 const FALLBACK_DRAFT =
   'Hola 👋 Soy parte del equipo y ya estoy al pendiente de tu mensaje. ¿Me confirmas en qué te puedo ayudar?'
 
+// Se alcanzó el tope de mensajes de IA de la prueba gratis. Lo lee el CLIENTE
+// final del negocio, no el dueño: no puede sonar a error ni a reproche, y
+// tiene que dejarle una salida (una persona le atenderá).
+const TRIAL_CAP_REPLY =
+  'Gracias por escribir 🙏 En este momento no puedo responderte de forma automática, pero ya avisé al equipo para que te atienda personalmente en cuanto pueda.'
+
 // -------------------------------------------------------------------
 // Orquestador: obtiene contexto, corre el LLM con herramientas y decide
 // enviar directo o enrutar a aprobación humana.
@@ -322,6 +329,44 @@ export async function runAgent(params: {
       if (!hasAi) return { handled: false, reason: 'módulo IA no contratado' }
     } catch (e) {
       console.error('[agent] gating IA error', e)
+    }
+  }
+
+  // Tope de consumo de IA durante la prueba gratis (2026-08-04). Protege la
+  // factura de OpenRouter: sin esto, una cuenta en prueba puede gastar sin
+  // límite y reciclar cuentas sale gratis.
+  //
+  // 🔴 Falla ABIERTO a propósito, al revés que los gates del registro. Aquí
+  // no se protege un acceso, se acota un coste: si la consulta falla, el
+  // daño de callar al agente ante un cliente final REAL de un negocio que
+  // paga es mucho mayor que el de unos tokens de más. La decisión es
+  // deliberada, no un descuido.
+  if (!sandbox) {
+    try {
+      const admin = createServiceClient()
+      const { data: capData } = await admin.rpc('consume_trial_ai_message', {
+        p_org: ctx.org_id,
+        p_cap: TRIAL_AI_MESSAGE_CAP,
+      })
+      const cap = capData as { allowed?: boolean } | null
+      if (cap && cap.allowed === false) {
+        // Se responde igualmente (el cliente nunca se queda en silencio) pero
+        // sin llamar al modelo: ahí está el ahorro. El mensaje se registra en
+        // la conversación como cualquier otro saliente, para que el dueño lo
+        // vea en su bandeja y entienda qué pasó.
+        const extId = await senders.sendToCustomer(TRIAL_CAP_REPLY)
+        if (ctx.conversation?.id) {
+          await supabase.rpc('log_outbound_message', {
+            p_conversation_id: ctx.conversation.id,
+            p_body: TRIAL_CAP_REPLY,
+            p_sender: 'ai',
+            p_external_id: extId ?? undefined,
+          })
+        }
+        return { handled: true, mode: 'sent', reply: TRIAL_CAP_REPLY }
+      }
+    } catch (e) {
+      console.error('[agent] tope de prueba: no se pudo consultar', e)
     }
   }
 

@@ -2,6 +2,9 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createWebhookClient } from '@/lib/supabase/webhook'
 import { runAgent } from '@/features/agente-ia/agent'
+import { consumeRateLimit } from '@/shared/security/rate-limit'
+import { getClientIp } from '@/shared/security/request-context'
+import { DEMO_MAX_PER_IP_PER_HOUR, ONE_HOUR_SECONDS } from '@/shared/security/limits'
 
 export const runtime = 'nodejs'
 
@@ -12,25 +15,11 @@ const DEMO_CHANNEL_TYPE = 'web'
 const DEMO_CHANNEL_EXTERNAL_ID = 'demo-landing'
 // Máx mensajes del visitante por sesión (tope durable, contado en BD).
 const MAX_MESSAGES_PER_SESSION = 8
-// Rate limit por IP (mejor esfuerzo, en memoria por instancia).
-const MAX_PER_IP_PER_HOUR = 30
-const ipHits = new Map<string, { count: number; resetAt: number }>()
 
 const bodySchema = z.object({
   sessionId: z.string().uuid(),
   message: z.string().trim().min(1).max(280),
 })
-
-function ipLimited(ip: string): boolean {
-  const now = Date.now()
-  const entry = ipHits.get(ip)
-  if (!entry || entry.resetAt < now) {
-    ipHits.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 })
-    return false
-  }
-  entry.count++
-  return entry.count > MAX_PER_IP_PER_HOUR
-}
 
 const LIMIT_REPLY =
   'Hasta aquí llega la demo 😊 Para atender a TUS clientes sin límite, crea tu cuenta gratis — tu recepcionista queda listo en minutos.'
@@ -42,8 +31,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
   const { sessionId, message } = parsed.data
 
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (ipLimited(ip)) {
+  // Límite por IP contado en BASE DE DATOS. Antes era un Map en memoria: en
+  // Vercel hay muchas instancias y se reciclan en frío, así que el tope real
+  // era N×30 por hora y se reiniciaba solo. Es decir, no era un tope.
+  const ip = getClientIp(request.headers)
+  const ipOk = await consumeRateLimit({
+    bucket: 'demo_ip',
+    key: ip,
+    limit: DEMO_MAX_PER_IP_PER_HOUR,
+    windowSeconds: ONE_HOUR_SECONDS,
+  })
+  if (!ipOk) {
     return NextResponse.json({ reply: LIMIT_REPLY, limited: true })
   }
 
