@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { BUSINESS_TEMPLATES } from './business-templates'
 import { sendToCustomerByChannel } from './senders'
 import { VOICE_PRESETS, voiceProfileSchema, type VoiceProfile } from './voice'
+import { CAP_COLUMNS, type CapColumn } from './capabilities'
 import { extractVoiceFromUrl } from './voice-extract'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { ONE_HOUR_SECONDS, VOICE_EXTRACT_MAX_PER_ORG_PER_HOUR } from '@/shared/security/limits'
@@ -100,6 +101,49 @@ export async function saveVoice(raw: unknown): Promise<ActionResult> {
     { onConflict: 'organization_id' }
   )
   if (error) return { ok: false, error: 'No se pudo guardar la voz de marca.' }
+
+  revalidatePath('/dashboard/agente')
+  return { ok: true }
+}
+
+// -------------------------------------------------------------------
+// Capacidades del agente (superpoderes activables)
+// -------------------------------------------------------------------
+
+/** Solo se aceptan las columnas del catálogo: nada de claves arbitrarias. */
+const capabilitiesSchema = z.object(
+  Object.fromEntries(CAP_COLUMNS.map((c) => [c, z.boolean()])) as Record<
+    CapColumn,
+    z.ZodBoolean
+  >
+)
+
+/**
+ * Guarda qué capacidades están activas. Escribe SOLO las columnas `cap_*`.
+ *
+ * Igual que el resto de escrituras de esta tabla, OMITE `model` en el upsert
+ * a propósito: incluirlo con un formulario que ya no lo manda lo pondría a
+ * null y violaría el NOT NULL. Tampoco toca `system_prompt` ni la voz.
+ */
+export async function saveCapabilities(raw: unknown): Promise<ActionResult> {
+  const parsed = capabilitiesSchema.safeParse(raw)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
+  }
+
+  const supabase = await createClient()
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return { ok: false, error: 'No tienes una organización.' }
+
+  const { error } = await supabase.from('agent_configs').upsert(
+    {
+      organization_id: orgId,
+      ...parsed.data,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'organization_id' }
+  )
+  if (error) return { ok: false, error: 'No se pudieron guardar las capacidades.' }
 
   revalidatePath('/dashboard/agente')
   return { ok: true }

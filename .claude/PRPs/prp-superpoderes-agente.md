@@ -290,6 +290,17 @@ capacidades apagadas, el cron hace exactamente lo que hacía antes.
 
 > Se llena durante la implementación. El mismo error nunca ocurre dos veces.
 
+### 2026-08-05 (Fase 1): el contador de consumo de IA YA EXISTÍA
+- **Corrección al PRP**: la investigación decía *"contador y enforcement de cuota: NO EXISTE"*. **Falso desde el 2026-08-04**: la línea de antiabuso dejó `organizations.trial_ai_messages_used`, `trial_ai_capped_at`, `ai_cap_exempt` y la RPC `consume_trial_ai_message(p_org, p_cap)`, que `runAgent` ya llama con `TRIAL_AI_MESSAGE_CAP = 300`.
+- **Matiz que sí sigue en pie**: ese contador es **solo para la prueba gratis**. Los tiers de pago (300/1000/3000) siguen sin enforcement. Lo que falta no es un contador, es extender el existente a los tiers.
+- **Detalle de diseño heredado**: ese tope **falla ABIERTO** a propósito (si la consulta falla, el agente responde igual). Es lo contrario a los gates de acceso, y está bien: aquí se acota un coste, no se protege una puerta. Cualquier tope nuevo debe seguir el mismo criterio.
+- **Regla**: un PRP escrito hace un día puede estar desfasado si otra línea de trabajo aterrizó en medio. **Mapear el contexto real al entrar en la fase, no fiarse del inventario del PRP.**
+
+### 2026-08-05 (Fase 1): las migraciones aplicadas por el editor SQL NO quedan registradas
+- **Hallazgo**: `supabase_migrations.schema_migrations` no contiene `20260805000000_voz_de_marca` ni `20260805010000_trial_14_dias`, porque se aplicaron pegando SQL en el editor del panel. Solo la de esta fase quedó registrada, por haber usado `apply_migration`.
+- **Consecuencia**: un `supabase db push` intentaría reaplicarlas. **No rompen nada** —ambas son idempotentes: la de voz sale por `return` si ya existe `voice_preset`, y la del trial no encuentra `interval '10 days'`— pero la divergencia existe y conviene saberla.
+- **Regla**: usar `apply_migration` siempre que el MCP esté disponible; pegar SQL en el editor es el último recurso y deja la base y el repo desalineados.
+
 ---
 
 ## Gotchas

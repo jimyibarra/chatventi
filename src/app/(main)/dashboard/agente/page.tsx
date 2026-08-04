@@ -4,6 +4,8 @@ import { AgentConfigForm } from '@/features/agente-ia/components/agent-config-fo
 import { KnowledgeManager } from '@/features/agente-ia/components/knowledge-manager'
 import { BusinessTemplatePicker } from '@/features/agente-ia/components/business-template-picker'
 import { VoiceForm } from '@/features/agente-ia/components/voice-form'
+import { CapabilitiesForm } from '@/features/agente-ia/components/capabilities-form'
+import { readCapabilities } from '@/features/agente-ia/capabilities'
 import { parseVoiceProfile } from '@/features/agente-ia/voice'
 
 export const dynamic = 'force-dynamic'
@@ -31,6 +33,15 @@ export default async function AgentePage() {
   const { data: voice } = await supabase
     .from('agent_configs')
     .select('voice_preset, voice_profile')
+    .maybeSingle()
+
+  // Capacidades, también en consulta aparte y por el mismo motivo: si el
+  // código llegara antes que la migración, las columnas cap_* no existirían y
+  // un select conjunto tumbaría la página entera. readCapabilities() trata la
+  // ausencia como "todo apagado", que es el comportamiento de siempre.
+  const { data: capsRow } = await supabase
+    .from('agent_configs')
+    .select('cap_vision, cap_transcribe, cap_scoring, cap_csat, cap_cold_followup, cap_daily_report')
     .maybeSingle()
 
   // Sugerencia de rubro para cuentas ANTIGUAS: hasta el alta en dos pasos
@@ -68,6 +79,7 @@ export default async function AgentePage() {
           hasCustomPrompt={hasCustomPrompt}
         />
         <AgentConfigForm config={config ?? null} />
+        <CapabilitiesForm state={readCapabilities(capsRow)} />
         <VoiceForm
           initialPreset={voice?.voice_preset ?? null}
           initialProfile={parseVoiceProfile(voice?.voice_profile)}

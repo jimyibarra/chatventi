@@ -25,6 +25,12 @@ export type Database = {
           organization_id: string
           system_prompt: string | null
           updated_at: string
+          cap_vision: boolean
+          cap_transcribe: boolean
+          cap_scoring: boolean
+          cap_csat: boolean
+          cap_cold_followup: boolean
+          cap_daily_report: boolean
           voice_preset: string | null
           voice_profile: Json | null
           voice_source_url: string | null
@@ -40,6 +46,12 @@ export type Database = {
           organization_id: string
           system_prompt?: string | null
           updated_at?: string
+          cap_vision?: boolean
+          cap_transcribe?: boolean
+          cap_scoring?: boolean
+          cap_csat?: boolean
+          cap_cold_followup?: boolean
+          cap_daily_report?: boolean
           voice_preset?: string | null
           voice_profile?: Json | null
           voice_source_url?: string | null
@@ -55,6 +67,12 @@ export type Database = {
           organization_id?: string
           system_prompt?: string | null
           updated_at?: string
+          cap_vision?: boolean
+          cap_transcribe?: boolean
+          cap_scoring?: boolean
+          cap_csat?: boolean
+          cap_cold_followup?: boolean
+          cap_daily_report?: boolean
           voice_preset?: string | null
           voice_profile?: Json | null
           voice_source_url?: string | null
