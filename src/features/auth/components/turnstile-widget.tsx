@@ -81,6 +81,12 @@ export function TurnstileWidget({
     loadScript()
       .then(() => {
         if (cancelled || !containerRef.current || !window.turnstile) return
+        // El contenedor ya tiene widget: no renderizar otro. En desarrollo
+        // React monta el efecto dos veces y, como la carga del script es
+        // asíncrona, la limpieza corre antes de que exista el identificador y
+        // no puede retirarlo. Sin esta guarda, Cloudflare rechaza el segundo
+        // intento con "already been rendered in this container".
+        if (containerRef.current.childElementCount > 0) return
         widgetId = window.turnstile.render(containerRef.current, {
           sitekey: siteKey,
           theme: 'light',

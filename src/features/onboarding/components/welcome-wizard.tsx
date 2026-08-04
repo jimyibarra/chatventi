@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { BUSINESS_TEMPLATES } from '@/features/agente-ia/business-templates'
-import { completeWelcome, welcomeSchema, type WelcomeInput } from '../welcome-actions'
+import { completeWelcome } from '../welcome-actions'
+import { welcomeSchema, type WelcomeInput } from '../welcome-schema'
 
 const COUNTRIES = [
   'México', 'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Costa Rica',

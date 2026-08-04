@@ -1,29 +1,14 @@
 'use server'
 
-import { z } from 'zod'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
 import { LEGAL } from '@/shared/constants/legal'
 import { getClientIp, getUserAgent } from '@/shared/security/request-context'
+import { welcomeSchema } from './welcome-schema'
 
-// Datos del NEGOCIO. Se piden aquí, no en el alta: pedirlos antes de que el
-// usuario haya visto nada de valor cuesta conversión, y la cuenta ya está
-// creada y verificada cuando se llega a este punto.
-export const welcomeSchema = z.object({
-  orgName: z.string().trim().min(2, 'Nombre del negocio requerido').max(80, 'Nombre demasiado largo'),
-  businessType: z.string().min(1, 'Elige tu tipo de negocio'),
-  country: z.string().min(2, 'País requerido'),
-  city: z.string().trim().min(2, 'Ciudad requerida').max(60, 'Ciudad demasiado larga'),
-  ownerName: z.string().trim().min(2, 'Tu nombre requerido').max(60, 'Nombre demasiado largo'),
-  phone: z
-    .string()
-    .trim()
-    .min(8, 'Teléfono de al menos 8 dígitos')
-    .max(20, 'Teléfono demasiado largo')
-    .regex(/^[+\d][\d\s-]+$/, 'Solo números, espacios o guiones'),
-})
-
-export type WelcomeInput = z.infer<typeof welcomeSchema>
+// 🔴 Este módulo es 'use server': SOLO puede exportar funciones async. El
+// esquema de Zod vive en welcome-schema.ts porque exportarlo desde aquí hacía
+// que al cliente le llegara algo que no era un esquema (500 en /bienvenida).
 export type WelcomeResult = { ok: true } | { ok: false; error: string }
 
 /**
