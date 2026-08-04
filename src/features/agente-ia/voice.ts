@@ -69,6 +69,29 @@ export const voiceProfileSchema = z.object({
 
 export type VoiceProfile = z.infer<typeof voiceProfileSchema>
 
+/**
+ * Esquema que se le pasa al MODELO en la extracción (Fase 4). Es el mismo
+ * conjunto de campos pero PLANO: sin `.default()`, sin `.catch()` y sin
+ * `.transform()`.
+ *
+ * 🔴 Por qué existe: los structured outputs de OpenAI exigen que TODAS las
+ * propiedades estén en `required`. Un `.default([])` hace que Zod marque el
+ * campo como opcional al generar el JSON Schema, y la API responde
+ * "'required' ... Missing 'quirks'" y la llamada falla ENTERA. El síntoma es
+ * traicionero: el análisis devuelve "no pudimos analizar esa página", que
+ * parece una defensa funcionando cuando en realidad es la función rota.
+ *
+ * El saneado no se pierde: lo que devuelve el modelo se vuelve a pasar por
+ * `voiceProfileSchema`, que es el que recorta, limpia y valida de verdad.
+ */
+export const voiceAnalysisSchema = z.object({
+  treatment: z.enum(VOICE_TREATMENTS),
+  energy: z.enum(VOICE_ENERGIES),
+  emoji: z.enum(VOICE_EMOJI),
+  sentence: z.enum(VOICE_SENTENCES),
+  quirks: z.array(z.string()),
+})
+
 export const VOICE_PRESETS = ['calido', 'formal', 'divertido', 'custom'] as const
 export type VoicePreset = (typeof VOICE_PRESETS)[number]
 

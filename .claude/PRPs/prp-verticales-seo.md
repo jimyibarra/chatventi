@@ -285,6 +285,18 @@ una página con inyección explícita no cambia el comportamiento del agente.
 - **Regla**: en un esquema donde una parte es la frontera de seguridad (enums cerrados) y otra es cosmética (texto libre), la cosmética se **normaliza**; hacerla estricta convierte un dato de adorno en un punto único de fallo.
 - **Detección**: no lo cazó typecheck ni lint. Salió al ejecutar un script suelto contra la función pura.
 
+### 2026-08-05 (Fase 4): un fallo de la llamada se disfrazó de defensa que funciona
+- **Error**: la primera prueba de inyección dio verde porque `analyzeSample` devolvía error… pero **no por la inyección**: `generateObject` fallaba SIEMPRE. `quirks` llevaba `.default([])`, Zod lo marca opcional al generar el JSON Schema, y los structured outputs de OpenAI exigen que todas las propiedades estén en `required` → `Missing 'quirks'`, la llamada entera reventaba. El feature estaba roto y la prueba lo leyó como "la defensa aguantó".
+- **Fix**: `voiceAnalysisSchema`, plano (sin `default`/`catch`/`transform`), es el que ve el modelo; lo que devuelve se vuelve a pasar por `voiceProfileSchema`, que sanea de verdad.
+- **Regla**: toda prueba de "esto debe fallar" necesita un **CONTROL que demuestre que el camino feliz funciona**. Sin control, un error de infraestructura es indistinguible de una defensa efectiva — y se firma como validado algo que nunca se ejecutó.
+- **Detección**: solo al preguntarse por qué falló y ejecutar el analizador con una muestra inofensiva.
+
+### 2026-08-05 (Fase 4): `new URL()` normaliza las IPv6 y rompe las listas negras por texto
+- **Error**: el guardia anti-SSRF reconocía `::ffff:127.0.0.1` con una expresión regular sobre la cadena. Pero `new URL('http://[::ffff:127.0.0.1]/')` **normaliza** el host a `::ffff:7f00:1`, la regex no casaba y la dirección pasaba como pública. Bypass de loopback en toda regla; lo mismo servía para `10.0.0.1` (`::ffff:a00:1`) o cualquier privada.
+- **Fix**: expandir la IPv6 a sus 8 grupos de 16 bits y mirar los BITS, no el texto. Cubre además `::a.b.c.d` (compatible, obsoleta) y `64:ff9b::/96` (NAT64), que también transportan una IPv4.
+- **Regla**: nunca filtrar direcciones IP comparando cadenas. Hay demasiadas representaciones de la misma dirección y el parser de URL elige la suya.
+- **Detección**: la batería anti-SSRF. Ninguna revisión de código lo habría visto.
+
 ### 2026-08-05 (Fase 3): PARCHEAR la definición viva en vez de reemplazarla por una copia
 - **Problema**: para exponer la voz había que tocar `get_agent_context`, una función `SECURITY DEFINER` que usan los webhooks de WhatsApp y Telegram **en producción**. Lo evidente era `create or replace` con el cuerpo copiado de la última migración — y eso da por hecho que la base es lo que dice el repo. Si hubiera derivado, se revertirían en silencio los cambios posteriores. Es exactamente cómo se rompió la reagenda en la Fase 7 CONTRACT: DDL en verde, funcionalidad rota.
 - **Solución aplicada**: la migración lee la definición **viva** con `pg_get_functiondef`, le inserta las dos claves en un ancla exacta y ejecuta el resultado. Es **idempotente** (si ya expone la voz no hace nada) y **aborta** si el ancla no aparece, en lugar de dejar la función a medias.

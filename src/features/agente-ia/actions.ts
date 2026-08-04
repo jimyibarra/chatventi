@@ -6,7 +6,10 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { BUSINESS_TEMPLATES } from './business-templates'
 import { sendToCustomerByChannel } from './senders'
-import { VOICE_PRESETS, voiceProfileSchema } from './voice'
+import { VOICE_PRESETS, voiceProfileSchema, type VoiceProfile } from './voice'
+import { extractVoiceFromUrl } from './voice-extract'
+import { consumeRateLimit } from '@/shared/security/rate-limit'
+import { ONE_HOUR_SECONDS, VOICE_EXTRACT_MAX_PER_ORG_PER_HOUR } from '@/shared/security/limits'
 
 export type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -19,7 +22,47 @@ const voiceSchema = z.object({
   // cerrado que se aplica al leer, para que nunca entre nada que el renderer
   // no sepa tipar.
   profile: voiceProfileSchema.nullish(),
+  // Solo trazabilidad: de qué sitio salió el retrato. No se usa para nada
+  // ejecutable y se guarda ya normalizada por el fetch blindado.
+  sourceUrl: z.string().url().max(500).nullish(),
 })
+
+/**
+ * Analiza el sitio web del negocio y DEVUELVE un retrato de voz para que el
+ * dueño lo revise. NO guarda nada: el paso de guardar es explícito y suyo.
+ *
+ * Hace que el servidor descargue una URL escrita por el usuario, así que todo
+ * el blindaje anti-SSRF vive en safeFetchHtml, y el texto descargado se trata
+ * como DATO en una llamada de IA aislada (ver voice-extract.ts).
+ */
+export async function analyzeVoiceUrl(raw: unknown): Promise<
+  { ok: true; profile: VoiceProfile; sourceUrl: string } | { ok: false; error: string }
+> {
+  const parsed = z.object({ url: z.string().trim().min(1).max(500) }).safeParse(raw)
+  if (!parsed.success) return { ok: false, error: 'Escribe la dirección de tu sitio web.' }
+
+  const supabase = await createClient()
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return { ok: false, error: 'No tienes una organización.' }
+
+  const allowed = await consumeRateLimit({
+    bucket: 'voice_extract',
+    key: orgId,
+    limit: VOICE_EXTRACT_MAX_PER_ORG_PER_HOUR,
+    windowSeconds: ONE_HOUR_SECONDS,
+  })
+  if (!allowed) {
+    return { ok: false, error: 'Has analizado muchas páginas seguidas. Prueba en un rato.' }
+  }
+
+  // Si el usuario escribió "minegocio.com" sin esquema, se asume https. El
+  // fetch blindado rechaza cualquier otro esquema.
+  const url = /^https?:\/\//i.test(parsed.data.url) ? parsed.data.url : `https://${parsed.data.url}`
+
+  const result = await extractVoiceFromUrl(url)
+  if (!result.ok) return { ok: false, error: result.error }
+  return { ok: true, profile: result.profile, sourceUrl: result.finalUrl }
+}
 
 /**
  * Guarda el tono del agente. NO toca `system_prompt` (es del dueño y de
@@ -32,7 +75,7 @@ export async function saveVoice(raw: unknown): Promise<ActionResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { preset, profile } = parsed.data
+  const { preset, profile, sourceUrl } = parsed.data
 
   // Un preset con nombre no guarda retrato: el perfil se deriva del preset al
   // leer. Así, si algún día se ajusta un preset, se ajusta para todos.
@@ -50,6 +93,7 @@ export async function saveVoice(raw: unknown): Promise<ActionResult> {
       organization_id: orgId,
       voice_preset: preset,
       voice_profile: voiceProfile,
+      voice_source_url: preset === 'custom' ? (sourceUrl ?? null) : null,
       voice_updated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     },

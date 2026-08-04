@@ -27,5 +27,10 @@ export const SANDBOX_MAX_PER_ORG_PER_DAY = 40
 export const DEMO_MAX_PER_IP_PER_HOUR = 30
 
 /** Ventanas en segundos, para no repetir multiplicaciones por ahí. */
+/** Análisis del sitio web para la voz de marca, por organización y hora.
+ *  Cada intento hace que NUESTRO servidor descargue una URL que teclea el
+ *  usuario y gaste una llamada de IA: se acota aunque el usuario esté logueado. */
+export const VOICE_EXTRACT_MAX_PER_ORG_PER_HOUR = 10
+
 export const ONE_HOUR_SECONDS = 60 * 60
 export const ONE_DAY_SECONDS = 24 * 60 * 60
