@@ -15,7 +15,7 @@ export const SIGNUP_MAX_PER_IP_PER_DAY = 6
 export const SIGNUP_MAX_PER_EMAIL_PER_HOUR = 5
 
 /** Mensajes de IA que una organización puede consumir durante la prueba
- *  gratis. Un negocio activo ronda 80-150 en 10 días. */
+ *  gratis. Un negocio activo ronda 80-150 en dos semanas. */
 export const TRIAL_AI_MESSAGE_CAP = 300
 
 /** Sandbox "Prueba el Chat IA" — por ORGANIZACIÓN y día.
