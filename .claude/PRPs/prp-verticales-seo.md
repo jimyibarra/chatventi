@@ -263,6 +263,27 @@ una página con inyección explícita no cambia el comportamiento del agente.
 
 ### Fase 5: Validación final
 **Objetivo**: todo en producción.
+
+> **Estado 2026-08-05.** Cerrado todo lo que no depende de desplegar:
+> typecheck/lint/build; las 5 landings (200 + 404 + metadata + JSON-LD + CTA +
+> sin JS) validadas en local; la voz probada de extremo a extremo contra la
+> base de PRODUCCIÓN por el chat de demo; la batería anti-SSRF y la prueba de
+> inyección con control; `organizations.branding` verificado intacto
+> (`logo_url`, `description`, `primary_color`, `whatsapp_number` siguen ahí);
+> y **regresión de producción tras el parche de `get_agent_context`**: el panel
+> y el sandbox de un negocio real funcionan y el agente no inventa precios.
+>
+> **Bloqueado por el despliegue** (la rama sigue sin mergear):
+> - OG de las landings en el depurador de Meta — necesita las URLs públicas.
+> - Voz de marca desde la UI del panel (analizar sitio → guardar → sandbox).
+>
+> **Bloqueado por una limitación mía, no del entorno**: el alta real desde una
+> landing de giro exige **crear una cuenta y escribir una contraseña**, y no
+> puedo hacer ninguna de las dos cosas. Lo tiene que hacer una persona: entrar
+> a `/para/dentista`, pulsar el CTA, registrarse y comprobar que en
+> `/bienvenida` el desplegable llega con "Dentista · Clínica dental" ya
+> elegido y que la organización queda con `business_type = 'dental'`.
+
 **Validación**:
 - [ ] `npm run typecheck` pasa
 - [ ] `npm run lint` pasa
