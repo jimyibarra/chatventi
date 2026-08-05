@@ -5,6 +5,7 @@ import { createWebhookClient } from '@/lib/supabase/webhook'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
+import { fetchWhatsAppMedia } from '@/features/agente-ia/media-fetch'
 import {
   waSendMessage,
   waSendInteractiveButtons,
@@ -83,6 +84,11 @@ function isValidSignature(rawBody: string, signatureHeader: string | null, appSe
   return timingSafeEqual(providedBuf, expectedBuf)
 }
 
+/** Id del binario en Graph, si el mensaje trae media que sepamos bajar. */
+function mediaIdOf(msg: z.infer<typeof messageSchema>): string | null {
+  return msg.image?.id ?? msg.audio?.id ?? msg.document?.id ?? msg.video?.id ?? null
+}
+
 /** Extrae el cuerpo de texto (o placeholder) segun el tipo de mensaje. */
 function extractBody(msg: z.infer<typeof messageSchema>): string | null {
   if (msg.text) return msg.text.body
@@ -93,7 +99,8 @@ function extractBody(msg: z.infer<typeof messageSchema>): string | null {
     const { id, title } = msg.interactive.button_reply
     return id.startsWith('slot:') ? `${title} [${id}]` : title
   }
-  // Media: en Fase 1 no descargamos el binario (proxy firmado se porta en su fase).
+  // Media: el placeholder se mantiene como cuerpo del mensaje; el binario se
+  // descarga aparte, tras el 200, y se ancla con attach_message_media.
   if (msg.image || msg.audio || msg.document || msg.video) return `[${msg.type}]`
   return null
 }
@@ -126,8 +133,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Mensajes de texto a responder por el agente (fuera del ciclo de la request).
   const toAnswer: { phoneNumberId: string; from: string }[] = []
-  // Media entrante: aviso estatico + escalamiento a humano (sin LLM).
-  const mediaToEscalate: { phoneNumberId: string; from: string }[] = []
+  // Media entrante: descarga del binario + aviso estatico + escalamiento (sin LLM).
+  // `messageId` es el que devuelve route_inbound_message: sin el, no hay a que
+  // anclar el archivo.
+  const mediaToEscalate: {
+    phoneNumberId: string
+    from: string
+    mediaId: string | null
+    messageId: string
+  }[] = []
   // Boton "Confirmar asistencia" del recordatorio (id "conf:<appointment_id>"):
   // se confirma la cita SIN despertar al agente (respuesta estatica).
   const toConfirm: { phoneNumberId: string; from: string; appointmentId: string }[] = []
@@ -164,7 +178,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           } else if (msg.text || msg.interactive?.button_reply) {
             toAnswer.push({ phoneNumberId, from: msg.from })
           } else if (msg.image || msg.audio || msg.document || msg.video) {
-            mediaToEscalate.push({ phoneNumberId, from: msg.from })
+            mediaToEscalate.push({
+              phoneNumberId,
+              from: msg.from,
+              mediaId: mediaIdOf(msg),
+              messageId: routed.message_id,
+            })
           }
         }
       }
@@ -173,18 +192,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[whatsapp-webhook] error procesando', err)
   }
 
-  // Media: aviso amable + escalamiento a humano, tras el 200 y sin LLM.
+  // Media: descarga del binario, aviso amable y escalamiento a humano, todo
+  // tras el 200 y sin LLM. La descarga NO puede ir antes del ACK: Meta
+  // reintenta si tardamos, y son dos llamadas a Graph.
   if (mediaToEscalate.length > 0) {
     after(async () => {
       const supabase = createWebhookClient()
       const service = createServiceClient()
-      for (const { phoneNumberId, from } of mediaToEscalate) {
+      for (const { phoneNumberId, from, mediaId, messageId } of mediaToEscalate) {
         try {
           await handleIncomingMedia({
             channelType: 'whatsapp',
             externalId: phoneNumberId,
             fromHandle: from,
             supabase,
+            media: mediaId
+              ? {
+                  messageId,
+                  fetch: async () => {
+                    const token = await getWaToken(service, phoneNumberId)
+                    if (!token) return null
+                    return fetchWhatsAppMedia(mediaId, token)
+                  },
+                }
+              : undefined,
             senders: {
               sendToCustomer: async (text) => {
                 const token = await getWaToken(service, phoneNumberId)

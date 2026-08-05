@@ -296,6 +296,13 @@ capacidades apagadas, el cron hace exactamente lo que hacía antes.
 - **Detalle de diseño heredado**: ese tope **falla ABIERTO** a propósito (si la consulta falla, el agente responde igual). Es lo contrario a los gates de acceso, y está bien: aquí se acota un coste, no se protege una puerta. Cualquier tope nuevo debe seguir el mismo criterio.
 - **Regla**: un PRP escrito hace un día puede estar desfasado si otra línea de trabajo aterrizó en medio. **Mapear el contexto real al entrar en la fase, no fiarse del inventario del PRP.**
 
+### 2026-08-05 (Fase 2): la ingesta va DESPUÉS del 200 y ANTES de la guarda `should_respond`
+- **Dónde encaja la descarga**: bajar el binario son dos llamadas HTTP al proveedor. Hacerlo antes de responder 200 invita a que Meta reintente el mismo mensaje. Va dentro del `after()`, y por eso el webhook necesita el `message_id` que devuelve `route_inbound_message`: es lo único a lo que anclar el archivo. En Telegram eso obligó a cambiar el `shouldHandle` booleano por el id.
+- **Corrección al diseño previsto**: el guardado NO puede ir detrás de `should_respond`. Esa guarda existe para no duplicar **avisos**; si la ingesta cuelga de ella, con la IA pausada el archivo del cliente no se guarda y la persona que atiende no ve nada. Ahora: se guarda siempre, se avisa solo si corresponde. Verificado: con la IA apagada, el archivo queda anclado y salen **0** mensajes.
+- **`attach_message_media` es invocable por ANON** (el webhook usa la ANON key a propósito), así que se escribió estrecha: solo mensajes entrantes, solo si aún no tienen archivo, y la ruta debe empezar por la org dueña del mensaje. Probado con control: ruta de otra org → false, correcta → true, reintento → false.
+- **Telegram: el MIME viaja en el mensaje, NO en `getFile`.** Y `photo` llega como array de resoluciones: hay que tomar la **última**. Las fotos no traen `mime_type` — son siempre JPEG.
+- **Carpeta privada en App Router**: una ruta en `src/app/api/_algo/` **no se enruta** (Next trata `_` como carpeta privada). Costó un 404 desconcertante al montar el endpoint de prueba.
+
 ### 2026-08-05 (Fase 1): las migraciones aplicadas por el editor SQL NO quedan registradas
 - **Hallazgo**: `supabase_migrations.schema_migrations` no contiene `20260805000000_voz_de_marca` ni `20260805010000_trial_14_dias`, porque se aplicaron pegando SQL en el editor del panel. Solo la de esta fase quedó registrada, por haber usado `apply_migration`.
 - **Consecuencia**: un `supabase db push` intentaría reaplicarlas. **No rompen nada** —ambas son idempotentes: la de voz sale por `return` si ya existe `voice_preset`, y la del trial no encuentra `interval '10 days'`— pero la divergencia existe y conviene saberla.

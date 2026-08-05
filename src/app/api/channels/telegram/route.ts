@@ -4,6 +4,7 @@ import { createWebhookClient } from '@/lib/supabase/webhook'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
+import { fetchTelegramMedia } from '@/features/agente-ia/media-fetch'
 import {
   tgSendMessage,
   tgSendApproval,
@@ -26,13 +27,27 @@ const messageSchema = z.object({
     username: z.string().optional(),
   }),
   text: z.string().optional(),
-  // Media (solo detectamos presencia: aviso + escalamiento, sin descargar).
+  // Media. `mime_type` viaja aquí y NO en getFile: es la única forma de saber
+  // qué es el archivo. Las fotos no lo traen — Telegram siempre las manda JPEG.
   photo: z.array(z.object({ file_id: z.string() })).optional(),
-  voice: z.object({ file_id: z.string() }).optional(),
-  audio: z.object({ file_id: z.string() }).optional(),
-  document: z.object({ file_id: z.string() }).optional(),
-  video: z.object({ file_id: z.string() }).optional(),
+  voice: z.object({ file_id: z.string(), mime_type: z.string().optional() }).optional(),
+  audio: z.object({ file_id: z.string(), mime_type: z.string().optional() }).optional(),
+  document: z.object({ file_id: z.string(), mime_type: z.string().optional() }).optional(),
+  video: z.object({ file_id: z.string(), mime_type: z.string().optional() }).optional(),
 })
+
+/**
+ * Referencia del binario a descargar. De `photo` se toma el ÚLTIMO elemento:
+ * Telegram manda el mismo archivo en varias resoluciones, de menor a mayor.
+ */
+function tgMediaRef(
+  msg: z.infer<typeof messageSchema>
+): { fileId: string; mime: string | null } | null {
+  const photo = msg.photo?.[msg.photo.length - 1]
+  if (photo) return { fileId: photo.file_id, mime: 'image/jpeg' }
+  const other = msg.voice ?? msg.audio ?? msg.document ?? msg.video
+  return other ? { fileId: other.file_id, mime: other.mime_type ?? null } : null
+}
 
 /** Cuerpo del mensaje: texto o placeholder de media. */
 function tgExtractBody(msg: z.infer<typeof messageSchema>): string | null {
@@ -266,7 +281,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Solo despertar al agente si el mensaje se insertó de verdad (ni error,
   // ni reintento del proveedor con el mismo update, ni canal no hallado).
-  let shouldHandle = false
+  // Además del "sí/no", hace falta el id del mensaje insertado: es a lo que se
+  // ancla el archivo descargado.
+  let routedMessageId: string | null = null
   try {
     const supabase = createWebhookClient()
     const { data, error } = await supabase.rpc('route_inbound_message', {
@@ -281,16 +298,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error('[telegram-webhook] route_inbound_message error', error.message)
     } else {
       const routed = data as { message_id: string | null; duplicate: boolean } | null
-      shouldHandle = Boolean(routed?.message_id) && !routed?.duplicate
+      routedMessageId = routed?.duplicate ? null : (routed?.message_id ?? null)
     }
   } catch (err) {
     console.error('[telegram-webhook] error procesando', err)
   }
 
-  if (!shouldHandle) return NextResponse.json({ ok: true }, { status: 200 })
+  if (!routedMessageId) return NextResponse.json({ ok: true }, { status: 200 })
+  const messageId = routedMessageId
 
   // El agente (o el escalamiento de media) corre fuera del ciclo de la request.
   const isMedia = !msg.text && tgHasMedia(msg)
+  const mediaRef = isMedia ? tgMediaRef(msg) : null
   after(async () => {
     try {
       const supabase = createWebhookClient()
@@ -307,6 +326,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           externalId: channelExternalId,
           fromHandle,
           supabase,
+          media: mediaRef
+            ? {
+                messageId,
+                fetch: () => fetchTelegramMedia(mediaRef.fileId, mediaRef.mime),
+              }
+            : undefined,
           senders,
         })
       } else if (msg.text) {

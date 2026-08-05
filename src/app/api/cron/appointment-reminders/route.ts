@@ -12,6 +12,7 @@ import {
   dataDeletedEmail,
 } from '@/features/emails/templates'
 import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
+import { removeInboundFolder } from '@/features/storage/inbound'
 
 export const runtime = 'nodejs'
 
@@ -410,6 +411,10 @@ async function runTrialFunnel(
         console.error('[cron-trial] wipe error', o.id, error.message)
         continue
       }
+      // El wipe borra filas, no objetos de Storage. Los archivos que mandaron
+      // los clientes (comprobantes, notas de voz) tienen que irse con ellos: si
+      // no, el bucket crece sin control y queda un pasivo de privacidad.
+      await removeInboundFolder(o.id)
       if (o.contact_email) {
         const { subject, html } = dataDeletedEmail({ orgName: o.name, siteUrl: SITE })
         await sendEmail({ to: o.contact_email, subject, html })
