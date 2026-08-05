@@ -339,6 +339,21 @@ npm run lint         # ESLint
 - **Detección**: los logs de MCP (`%LOCALAPPDATA%\claude-cli-nodejs\Cache\<proyecto>\mcp-logs-*`) no muestran ningún error: la última llamada termina bien y el proceso desaparece. Que caigan **los tres a la vez** descarta un fallo del proveedor.
 - **Aplicar en**: todo el proyecto.
 
+### 2026-08-05: una FK sin índice acopla a un inquilino con el crecimiento de los demás
+- **Error**: `appointments.client_id` no tenía índice. `get_crm_overview` hace un `lateral join` sobre `appointments` **por cada cliente** del negocio → Postgres recorría la tabla ENTERA de citas (las de TODAS las organizaciones) una vez por cliente. Con 500 negocios simulados, el CRM de un negocio de **40 clientes** tardaba **122 ms en caliente y 455 ms en frío**. Había **13 FKs sin índice**.
+- **Fix**: migración `20260805184312_indices_fk_faltantes` → **1,5 ms**.
+- **Reglas**:
+  - Postgres **no indexa** las claves foráneas automáticamente. Consulta para cazarlas: `pg_constraint contype='f'` sin `pg_index` cuyo `indkey[0]` sea la columna.
+  - Lo peligroso no es la lentitud, es el **acoplamiento entre inquilinos**: un cliente se degrada porque OTROS crecen. No aparece en pruebas con un solo negocio.
+  - **Delegar el acotado solo a la RLS es un riesgo de rendimiento**, no solo de seguridad: el KPI del panel (`count exact` sobre `messages`) tardaba 1,6 s y **agotaba el statement_timeout (57014)** sin filtro de fecha; con filtro explícito de organización, **0,95 ms**. Filtrar por org/conversación en la app además de la RLS.
+- **Detección**: solo con **volumen simulado + `EXPLAIN ANALYZE`**. Con 3 citas en la base todo iba en microsegundos.
+- **Aplicar en**: toda tabla nueva con FK y toda consulta que se apoye en RLS para acotar.
+
+### 2026-08-05: medir en frío (o sobre una consulta simplificada) da números falsos
+- **Error**: `get_available_slots_v2` dio **65 ms** en la primera llamada; en caliente son **1,73 ms**. Y al simplificar el CRM a un `count(*)` para cronometrarlo, el planificador **se saltó el trabajo del lateral** y devolvió 3 ms en lugar de los 122 ms reales. Estuve a punto de reportar un problema inexistente y de descartar uno real.
+- **Reglas**: repetir siempre en caliente; cronometrar la consulta **real**, no una versión reducida; ante una cifra rara, pedir el **plan** antes de concluir. Y contrastar contra la fuente: unos huecos "que faltaban" en la UI eran dos servicios seleccionados (90 min), no un fallo.
+- **Aplicar en**: toda medición de rendimiento.
+
 ### 2026-07-15: Verificar las capacidades en las HERRAMIENTAS, no en el repo
 - **Error**: afirmé "no hay Playwright instalado" tras mirar `package.json`. Falso: el **MCP de Playwright** está conectado y da un navegador real. `package.json` no dice nada de las herramientas de la sesión.
 - **Fix**: antes de declarar que algo no existe, mirar las herramientas disponibles e **intentarlo**. Un `grep` que no encuentra algo prueba que no está *ahí*, no que no exista.
