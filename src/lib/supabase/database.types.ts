@@ -18,6 +18,12 @@ export type Database = {
         Row: {
           approval_mode: string
           approval_telegram_chat_id: string | null
+          cap_cold_followup: boolean
+          cap_csat: boolean
+          cap_daily_report: boolean
+          cap_scoring: boolean
+          cap_transcribe: boolean
+          cap_vision: boolean
           created_at: string
           enabled: boolean
           id: string
@@ -33,6 +39,12 @@ export type Database = {
         Insert: {
           approval_mode?: string
           approval_telegram_chat_id?: string | null
+          cap_cold_followup?: boolean
+          cap_csat?: boolean
+          cap_daily_report?: boolean
+          cap_scoring?: boolean
+          cap_transcribe?: boolean
+          cap_vision?: boolean
           created_at?: string
           enabled?: boolean
           id?: string
@@ -48,6 +60,12 @@ export type Database = {
         Update: {
           approval_mode?: string
           approval_telegram_chat_id?: string | null
+          cap_cold_followup?: boolean
+          cap_csat?: boolean
+          cap_daily_report?: boolean
+          cap_scoring?: boolean
+          cap_transcribe?: boolean
+          cap_vision?: boolean
           created_at?: string
           enabled?: boolean
           id?: string
@@ -310,6 +328,50 @@ export type Database = {
           },
         ]
       }
+      channels: {
+        Row: {
+          created_at: string
+          credentials: Json | null
+          display_name: string | null
+          external_id: string
+          id: string
+          organization_id: string
+          status: string
+          type: string
+          waba_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          credentials?: Json | null
+          display_name?: string | null
+          external_id: string
+          id?: string
+          organization_id: string
+          status?: string
+          type: string
+          waba_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          credentials?: Json | null
+          display_name?: string | null
+          external_id?: string
+          id?: string
+          organization_id?: string
+          status?: string
+          type?: string
+          waba_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channels_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_files: {
         Row: {
           client_id: string
@@ -483,50 +545,6 @@ export type Database = {
           },
         ]
       }
-      channels: {
-        Row: {
-          created_at: string
-          credentials: Json | null
-          display_name: string | null
-          external_id: string
-          id: string
-          organization_id: string
-          status: string
-          type: string
-          waba_id: string | null
-        }
-        Insert: {
-          created_at?: string
-          credentials?: Json | null
-          display_name?: string | null
-          external_id: string
-          id?: string
-          organization_id: string
-          status?: string
-          type: string
-          waba_id?: string | null
-        }
-        Update: {
-          created_at?: string
-          credentials?: Json | null
-          display_name?: string | null
-          external_id?: string
-          id?: string
-          organization_id?: string
-          status?: string
-          type?: string
-          waba_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "channels_organization_id_fkey"
-            columns: ["organization_id"]
-            isOneToOne: false
-            referencedRelation: "organizations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       client_tags: {
         Row: {
           client_id: string
@@ -565,6 +583,7 @@ export type Database = {
           notes: string | null
           organization_id: string
           phone: string | null
+          phone_canonical: string | null
         }
         Insert: {
           created_at?: string
@@ -573,6 +592,7 @@ export type Database = {
           notes?: string | null
           organization_id: string
           phone?: string | null
+          phone_canonical?: string | null
         }
         Update: {
           created_at?: string
@@ -581,6 +601,7 @@ export type Database = {
           notes?: string | null
           organization_id?: string
           phone?: string | null
+          phone_canonical?: string | null
         }
         Relationships: [
           {
@@ -596,9 +617,13 @@ export type Database = {
         Row: {
           ai_enabled: boolean
           ai_paused_until: string | null
+          ai_score: number | null
+          ai_score_reason: string | null
+          ai_scored_at: string | null
           assigned_agent_id: string | null
           channel_id: string
           client_id: string | null
+          cold_followup_sent_at: string | null
           created_at: string
           id: string
           last_message_at: string | null
@@ -608,9 +633,13 @@ export type Database = {
         Insert: {
           ai_enabled?: boolean
           ai_paused_until?: string | null
+          ai_score?: number | null
+          ai_score_reason?: string | null
+          ai_scored_at?: string | null
           assigned_agent_id?: string | null
           channel_id: string
           client_id?: string | null
+          cold_followup_sent_at?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -620,9 +649,13 @@ export type Database = {
         Update: {
           ai_enabled?: boolean
           ai_paused_until?: string | null
+          ai_score?: number | null
+          ai_score_reason?: string | null
+          ai_scored_at?: string | null
           assigned_agent_id?: string | null
           channel_id?: string
           client_id?: string | null
+          cold_followup_sent_at?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -653,6 +686,84 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      csat_responses: {
+        Row: {
+          appointment_id: string | null
+          comment: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          score: number
+        }
+        Insert: {
+          appointment_id?: string | null
+          comment?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          score: number
+        }
+        Update: {
+          appointment_id?: string | null
+          comment?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "csat_responses_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_responses_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_responses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_report_runs: {
+        Row: {
+          organization_id: string
+          report_date: string
+          sent_at: string
+        }
+        Insert: {
+          organization_id: string
+          report_date: string
+          sent_at?: string
+        }
+        Update: {
+          organization_id?: string
+          report_date?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_runs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -701,7 +812,9 @@ export type Database = {
           direction: string
           external_id: string | null
           id: string
+          media_mime: string | null
           media_path: string | null
+          media_text: string | null
           sender: string
         }
         Insert: {
@@ -712,7 +825,9 @@ export type Database = {
           direction: string
           external_id?: string | null
           id?: string
+          media_mime?: string | null
           media_path?: string | null
+          media_text?: string | null
           sender: string
         }
         Update: {
@@ -723,7 +838,9 @@ export type Database = {
           direction?: string
           external_id?: string | null
           id?: string
+          media_mime?: string | null
           media_path?: string | null
+          media_text?: string | null
           sender?: string
         }
         Relationships: [
@@ -778,8 +895,8 @@ export type Database = {
       }
       organizations: {
         Row: {
-          branding: Json | null
           ai_cap_exempt: boolean
+          branding: Json | null
           business_type: string | null
           city: string | null
           contact_email: string | null
@@ -792,17 +909,17 @@ export type Database = {
           name: string
           onboarding_email_sent_at: string | null
           phone: string | null
-          trial_ended_email_sent_at: string | null
-          trial_ending_email_sent_at: string | null
           trial_ai_capped_at: string | null
           trial_ai_messages_used: number
+          trial_ended_email_sent_at: string | null
+          trial_ending_email_sent_at: string | null
           trial_ends_at: string | null
           web_slug: string | null
           welcome_email_sent_at: string | null
         }
         Insert: {
-          branding?: Json | null
           ai_cap_exempt?: boolean
+          branding?: Json | null
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -815,17 +932,17 @@ export type Database = {
           name: string
           onboarding_email_sent_at?: string | null
           phone?: string | null
-          trial_ended_email_sent_at?: string | null
-          trial_ending_email_sent_at?: string | null
           trial_ai_capped_at?: string | null
           trial_ai_messages_used?: number
+          trial_ended_email_sent_at?: string | null
+          trial_ending_email_sent_at?: string | null
           trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
         }
         Update: {
-          branding?: Json | null
           ai_cap_exempt?: boolean
+          branding?: Json | null
           business_type?: string | null
           city?: string | null
           contact_email?: string | null
@@ -838,10 +955,10 @@ export type Database = {
           name?: string
           onboarding_email_sent_at?: string | null
           phone?: string | null
-          trial_ended_email_sent_at?: string | null
-          trial_ending_email_sent_at?: string | null
           trial_ai_capped_at?: string | null
           trial_ai_messages_used?: number
+          trial_ended_email_sent_at?: string | null
+          trial_ending_email_sent_at?: string | null
           trial_ends_at?: string | null
           web_slug?: string | null
           welcome_email_sent_at?: string | null
@@ -894,6 +1011,7 @@ export type Database = {
           assigned_branch_id: string | null
           created_at: string
           email: string | null
+          email_canonical: string | null
           full_name: string | null
           id: string
           is_active: boolean
@@ -901,6 +1019,8 @@ export type Database = {
           phone: string | null
           resource_scope: string
           role: string
+          signup_ip: string | null
+          signup_user_agent: string | null
           terms_accepted_at: string | null
           terms_version: string | null
         }
@@ -908,6 +1028,7 @@ export type Database = {
           assigned_branch_id?: string | null
           created_at?: string
           email?: string | null
+          email_canonical?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean
@@ -915,6 +1036,8 @@ export type Database = {
           phone?: string | null
           resource_scope?: string
           role?: string
+          signup_ip?: string | null
+          signup_user_agent?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
         }
@@ -922,6 +1045,7 @@ export type Database = {
           assigned_branch_id?: string | null
           created_at?: string
           email?: string | null
+          email_canonical?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean
@@ -929,6 +1053,8 @@ export type Database = {
           phone?: string | null
           resource_scope?: string
           role?: string
+          signup_ip?: string | null
+          signup_user_agent?: string | null
           terms_accepted_at?: string | null
           terms_version?: string | null
         }
@@ -985,6 +1111,27 @@ export type Database = {
           p256dh?: string
           user_agent?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      rate_events: {
+        Row: {
+          bucket: string
+          created_at: string
+          id: number
+          key: string
+        }
+        Insert: {
+          bucket: string
+          created_at?: string
+          id?: number
+          key: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          id?: number
+          key?: string
         }
         Relationships: []
       }
@@ -1381,10 +1528,6 @@ export type Database = {
           org_name: string
         }[]
       }
-      admin_set_agent_model: {
-        Args: { p_model: string; p_org: string }
-        Returns: undefined
-      }
       admin_list_organizations: {
         Args: never
         Returns: {
@@ -1409,7 +1552,19 @@ export type Database = {
           users_count: number
         }[]
       }
+      admin_set_agent_model: {
+        Args: { p_model: string; p_org: string }
+        Returns: undefined
+      }
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
+      attach_message_media: {
+        Args: {
+          p_media_mime: string
+          p_media_path: string
+          p_message_id: string
+        }
+        Returns: boolean
+      }
       cancel_appointment_by_token: {
         Args: { p_token: string }
         Returns: undefined
@@ -1423,10 +1578,27 @@ export type Database = {
         }
         Returns: undefined
       }
+      canonical_email: { Args: { p_email: string }; Returns: string }
       claim_client_reminder: { Args: { p_id: string }; Returns: boolean }
+      claim_cold_followup: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
+      claim_conversation_scoring: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
+      claim_daily_report: {
+        Args: { p_date: string; p_org: string }
+        Returns: boolean
+      }
       claim_reminder: {
         Args: { p_appointment_id: string; p_kind: string }
         Returns: boolean
+      }
+      client_canonical: {
+        Args: { p_channel_type: string; raw: string }
+        Returns: string
       }
       confirm_appointment_by_token: {
         Args: { p_token: string }
@@ -1440,6 +1612,23 @@ export type Database = {
           p_external_id: string
         }
         Returns: Json
+      }
+      consume_rate_limit: {
+        Args: {
+          p_bucket: string
+          p_key: string
+          p_limit: number
+          p_window_seconds: number
+        }
+        Returns: boolean
+      }
+      consume_trial_ai_message: {
+        Args: { p_cap: number; p_org: string }
+        Returns: Json
+      }
+      count_rate_events: {
+        Args: { p_bucket: string; p_key: string; p_window_seconds: number }
+        Returns: number
       }
       create_ai_approval: {
         Args: { p_action?: Json; p_conversation_id: string; p_draft: string }
@@ -1517,6 +1706,7 @@ export type Database = {
         }
         Returns: Json
       }
+      email_canonical_exists: { Args: { p_email: string }; Returns: boolean }
       get_agent_context: {
         Args: {
           p_channel_type: string
@@ -1540,8 +1730,40 @@ export type Database = {
           slot_start: string
         }[]
       }
-      get_due_client_reminders: { Args: never; Returns: Json }
+      get_cold_conversations: {
+        Args: { p_days?: number }
+        Returns: {
+          channel_external_id: string
+          channel_type: string
+          client_name: string
+          conversation_id: string
+          org_name: string
+          organization_id: string
+          send_to: string
+        }[]
+      }
+      get_conversations_to_score: {
+        Args: { p_idle_minutes?: number }
+        Returns: {
+          client_name: string
+          conversation_id: string
+          organization_id: string
+        }[]
+      }
       get_crm_overview: { Args: never; Returns: Json }
+      get_daily_report_data: {
+        Args: { p_day: string; p_org: string }
+        Returns: Json
+      }
+      get_daily_report_orgs: {
+        Args: never
+        Returns: {
+          contact_email: string
+          org_name: string
+          organization_id: string
+        }[]
+      }
+      get_due_client_reminders: { Args: never; Returns: Json }
       get_due_reminders: { Args: { p_kind: string }; Returns: Json }
       get_invitation_preview: { Args: { p_token: string }; Returns: Json }
       get_manage_token_from_chat: {
@@ -1566,6 +1788,8 @@ export type Database = {
         }
         Returns: string
       }
+      merge_duplicate_clients: { Args: never; Returns: Json }
+      normalize_phone_mx: { Args: { raw: string }; Returns: string }
       org_has_ai: { Args: { p_org: string }; Returns: boolean }
       org_is_active: { Args: { p_org: string }; Returns: boolean }
       org_seats_used: { Args: { p_org: string }; Returns: number }
@@ -1573,16 +1797,18 @@ export type Database = {
         Args: { p_conversation_id: string; p_minutes?: number }
         Returns: undefined
       }
-      reschedule_appointment_by_token: {
-        Args: { p_new_starts_at: string; p_token: string }
-        Returns: undefined
-      }
-      reschedule_appointment_v2: {
+      record_csat: {
         Args: {
           p_appointment_id: string
-          p_new_resource_id?: string
-          p_new_starts_at: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+          p_score: number
         }
+        Returns: Json
+      }
+      reschedule_appointment_by_token: {
+        Args: { p_new_starts_at: string; p_token: string }
         Returns: undefined
       }
       reschedule_appointment_from_chat: {
@@ -1591,6 +1817,14 @@ export type Database = {
           p_channel_type: string
           p_client_phone: string
           p_external_id: string
+          p_new_starts_at: string
+        }
+        Returns: undefined
+      }
+      reschedule_appointment_v2: {
+        Args: {
+          p_appointment_id: string
+          p_new_resource_id?: string
           p_new_starts_at: string
         }
         Returns: undefined
@@ -1611,6 +1845,10 @@ export type Database = {
           p_media_path?: string
         }
         Returns: Json
+      }
+      save_conversation_score: {
+        Args: { p_conversation_id: string; p_reason: string; p_score: number }
+        Returns: boolean
       }
       set_ai_enabled: {
         Args: { p_conversation_id: string; p_enabled: boolean }
@@ -1645,6 +1883,10 @@ export type Database = {
           p_scope?: string
         }
         Returns: undefined
+      }
+      set_message_media_text: {
+        Args: { p_message_id: string; p_text: string }
+        Returns: boolean
       }
       upsert_client_manual: {
         Args: { p_name: string; p_phone: string }

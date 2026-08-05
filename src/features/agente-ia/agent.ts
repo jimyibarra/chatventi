@@ -81,6 +81,9 @@ function buildSystemPrompt(ctx: AgentContext): string {
   // (ver voice.ts): no hay texto libre que pueda leerse como instrucción.
   // Sin voz configurada, voiceBlock es null y el prompt queda idéntico al de
   // antes de esta feature.
+  // ¿Hay en el historial algún archivo ya leído (visión/transcripción)?
+  const hasReadFiles = ctx.messages.some((m) => (m.media_text ?? '').trim().length > 0)
+
   const voiceBlock = renderVoiceBlock(
     resolveVoiceProfile(ctx.config?.voice_preset, ctx.config?.voice_profile)
   )
@@ -116,6 +119,18 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
     '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
     '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise.',
+    // Solo cuando de verdad hay un archivo leído en el historial. Sin esto el
+    // agente trataba la lectura como algo "fuera de su ámbito" y respondía
+    // "no puedo ayudarte con eso" a un comprobante de pago perfectamente
+    // legible: la capacidad de visión no sirve de nada si no se le dice qué
+    // hacer con lo que ve. Con las capacidades apagadas el prompt es idéntico
+    // al de siempre, que es el criterio de toda esta línea de trabajo.
+    ...(hasReadFiles
+      ? [
+          '- ARCHIVOS DEL CLIENTE: cuando un mensaje traiga "(contenido del archivo: ...)", eso es la lectura de una foto o la transcripción de una nota de voz que te envió el cliente. Trátalo EXACTAMENTE como si te lo hubiera escrito él, y NUNCA digas que no puedes ver imágenes ni escuchar audios.',
+          '- Si es un comprobante de pago, agradécelo, confirma en la MISMA frase el monto y la fecha que aparecen, y continúa con lo que estaba pendiente. Si el comprobante no cuadra con lo esperado, o falta un dato clave, dilo con amabilidad y usa request_human_approval en vez de dar el pago por bueno.',
+        ]
+      : []),
     `- Hoy es ${today} (zona horaria ${tz}).`,
     '',
     `NOMBRE DEL CLIENTE: ${ctx.conversation?.client_name?.trim() || '(desconocido)'}`,
@@ -140,13 +155,21 @@ function buildSystemPrompt(ctx: AgentContext): string {
 }
 
 // Historial -> mensajes del modelo (contact=user, ai/agent=assistant).
+// Cuando el mensaje traía un archivo leído (visión o transcripción), lo que
+// entra al historial es lo que el archivo DICE: con el placeholder "[image]"
+// a secas el modelo no tiene nada a lo que responder.
 function toModelMessages(ctx: AgentContext) {
   return ctx.messages
-    .filter((m) => (m.body ?? '').trim().length > 0)
-    .map((m) => ({
-      role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
-      content: m.body as string,
-    }))
+    .map((m) => {
+      const body = (m.body ?? '').trim()
+      const read = (m.media_text ?? '').trim()
+      const content = read ? `${body} (contenido del archivo: ${read})`.trim() : body
+      return {
+        role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
+        content,
+      }
+    })
+    .filter((m) => m.content.length > 0)
 }
 
 // Red de seguridad de zona horaria: si el modelo pasa un instante SIN offset

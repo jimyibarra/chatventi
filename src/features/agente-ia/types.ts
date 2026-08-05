@@ -24,6 +24,10 @@ export type AgentContext = {
     // exactamente igual que antes (ver voice.ts).
     voice_preset?: string | null
     voice_profile?: unknown
+    // Capacidades de lectura de media (Fase 3). Opcionales por el mismo
+    // motivo: sin la migración llegan undefined y quedan APAGADAS.
+    cap_vision?: boolean | null
+    cap_transcribe?: boolean | null
   } | null
   branch: { id: string; name: string; timezone: string } | null
   services: {
@@ -61,6 +65,10 @@ export type AgentContext = {
     direction: 'inbound' | 'outbound'
     sender: 'contact' | 'agent' | 'ai' | 'system'
     body: string | null
+    // Lectura del archivo adjunto (visión o transcripción). Es lo que hace
+    // que el agente pueda responder a una foto o a una nota de voz; sin
+    // esto, en el historial solo hay un "[image]" que no dice nada.
+    media_text?: string | null
     created_at: string
   }[]
 }

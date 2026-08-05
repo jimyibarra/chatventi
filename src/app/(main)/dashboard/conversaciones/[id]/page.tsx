@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ConversationControls } from '@/features/agente-ia/components/conversation-controls'
 import { MessageComposer } from '@/features/agente-ia/components/message-composer'
+import { signInboundUrl } from '@/features/storage/inbound'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,43 @@ const SENDER_LABEL: Record<string, string> = {
   ai: 'IA',
   agent: 'Tú',
   system: 'Sistema',
+}
+
+/**
+ * Archivo que mandó el cliente. La imagen se muestra y el audio se escucha en
+ * la propia conversación; lo demás (PDF) queda como enlace. `hasFile` sin
+ * `url` significa que la firma falló: se avisa en vez de no mostrar nada.
+ */
+function MessageMedia({
+  mime,
+  url,
+  hasFile,
+}: {
+  mime: string | null
+  url: string | null
+  hasFile: boolean
+}) {
+  if (!hasFile) return null
+  if (!url) {
+    return <p className="mb-1 text-xs italic opacity-70">Archivo adjunto (no se pudo abrir)</p>
+  }
+  if (mime?.startsWith('image/')) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="mb-1 block">
+        {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada y
+            efímera: next/image la cachearía con una firma ya caducada. */}
+        <img src={url} alt="Archivo enviado por el cliente" className="max-h-64 rounded-xl" />
+      </a>
+    )
+  }
+  if (mime?.startsWith('audio/')) {
+    return <audio controls src={url} className="mb-1 w-full max-w-64" />
+  }
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="mb-1 block underline">
+      📎 Abrir archivo
+    </a>
+  )
 }
 
 export default async function ConversacionDetallePage({
@@ -35,7 +73,7 @@ export default async function ConversacionDetallePage({
   const [{ data: messages }, { data: approvals }] = await Promise.all([
     supabase
       .from('messages')
-      .select('id, direction, sender, body, created_at')
+      .select('id, direction, sender, body, created_at, media_path, media_mime, media_text')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true }),
     supabase
@@ -47,6 +85,19 @@ export default async function ConversacionDetallePage({
 
   const client = (conv.client as { name: string | null; phone: string | null } | null) ?? null
   const channel = (conv.channel as { type: string } | null) ?? null
+
+  // Los archivos que manda el cliente viven en un bucket PRIVADO: se ven solo
+  // por URL firmada, que caduca a los 5 minutos. Se firman aquí, en el
+  // servidor, no en el navegador.
+  const signedByMessage = new Map<string, string>()
+  await Promise.all(
+    (messages ?? [])
+      .filter((m) => m.media_path)
+      .map(async (m) => {
+        const url = await signInboundUrl(m.media_path as string)
+        if (url) signedByMessage.set(m.id, url)
+      })
+  )
 
   return (
     <>
@@ -96,7 +147,19 @@ export default async function ConversacionDetallePage({
                   <p className="mb-0.5 text-[10px] uppercase opacity-70">
                     {SENDER_LABEL[m.sender] ?? m.sender}
                   </p>
+                  <MessageMedia
+                    mime={m.media_mime}
+                    url={signedByMessage.get(m.id) ?? null}
+                    hasFile={Boolean(m.media_path)}
+                  />
                   {m.body}
+                  {m.media_text && (
+                    // Lo que la IA leyó del archivo. Se muestra para que el
+                    // dueño pueda juzgar si la lectura fue correcta.
+                    <p className="mt-1 border-l-2 border-current/30 pl-2 text-xs italic opacity-80">
+                      {m.media_text}
+                    </p>
+                  )}
                 </div>
               </div>
             ))
