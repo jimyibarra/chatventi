@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
 import { fetchTelegramMedia } from '@/features/agente-ia/media-fetch'
+import { parseCsatButton, csatReply, CSAT_ALREADY } from '@/features/agente-ia/csat'
 import {
   tgSendMessage,
   tgSendApproval,
@@ -196,6 +197,57 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         } catch (err) {
           console.error('[telegram-webhook] error confirmando cita', err)
+        }
+      })
+      return NextResponse.json({ ok: true }, { status: 200 })
+    }
+
+    // A.3) Botón de la encuesta ("csat:<appointment_id>:<score>"): registra la
+    // nota y agradece, SIN despertar al agente. Mismo molde que "conf:",
+    // incluido el paso por route_inbound_message para dedupear reintentos.
+    const csat = parseCsatButton(cb.data)
+    if (csat) {
+      const csatChatId = cb.message ? String(cb.message.chat.id) : null
+      const csatChannelId = process.env.TELEGRAM_BOT_EXTERNAL_ID
+      after(async () => {
+        try {
+          await tgAnswerCallback(cb.id, '¡Gracias!')
+          if (!csatChatId || !csatChannelId) return
+          const supabase = createWebhookClient()
+          const { data: routedData, error: routeErr } = await supabase.rpc(
+            'route_inbound_message',
+            {
+              p_channel_type: 'telegram',
+              p_external_id: csatChannelId,
+              p_from_handle: csatChatId,
+              p_body: `Calificación: ${csat.score}/5`,
+              p_media_path: null,
+              p_ext_msg_id: `tg_cb_${cb.id}`,
+            }
+          )
+          const routed = routedData as { message_id: string | null; duplicate: boolean } | null
+          if (routeErr || !routed?.message_id || routed.duplicate) return
+
+          const { data, error } = await supabase.rpc('record_csat', {
+            p_channel_type: 'telegram',
+            p_external_id: csatChannelId,
+            p_client_phone: csatChatId,
+            p_appointment_id: csat.appointmentId,
+            p_score: csat.score,
+          })
+          const info = data as { conversation_id?: string; duplicate?: boolean } | null
+          const text = error || info?.duplicate ? CSAT_ALREADY : csatReply(csat.score)
+          const extId = await tgSendMessage(csatChatId, text)
+          if (info?.conversation_id) {
+            await supabase.rpc('log_outbound_message', {
+              p_conversation_id: info.conversation_id,
+              p_body: text,
+              p_sender: 'system',
+              p_external_id: extId ?? undefined,
+            })
+          }
+        } catch (err) {
+          console.error('[telegram-webhook] error registrando csat', err)
         }
       })
       return NextResponse.json({ ok: true }, { status: 200 })

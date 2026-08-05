@@ -13,8 +13,20 @@ import {
 } from '@/features/emails/templates'
 import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 import { removeInboundFolder } from '@/features/storage/inbound'
+import { runConversationScoring } from '@/features/agente-ia/scoring-job'
 
 export const runtime = 'nodejs'
+
+// Botones del CSAT. WhatsApp admite MÁXIMO 3 reply buttons, así que una
+// escala 1-5 no cabe en una tanda y partirla en dos mensajes sería peor
+// experiencia. Se mapean tres opciones a la escala de 5 que guarda la BD:
+// así el dato sigue siendo comparable si algún día entra otro canal con más
+// botones. El id lleva la cita para poder validar propiedad al recibirlo.
+const CSAT_BUTTONS = [
+  { score: 5, title: 'Excelente 🤩' },
+  { score: 3, title: 'Bien 🙂' },
+  { score: 1, title: 'Mal 😕' },
+] as const
 
 type DueItem = {
   appointment_id: string
@@ -103,6 +115,15 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     followup: { sent: 0, skipped: 0, no_channel: 0 },
   }
 
+  // Orgs con la encuesta encendida. Se consulta UNA vez: el follow-up de
+  // cada cita necesita saberlo, y con la capacidad apagada este set queda
+  // vacío y el envío es idéntico al de siempre.
+  const { data: csatRows } = await service
+    .from('agent_configs')
+    .select('organization_id')
+    .eq('cap_csat', true)
+  const csatOrgs = new Set((csatRows ?? []).map((r) => r.organization_id))
+
   for (const kind of kinds) {
     const { data, error } = await service.rpc('get_due_reminders', { p_kind: kind })
     if (error) {
@@ -148,6 +169,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             [{ id: `conf:${item.appointment_id}`, title: 'Confirmar asistencia' }]
           )
         }
+        // Follow-up post-cita: el mensaje YA pregunta "¿cómo estuvo tu
+        // experiencia?" — la encuesta se cuelga de ahí con botones, en vez
+        // de mandar un segundo mensaje preguntando lo mismo.
+        if (kind === 'followup' && csatOrgs.size > 0) {
+          const { data: appt } = await service
+            .from('appointments')
+            .select('organization_id')
+            .eq('id', item.appointment_id)
+            .maybeSingle()
+          if (appt?.organization_id && csatOrgs.has(appt.organization_id)) {
+            extId = await sendButtonsToCustomerByChannel(
+              service,
+              item.channel_type,
+              item.channel_external_id,
+              item.send_to,
+              text,
+              CSAT_BUTTONS.map((b) => ({
+                id: `csat:${item.appointment_id}:${b.score}`,
+                title: b.title,
+              }))
+            )
+          }
+        }
         if (!extId) {
           extId = await sendToCustomerByChannel(
             service,
@@ -189,6 +233,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // demo son efímeras; se borran las de más de 24h en cada corrida.
   await cleanupDemoOrg(service)
 
+  // Calificación de conversaciones enfriadas. Va al FINAL a propósito: es lo
+  // menos crítico de esta corrida y lo más lento (una llamada al modelo por
+  // conversación). Si el tiempo de la función se agota aquí, lo que se pierde
+  // es una calificación, no el recordatorio de una cita.
+  const scoring = await runConversationScoring(service)
+
   // Diagnóstico del SMTP (handshake real, sin enviar): confirma que las
   // credenciales de correo en producción son correctas.
   const emailsStatus = await verifyTransport()
@@ -198,9 +248,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     summary,
     recurring,
     trial: trialSummary,
+    scoring,
     emails: emailsStatus,
   })
 }
+
 
 type DueClientReminder = {
   reminder_id: string

@@ -617,6 +617,9 @@ export type Database = {
         Row: {
           ai_enabled: boolean
           ai_paused_until: string | null
+          ai_score: number | null
+          ai_score_reason: string | null
+          ai_scored_at: string | null
           assigned_agent_id: string | null
           channel_id: string
           client_id: string | null
@@ -629,6 +632,9 @@ export type Database = {
         Insert: {
           ai_enabled?: boolean
           ai_paused_until?: string | null
+          ai_score?: number | null
+          ai_score_reason?: string | null
+          ai_scored_at?: string | null
           assigned_agent_id?: string | null
           channel_id: string
           client_id?: string | null
@@ -641,6 +647,9 @@ export type Database = {
         Update: {
           ai_enabled?: boolean
           ai_paused_until?: string | null
+          ai_score?: number | null
+          ai_score_reason?: string | null
+          ai_scored_at?: string | null
           assigned_agent_id?: string | null
           channel_id?: string
           client_id?: string | null
@@ -674,6 +683,58 @@ export type Database = {
           },
           {
             foreignKeyName: "conversations_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      csat_responses: {
+        Row: {
+          appointment_id: string | null
+          comment: string | null
+          conversation_id: string | null
+          created_at: string
+          id: string
+          organization_id: string
+          score: number
+        }
+        Insert: {
+          appointment_id?: string | null
+          comment?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id: string
+          score: number
+        }
+        Update: {
+          appointment_id?: string | null
+          comment?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          organization_id?: string
+          score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "csat_responses_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_responses_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "csat_responses_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1490,6 +1551,10 @@ export type Database = {
       }
       canonical_email: { Args: { p_email: string }; Returns: string }
       claim_client_reminder: { Args: { p_id: string }; Returns: boolean }
+      claim_conversation_scoring: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
       claim_reminder: {
         Args: { p_appointment_id: string; p_kind: string }
         Returns: boolean
@@ -1628,6 +1693,14 @@ export type Database = {
           slot_start: string
         }[]
       }
+      get_conversations_to_score: {
+        Args: { p_idle_minutes?: number }
+        Returns: {
+          client_name: string
+          conversation_id: string
+          organization_id: string
+        }[]
+      }
       get_crm_overview: { Args: never; Returns: Json }
       get_due_client_reminders: { Args: never; Returns: Json }
       get_due_reminders: { Args: { p_kind: string }; Returns: Json }
@@ -1662,6 +1735,16 @@ export type Database = {
       pause_ai: {
         Args: { p_conversation_id: string; p_minutes?: number }
         Returns: undefined
+      }
+      record_csat: {
+        Args: {
+          p_appointment_id: string
+          p_channel_type: string
+          p_client_phone: string
+          p_external_id: string
+          p_score: number
+        }
+        Returns: Json
       }
       reschedule_appointment_by_token: {
         Args: { p_new_starts_at: string; p_token: string }
@@ -1701,6 +1784,10 @@ export type Database = {
           p_media_path?: string
         }
         Returns: Json
+      }
+      save_conversation_score: {
+        Args: { p_conversation_id: string; p_reason: string; p_score: number }
+        Returns: boolean
       }
       set_ai_enabled: {
         Args: { p_conversation_id: string; p_enabled: boolean }

@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
 import { fetchWhatsAppMedia } from '@/features/agente-ia/media-fetch'
+import { parseCsatButton, csatReply, CSAT_ALREADY } from '@/features/agente-ia/csat'
 import {
   waSendMessage,
   waSendInteractiveButtons,
@@ -145,6 +146,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Boton "Confirmar asistencia" del recordatorio (id "conf:<appointment_id>"):
   // se confirma la cita SIN despertar al agente (respuesta estatica).
   const toConfirm: { phoneNumberId: string; from: string; appointmentId: string }[] = []
+  // Botón de la encuesta ("csat:<appointment_id>:<score>"): se registra y se
+  // agradece con texto estático, igual que "conf:" — sin despertar al LLM.
+  const toCsat: {
+    phoneNumberId: string
+    from: string
+    appointmentId: string
+    score: number
+  }[] = []
 
   try {
     const supabase = createWebhookClient()
@@ -168,6 +177,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             z.string().uuid().safeParse(buttonId.slice(5)).success
               ? buttonId.slice(5)
               : null
+          const csat = parseCsatButton(buttonId)
           if (error) {
             console.error('[whatsapp-webhook] route_inbound_message error', error.message)
           } else if (!routed?.message_id || routed.duplicate) {
@@ -175,6 +185,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             // el mensaje ya está en BD; no despertar al agente otra vez.
           } else if (confirmId) {
             toConfirm.push({ phoneNumberId, from: msg.from, appointmentId: confirmId })
+          } else if (csat) {
+            toCsat.push({ phoneNumberId, from: msg.from, ...csat })
           } else if (msg.text || msg.interactive?.button_reply) {
             toAnswer.push({ phoneNumberId, from: msg.from })
           } else if (msg.image || msg.audio || msg.document || msg.video) {
@@ -262,6 +274,43 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         } catch (err) {
           console.error('[whatsapp-webhook] error confirmando cita', err)
+        }
+      }
+    })
+  }
+
+  // Botón de la encuesta: registra la nota y agradece. Sin LLM.
+  if (toCsat.length > 0) {
+    after(async () => {
+      const supabase = createWebhookClient()
+      const service = createServiceClient()
+      for (const { phoneNumberId, from, appointmentId, score } of toCsat) {
+        try {
+          const { data, error } = await supabase.rpc('record_csat', {
+            p_channel_type: 'whatsapp',
+            p_external_id: phoneNumberId,
+            p_client_phone: from,
+            p_appointment_id: appointmentId,
+            p_score: score,
+          })
+          const info = data as { conversation_id?: string; duplicate?: boolean } | null
+          const text = error
+            ? CSAT_ALREADY
+            : info?.duplicate
+              ? CSAT_ALREADY
+              : csatReply(score)
+          const token = await getWaToken(service, phoneNumberId)
+          const extId = token ? await waSendMessage(phoneNumberId, token, from, text) : null
+          if (info?.conversation_id) {
+            await supabase.rpc('log_outbound_message', {
+              p_conversation_id: info.conversation_id,
+              p_body: text,
+              p_sender: 'system',
+              p_external_id: extId ?? undefined,
+            })
+          }
+        } catch (err) {
+          console.error('[whatsapp-webhook] error registrando csat', err)
         }
       }
     })
