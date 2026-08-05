@@ -326,6 +326,19 @@ npm run lint         # ESLint
 - **Detección**: no lo cazó typecheck, ni lint, ni el SQL de verificación. Solo el **E2E con navegador contra producción**, haciendo clic en el flujo real.
 - **Aplicar en**: toda migración destructiva (`drop function` / `drop column` / `rename`).
 
+### 2026-08-05: `revoke ... from public` NO cierra una función en Supabase
+- **Error**: ocho RPCs nuevas "solo para el cron" quedaron **ejecutables con la ANON KEY** —que es pública y viaja en el navegador— pese a llevar `revoke all on function f from public` + `grant ... to service_role`. Supabase concede EXECUTE a **`anon` y `authenticated`** por DEFAULT PRIVILEGES en cada función nueva de `public`: es un grant **directo a esos roles**, y el revoke a PUBLIC no lo toca.
+- **Y el caso inverso**: en funciones antiguas el permiso puede venir de **PUBLIC** (`=X/postgres` en `pg_proc.proacl`), y entonces revocar de `anon, authenticated` **no cambia nada**. Así se descubrió que `get_due_client_reminders()` llevaba tiempo devolviendo **mensajes, nombres y teléfonos de clientes de TODAS las orgs** a cualquiera con la anon key. Fuga real, en producción.
+- **Fix**: `revoke execute on function f(args) from public, anon, authenticated;` + `grant execute on function f(args) to service_role;` — **las dos fuentes, siempre**.
+- **Detección**: no lo cazó typecheck, ni lint, ni el DDL en verde, ni `get_advisors` (lo reporta como aviso genérico junto a 29 RPCs legítimas). Se caza **llamando la función con la anon key** y comprobando que responde `permission denied`. Consulta rápida: `select has_function_privilege('anon', p.oid, 'execute') from pg_proc p ...`.
+- **Aplicar en**: TODA RPC nueva. Si es solo para el cron o para mantenimiento, revocar de las dos fuentes y **verificar llamándola**.
+
+### 2026-08-05: no matar `node.exe` en bloque — se lleva por delante los MCP
+- **Error**: `taskkill /F /IM node.exe` para parar `npm run dev` tumbó los tres servidores MCP (Supabase, Playwright, next-devtools), que corren como procesos node vía `npx`. Se perdió el acceso a la BD a mitad de fase, dos veces, y hubo que pedirle al humano que reconectara.
+- **Fix**: parar el dev server **por PID**: `netstat -ano | findstr :3000` → `taskkill /F /PID <pid>`.
+- **Detección**: los logs de MCP (`%LOCALAPPDATA%\claude-cli-nodejs\Cache\<proyecto>\mcp-logs-*`) no muestran ningún error: la última llamada termina bien y el proceso desaparece. Que caigan **los tres a la vez** descarta un fallo del proveedor.
+- **Aplicar en**: todo el proyecto.
+
 ### 2026-07-15: Verificar las capacidades en las HERRAMIENTAS, no en el repo
 - **Error**: afirmé "no hay Playwright instalado" tras mirar `package.json`. Falso: el **MCP de Playwright** está conectado y da un navegador real. `package.json` no dice nada de las herramientas de la sesión.
 - **Fix**: antes de declarar que algo no existe, mirar las herramientas disponibles e **intentarlo**. Un `grep` que no encuentra algo prueba que no está *ahí*, no que no exista.
