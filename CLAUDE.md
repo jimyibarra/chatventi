@@ -339,6 +339,16 @@ npm run lint         # ESLint
 - **Detección**: los logs de MCP (`%LOCALAPPDATA%\claude-cli-nodejs\Cache\<proyecto>\mcp-logs-*`) no muestran ningún error: la última llamada termina bien y el proceso desaparece. Que caigan **los tres a la vez** descarta un fallo del proveedor.
 - **Aplicar en**: todo el proyecto.
 
+### 2026-08-05: la decisión de acceso no puede depender de lo que cada ROL puede LEER
+- **Error**: `proxy.ts` decidía el acceso leyendo `organizations` y `subscriptions` **desde la sesión del usuario**, así que mandaba la RLS. La policy `sub_select` solo deja ver la suscripción a `owner`/`manager`: un **`staff` recibía 0 filas**, el código concluía "no hay suscripción" y el acceso pasaba a depender solo de la prueba gratis. Resultado: **en un negocio que PAGA, todo el personal quedaba fuera al vencer la prueba**, con el cartel "Tu prueba gratis terminó".
+- **Fix**: RPC `my_app_access()` **SECURITY DEFINER** que devuelve un veredicto (`sin_org`/`con_acceso`/`bloqueado`), igual para todos los miembros, sin exponer datos de facturación.
+- **Reglas**:
+  - Una guarda que lee tablas con RLS **da veredictos distintos según el rol**. Las guardas van por función SECURITY DEFINER que devuelve **un veredicto, no datos**.
+  - Al arreglar una guarda, **no cambiar de paso el criterio** (aquí se conservó `status in ('trialing','active')` y NO se añadió el `current_period_end` de `org_is_active`): endurecerlo habría cortado el acceso a gente distinta, que no era el arreglo.
+  - Toda prueba de "esto debe fallar" necesita **control**: se puso la sub en `canceled` → ambos roles bloqueados; restaurada → ambos dentro. Sin eso, "el staff ya entra" no prueba que la puerta siga cerrada.
+- **Detección**: invisible en typecheck/lint/SQL. Salió **entrando por el navegador con el rol restringido**, con el dueño de la MISMA org como control. Es la tercera vez que este proyecto encuentra un fallo de gate exactamente así.
+- **Aplicar en**: todo gate de acceso, rol o cuota.
+
 ### 2026-08-05: una FK sin índice acopla a un inquilino con el crecimiento de los demás
 - **Error**: `appointments.client_id` no tenía índice. `get_crm_overview` hace un `lateral join` sobre `appointments` **por cada cliente** del negocio → Postgres recorría la tabla ENTERA de citas (las de TODAS las organizaciones) una vez por cliente. Con 500 negocios simulados, el CRM de un negocio de **40 clientes** tardaba **122 ms en caliente y 455 ms en frío**. Había **13 FKs sin índice**.
 - **Fix**: migración `20260805184312_indices_fk_faltantes` → **1,5 ms**.
