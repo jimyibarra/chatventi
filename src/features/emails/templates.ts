@@ -253,3 +253,63 @@ export function dataDeletedEmail(o: { orgName: string; siteUrl: string }): Built
     }),
   }
 }
+
+/**
+ * Resumen diario para el dueño (capacidad "Resumen diario", Fase 5).
+ *
+ * Es la ÚNICA plantilla operativa: las otras ocho son de billing y ciclo de
+ * vida. Se escribe en lenguaje de dueño de negocio —nada de "conversiones" ni
+ * "métricas"— y lo primero que se ve es con qué se encuentra hoy, no la
+ * estadística de ayer.
+ */
+export function dailyReportEmail(o: {
+  orgName: string
+  dayLabel: string
+  siteUrl: string
+  data: {
+    conversaciones: number
+    mensajes_recibidos: number
+    citas_creadas: number
+    escalamientos: number
+    calificacion_media: number | null
+    conversaciones_malas: number
+    citas_de_hoy: number
+  }
+}): Built {
+  const d = o.data
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:6px 0;color:#6b7280">${label}</td><td style="padding:6px 0;text-align:right;font-weight:bold;color:#111827">${value}</td></tr>`
+
+  const alerta =
+    d.conversaciones_malas > 0
+      ? `<div style="border:1px solid #fecdd3;background:#fff1f2;border-radius:10px;padding:12px 14px;margin:16px 0">
+      <p style="margin:0;font-size:13.5px;color:#9f1239"><strong>${d.conversaciones_malas}</strong> ${
+        d.conversaciones_malas === 1 ? 'conversación salió' : 'conversaciones salieron'
+      } mal. Conviene echarles un ojo.</p>
+    </div>`
+      : ''
+
+  const body = `
+    <p style="margin:0 0 14px">Hoy tienes <strong>${d.citas_de_hoy}</strong> ${
+      d.citas_de_hoy === 1 ? 'cita' : 'citas'
+    } en tu agenda.</p>
+    <p style="margin:0 0 10px;font-size:13px;color:#6b7280">Esto es lo que pasó el ${o.dayLabel}:</p>
+    <table style="width:100%;border-collapse:collapse;font-size:14px">
+      ${row('Personas que te escribieron', String(d.conversaciones))}
+      ${row('Mensajes recibidos', String(d.mensajes_recibidos))}
+      ${row('Citas agendadas', String(d.citas_creadas))}
+      ${row('Pasadas a una persona', String(d.escalamientos))}
+      ${row('Calidad de la atención', d.calificacion_media != null ? `${d.calificacion_media} / 5` : '—')}
+    </table>
+    ${alerta}`
+
+  return {
+    subject: `Tu resumen de ayer · ${d.citas_de_hoy} ${d.citas_de_hoy === 1 ? 'cita hoy' : 'citas hoy'}`,
+    html: layout({
+      title: `Buenos días, ${o.orgName}`,
+      bodyHtml: body,
+      cta: { label: 'Ver mi agenda →', href: `${o.siteUrl}/dashboard` },
+      note: 'Recibes este resumen porque tienes encendida la capacidad “Resumen diario”. Puedes apagarla desde el panel de tu recepcionista.',
+    }),
+  }
+}

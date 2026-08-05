@@ -623,6 +623,7 @@ export type Database = {
           assigned_agent_id: string | null
           channel_id: string
           client_id: string | null
+          cold_followup_sent_at: string | null
           created_at: string
           id: string
           last_message_at: string | null
@@ -638,6 +639,7 @@ export type Database = {
           assigned_agent_id?: string | null
           channel_id: string
           client_id?: string | null
+          cold_followup_sent_at?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -653,6 +655,7 @@ export type Database = {
           assigned_agent_id?: string | null
           channel_id?: string
           client_id?: string | null
+          cold_followup_sent_at?: string | null
           created_at?: string
           id?: string
           last_message_at?: string | null
@@ -735,6 +738,32 @@ export type Database = {
           },
           {
             foreignKeyName: "csat_responses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_report_runs: {
+        Row: {
+          organization_id: string
+          report_date: string
+          sent_at: string
+        }
+        Insert: {
+          organization_id: string
+          report_date: string
+          sent_at?: string
+        }
+        Update: {
+          organization_id?: string
+          report_date?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_runs_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -1551,8 +1580,16 @@ export type Database = {
       }
       canonical_email: { Args: { p_email: string }; Returns: string }
       claim_client_reminder: { Args: { p_id: string }; Returns: boolean }
+      claim_cold_followup: {
+        Args: { p_conversation_id: string }
+        Returns: boolean
+      }
       claim_conversation_scoring: {
         Args: { p_conversation_id: string }
+        Returns: boolean
+      }
+      claim_daily_report: {
+        Args: { p_date: string; p_org: string }
         Returns: boolean
       }
       claim_reminder: {
@@ -1693,6 +1730,18 @@ export type Database = {
           slot_start: string
         }[]
       }
+      get_cold_conversations: {
+        Args: { p_days?: number }
+        Returns: {
+          channel_external_id: string
+          channel_type: string
+          client_name: string
+          conversation_id: string
+          org_name: string
+          organization_id: string
+          send_to: string
+        }[]
+      }
       get_conversations_to_score: {
         Args: { p_idle_minutes?: number }
         Returns: {
@@ -1702,6 +1751,18 @@ export type Database = {
         }[]
       }
       get_crm_overview: { Args: never; Returns: Json }
+      get_daily_report_data: {
+        Args: { p_day: string; p_org: string }
+        Returns: Json
+      }
+      get_daily_report_orgs: {
+        Args: never
+        Returns: {
+          contact_email: string
+          org_name: string
+          organization_id: string
+        }[]
+      }
       get_due_client_reminders: { Args: never; Returns: Json }
       get_due_reminders: { Args: { p_kind: string }; Returns: Json }
       get_invitation_preview: { Args: { p_token: string }; Returns: Json }

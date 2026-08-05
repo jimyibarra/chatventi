@@ -14,6 +14,7 @@ import {
 import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 import { removeInboundFolder } from '@/features/storage/inbound'
 import { runConversationScoring } from '@/features/agente-ia/scoring-job'
+import { runColdFollowups, runDailyReports } from '@/features/agente-ia/outreach-jobs'
 
 export const runtime = 'nodejs'
 
@@ -233,6 +234,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // demo son efímeras; se borran las de más de 24h en cada corrida.
   await cleanupDemoOrg(service)
 
+  // Rescate de interesados que se enfriaron: un único mensaje, a quien
+  // preguntó y nunca agendó. Va después de los recordatorios (que sí tienen
+  // hora crítica) y antes de lo que solo informa.
+  const cold = await runColdFollowups(service)
+
+  // Resumen del día anterior al correo del dueño.
+  const dailyReport = await runDailyReports(service)
+
   // Calificación de conversaciones enfriadas. Va al FINAL a propósito: es lo
   // menos crítico de esta corrida y lo más lento (una llamada al modelo por
   // conversación). Si el tiempo de la función se agota aquí, lo que se pierde
@@ -248,6 +257,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     summary,
     recurring,
     trial: trialSummary,
+    cold,
+    dailyReport,
     scoring,
     emails: emailsStatus,
   })
