@@ -115,18 +115,24 @@ export async function proxy(request: NextRequest) {
     // El super_admin no es un tenant: el layout lo manda a /admin.
     if (role && role !== 'super_admin') {
       // ¿La org tiene acceso (prueba vigente o suscripción activa)?
-      const { data: org } = await supabase
-        .from('organizations')
-        .select('trial_ends_at')
-        .maybeSingle()
+      //
+      // Va por RPC y NO leyendo las tablas: la policy `sub_select` solo deja ver
+      // la suscripción a owner/manager, así que un `staff` recibía 0 filas, el
+      // código concluía "no hay suscripción" y el acceso pasaba a depender solo
+      // de la prueba. Resultado: en un negocio que PAGA, todo el personal se
+      // quedaba fuera al vencer la prueba (bug encontrado el 2026-08-05).
+      // Regla: la decisión de acceso no puede depender de lo que cada ROL puede
+      // LEER. `my_app_access` es SECURITY DEFINER y responde igual para todos.
+      const { data: access, error: accessError } = await supabase.rpc('my_app_access')
 
-      let hasAccess = true
-      if (org) {
-        const { data: sub } = await supabase.from('subscriptions').select('status').maybeSingle()
-        const subActive = !!sub && (sub.status === 'trialing' || sub.status === 'active')
-        const trialOk = !!org.trial_ends_at && new Date(org.trial_ends_at) > new Date()
-        hasAccess = subActive || trialOk
+      if (accessError) {
+        // Fail-closed a propósito: si no se puede comprobar, no se sabe si tiene
+        // acceso, y una guarda que ante el error deja pasar es una puerta
+        // abierta (aprendizaje 2026-07-15). El destino del bloqueo es
+        // Facturación, que sigue siendo navegable.
+        console.error('[proxy] my_app_access falló:', accessError.message)
       }
+      const hasAccess = !accessError && (access === 'con_acceso' || access === 'sin_org')
 
       // Gate de acceso: prueba vencida sin suscripción → a Facturación (única
       // ruta permitida) para poder pagar.

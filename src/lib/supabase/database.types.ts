@@ -1789,6 +1789,7 @@ export type Database = {
         Returns: string
       }
       merge_duplicate_clients: { Args: never; Returns: Json }
+      my_app_access: { Args: never; Returns: string }
       normalize_phone_mx: { Args: { raw: string }; Returns: string }
       org_has_ai: { Args: { p_org: string }; Returns: boolean }
       org_is_active: { Args: { p_org: string }; Returns: boolean }
