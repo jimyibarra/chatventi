@@ -724,6 +724,7 @@ export type Database = {
           id: string
           media_mime: string | null
           media_path: string | null
+          media_text: string | null
           sender: string
         }
         Insert: {
@@ -736,6 +737,7 @@ export type Database = {
           id?: string
           media_mime?: string | null
           media_path?: string | null
+          media_text?: string | null
           sender: string
         }
         Update: {
@@ -748,6 +750,7 @@ export type Database = {
           id?: string
           media_mime?: string | null
           media_path?: string | null
+          media_text?: string | null
           sender?: string
         }
         Relationships: [
@@ -1732,6 +1735,10 @@ export type Database = {
           p_scope?: string
         }
         Returns: undefined
+      }
+      set_message_media_text: {
+        Args: { p_message_id: string; p_text: string }
+        Returns: boolean
       }
       upsert_client_manual: {
         Args: { p_name: string; p_phone: string }

@@ -9,7 +9,17 @@ import {
 } from '../capabilities'
 import { saveCapabilities } from '../actions'
 
-export function CapabilitiesForm({ state }: { state: Record<CapColumn, boolean> }) {
+export function CapabilitiesForm({
+  state,
+  // Capacidades que no se pueden encender todavía porque les falta algo del
+  // lado del servidor (hoy: la transcripción necesita su propia API key).
+  // Encenderlas sin eso no rompe nada —el sistema degrada al aviso de
+  // siempre— pero el dueño creería que ya escucha los audios.
+  unavailable = {},
+}: {
+  state: Record<CapColumn, boolean>
+  unavailable?: Partial<Record<CapColumn, string>>
+}) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [caps, setCaps] = useState(state)
@@ -67,7 +77,7 @@ export function CapabilitiesForm({ state }: { state: Record<CapColumn, boolean> 
             <input
               type="checkbox"
               checked={caps[c.column]}
-              disabled={pending}
+              disabled={pending || Boolean(unavailable[c.column])}
               onChange={() => toggle(c.column)}
               data-testid={`cap-${c.id}`}
               className="mt-1 h-4 w-4 shrink-0 rounded border-line text-brand-500 focus:ring-brand-400"
@@ -83,6 +93,11 @@ export function CapabilitiesForm({ state }: { state: Record<CapColumn, boolean> 
                 )}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-ink-muted">{c.description}</p>
+              {unavailable[c.column] && (
+                <p className="mt-1.5 text-xs font-medium text-amber-800">
+                  {unavailable[c.column]}
+                </p>
+              )}
             </div>
           </li>
         ))}

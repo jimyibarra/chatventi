@@ -9,6 +9,7 @@ import { sendToCustomerByChannel } from './senders'
 import { VOICE_PRESETS, voiceProfileSchema, type VoiceProfile } from './voice'
 import { CAP_COLUMNS, type CapColumn } from './capabilities'
 import { extractVoiceFromUrl } from './voice-extract'
+import { transcriptionAvailable } from './transcribe'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { ONE_HOUR_SECONDS, VOICE_EXTRACT_MAX_PER_ORG_PER_HOUR } from '@/shared/security/limits'
 
@@ -129,6 +130,17 @@ export async function saveCapabilities(raw: unknown): Promise<ActionResult> {
   const parsed = capabilitiesSchema.safeParse(raw)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
+  }
+
+  // La transcripción necesita una API key propia (no va por OpenRouter). El
+  // interruptor ya viene deshabilitado en la UI, pero la guarda de verdad va
+  // aquí: encenderla sin proveedor dejaría al dueño creyendo que su agente
+  // escucha las notas de voz cuando en realidad sigue escalándolas.
+  if (parsed.data.cap_transcribe && !transcriptionAvailable()) {
+    return {
+      ok: false,
+      error: 'La transcripción de audios aún no está disponible en tu cuenta.',
+    }
   }
 
   const supabase = await createClient()

@@ -73,7 +73,7 @@ export default async function ConversacionDetallePage({
   const [{ data: messages }, { data: approvals }] = await Promise.all([
     supabase
       .from('messages')
-      .select('id, direction, sender, body, created_at, media_path, media_mime')
+      .select('id, direction, sender, body, created_at, media_path, media_mime, media_text')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true }),
     supabase
@@ -153,6 +153,13 @@ export default async function ConversacionDetallePage({
                     hasFile={Boolean(m.media_path)}
                   />
                   {m.body}
+                  {m.media_text && (
+                    // Lo que la IA leyó del archivo. Se muestra para que el
+                    // dueño pueda juzgar si la lectura fue correcta.
+                    <p className="mt-1 border-l-2 border-current/30 pl-2 text-xs italic opacity-80">
+                      {m.media_text}
+                    </p>
+                  )}
                 </div>
               </div>
             ))

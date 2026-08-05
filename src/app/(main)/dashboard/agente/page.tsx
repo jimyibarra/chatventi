@@ -7,6 +7,7 @@ import { VoiceForm } from '@/features/agente-ia/components/voice-form'
 import { CapabilitiesForm } from '@/features/agente-ia/components/capabilities-form'
 import { readCapabilities } from '@/features/agente-ia/capabilities'
 import { parseVoiceProfile } from '@/features/agente-ia/voice'
+import { transcriptionAvailable } from '@/features/agente-ia/transcribe'
 
 export const dynamic = 'force-dynamic'
 
@@ -79,7 +80,17 @@ export default async function AgentePage() {
           hasCustomPrompt={hasCustomPrompt}
         />
         <AgentConfigForm config={config ?? null} />
-        <CapabilitiesForm state={readCapabilities(capsRow)} />
+        <CapabilitiesForm
+          state={readCapabilities(capsRow)}
+          // La transcripción no va por OpenRouter: necesita su propia clave.
+          // Sin ella el interruptor se queda bloqueado, en vez de dejar que el
+          // dueño lo encienda y crea que ya escucha las notas de voz.
+          unavailable={
+            transcriptionAvailable()
+              ? {}
+              : { cap_transcribe: 'Aún no disponible: falta configurar el servicio de transcripción.' }
+          }
+        />
         <VoiceForm
           initialPreset={voice?.voice_preset ?? null}
           initialProfile={parseVoiceProfile(voice?.voice_profile)}
