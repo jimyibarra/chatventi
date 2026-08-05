@@ -15,6 +15,8 @@ export type VerticalContent = {
   h1: string
   /** Frase de apoyo bajo el H1. */
   subtitle: string
+  /** Alt de la foto del hero. La ruta se deriva del slug: /verticales/<slug>.webp */
+  imageAlt: string
   /** <title> y meta description. Cortos: Google trunca ~60 / ~155. */
   metaTitle: string
   metaDescription: string
@@ -31,6 +33,7 @@ export const VERTICAL_CONTENT: Record<string, VerticalContent> = {
     h1: 'Tu recepcionista con IA para barberías y peluquerías',
     subtitle:
       'Contesta y agenda por WhatsApp mientras tienes las tijeras en la mano. Cada barbero con su propia agenda, sin dobles reservas.',
+    imageAlt: 'Barbero atendiendo a un cliente en una barbería luminosa',
     metaTitle: 'Agenda con IA para barberías y peluquerías · ChatVenti',
     metaDescription:
       'Software de citas para barberías y peluquerías: la IA contesta WhatsApp, agenda por barbero y manda recordatorios. Sin dobles reservas. Prueba gratis.',
@@ -86,6 +89,7 @@ export const VERTICAL_CONTENT: Record<string, VerticalContent> = {
     h1: 'Tu recepcionista con IA para clínicas dentales',
     subtitle:
       'Atiende cada mensaje, agenda por tipo de tratamiento y confirma antes de la cita. Menos huecos vacíos en el sillón.',
+    imageAlt: 'Dentista junto al sillón de una clínica dental moderna',
     metaTitle: 'Agenda con IA para clínicas dentales y dentistas · ChatVenti',
     metaDescription:
       'Software de citas para clínicas dentales: la IA contesta WhatsApp, agenda por tratamiento y confirma para reducir ausencias. Prueba gratis, sin tarjeta.',
@@ -141,6 +145,7 @@ export const VERTICAL_CONTENT: Record<string, VerticalContent> = {
     h1: 'Tu recepcionista con IA para clínicas veterinarias',
     subtitle:
       'Consultas, vacunas y baño en una sola agenda. La IA pregunta por la mascota, agenda con el veterinario correcto y recuerda la próxima vacuna.',
+    imageAlt: 'Veterinaria revisando a un perro acompañada de su dueña',
     metaTitle: 'Agenda con IA para clínicas veterinarias · ChatVenti',
     metaDescription:
       'Software de citas para veterinarias: la IA contesta WhatsApp, agenda consultas, vacunas y estética, y recuerda la próxima visita. Prueba gratis.',
@@ -196,6 +201,7 @@ export const VERTICAL_CONTENT: Record<string, VerticalContent> = {
     h1: 'Tu recepcionista con IA para spas y estudios de uñas',
     subtitle:
       'Agenda tratamientos largos sin romper el día, coordina cabinas y terapeutas, y recupera los huecos de última hora.',
+    imageAlt: 'Sala de spa con camilla preparada, velas y plantas',
     metaTitle: 'Agenda con IA para spas, uñas y estética · ChatVenti',
     metaDescription:
       'Software de citas para spas y estudios de uñas: la IA contesta WhatsApp, coordina cabinas y terapeutas, y manda recordatorios. Prueba gratis.',
@@ -251,6 +257,7 @@ export const VERTICAL_CONTENT: Record<string, VerticalContent> = {
     h1: 'Tu recepcionista con IA para consultorios médicos',
     subtitle:
       'Atiende y agenda consultas 24/7 por WhatsApp, con confirmación automática. Sin dar nunca consejo médico.',
+    imageAlt: 'Médico conversando con una paciente en su consultorio',
     metaTitle: 'Agenda con IA para consultorios médicos · ChatVenti',
     metaDescription:
       'Software de citas para consultorios médicos: la IA contesta WhatsApp, agenda consultas y confirma antes de la cita. Nunca da consejo clínico. Prueba gratis.',

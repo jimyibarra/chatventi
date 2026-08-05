@@ -16,7 +16,7 @@ import {
   TESTIMONIALS,
   TRIAL_DAYS,
 } from '@/features/landing/data'
-import { TRUST_LABELS } from '@/features/verticales/data'
+import { TRUST_LABELS, VERTICALS } from '@/features/verticales/data'
 import { Icon, PhoneIcon, WhatsAppIcon } from '@/features/landing/icons'
 import { LandingEffects } from '@/features/landing/effects'
 import { DemoChat } from '@/features/landing/demo-chat'
@@ -332,13 +332,24 @@ export default function Home() {
             <h2 id="industrias-titulo" className="cv-h2">Si vives de las citas, ChatVenti es para ti</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
+            {/* Cada tarjeta ENLAZA a su landing por giro. Antes esas páginas
+                existían solo en el sitemap: ningún enlace interno llevaba a
+                ellas, así que ni las encontraba un visitante ni recibían
+                autoridad de la home. */}
             {INDUSTRIES.map((ind) => (
-              <article key={ind.title} data-reveal className="cv-card-hover" style={{ padding: '30px 26px' }}>
+              <Link
+                key={ind.title}
+                href={`/para/${ind.vertical}`}
+                data-reveal
+                className="cv-card-hover"
+                style={{ display: 'block', padding: '30px 26px', textDecoration: 'none', color: 'inherit' }}
+              >
                 <span aria-hidden style={{ fontSize: 30 }}>{ind.emoji}</span>
                 <h3 style={{ ...H3, fontSize: 19, margin: '14px 0 8px' }}>{ind.title}</h3>
                 <p style={{ ...BODY_MUTED, fontSize: 14.5, marginBottom: 16 }}>{ind.body}</p>
-                <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: '#128C4A' }}>{ind.stat}</p>
-              </article>
+                <p style={{ margin: '0 0 10px', fontSize: 13.5, fontWeight: 700, color: '#128C4A' }}>{ind.stat}</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#5B4FE0' }}>Ver cómo funciona →</p>
+              </Link>
             ))}
           </div>
         </section>
@@ -483,6 +494,18 @@ export default function Home() {
               <li><Link href="/privacy">Aviso de privacidad</Link></li>
               <li><Link href="/terms">Términos y condiciones</Link></li>
               <li><a href="#faq">Preguntas frecuentes</a></li>
+            </ul>
+          </nav>
+          {/* Enlaces por giro: dan entrada a las landings verticales desde
+              todas las páginas que llevan este footer. */}
+          <nav aria-label="ChatVenti por giro de negocio">
+            <p style={{ fontWeight: 700, color: '#fff', fontSize: 14, margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Por giro</p>
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10, fontSize: 14 }}>
+              {VERTICALS.map((v) => (
+                <li key={v.slug}>
+                  <Link href={`/para/${v.slug}`}>{v.emoji} {v.label}</Link>
+                </li>
+              ))}
             </ul>
           </nav>
         </div>
