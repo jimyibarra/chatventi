@@ -339,6 +339,24 @@ npm run lint         # ESLint
 - **Detección**: los logs de MCP (`%LOCALAPPDATA%\claude-cli-nodejs\Cache\<proyecto>\mcp-logs-*`) no muestran ningún error: la última llamada termina bien y el proceso desaparece. Que caigan **los tres a la vez** descarta un fallo del proveedor.
 - **Aplicar en**: todo el proyecto.
 
+### 2026-08-05: un `OR` en una policy de RLS inutiliza todos los índices de la tabla
+- **Error**: la policy de `messages` era `using ( get_my_role() = 'super_admin' OR organization_id = get_my_org() )`. Ese `OR` contra algo que **no es una columna** impide que el planificador convierta la policy en condición de índice: si la primera rama pudiera ser cierta, valen TODAS las filas, así que evalúa fila a fila. Con 150.000 mensajes, el KPI del panel principal **agotaba el statement_timeout (57014)**: el panel se rompía entero.
+- **Lo que NO lo arregló** (y costó dos intentos): (1) forzar el join desde la app con `conversations!inner` → 7,5 s; (2) denormalizar `organization_id` + índice → seguía agotando el tiempo. La forma de la policy pesaba más que el esquema.
+- **Fix**: quitar la rama del `OR` (el panel admin lee por RPCs `admin_*` SECURITY DEFINER, no por tabla) → policy `organization_id = (select get_my_org())`. **Timeout (>8.000 ms) → 189 ms.**
+- **Reglas**:
+  - En una policy, `OR` con algo que no sea columna indexada = seq scan garantizado. Da los privilegios especiales por **RPC SECURITY DEFINER**, no metiéndolos en el `using`.
+  - Envolver las funciones en `(select fn())` fuerza un InitPlan: se evalúan **una vez por consulta**, no una por fila.
+  - Una tabla que se filtra por organización necesita la columna `organization_id` **propia**; si la RLS tiene que saltar a otra tabla, ese salto se paga en cada fila. Un trigger `before insert` la rellena sin tocar a ningún escritor.
+  - Cambiar una policy es tocar seguridad: revalidar el aislamiento **después** (aquí: dueño y staff ven solo lo suyo, 0 de otra org, anónimo 401).
+- **Detección**: no lo cazó nada salvo **medir con volumen real**. Con 35 mensajes todo iba en milisegundos.
+- **Aplicar en**: toda policy de RLS del proyecto.
+
+### 2026-08-05: no delegues en el modelo la recuperación de un error que tú detectaste
+- **Error**: al detectar que el agente iba a reservar una hora distinta a la pactada, la herramienta **rechazaba** la llamada con un mensaje explicando cómo corregir. Probado en vivo: el modelo interpretó el rechazo como falta de disponibilidad y le dijo al cliente *"las 4:30 no están disponibles"* —falso— ofreciéndole otras horas. El fallo cambió de forma, no desapareció.
+- **Fix**: **corregir en el código**. Si la hora prometida al cliente no coincide con el instante, se recalcula el instante a la hora prometida; si ese hueco está ocupado, la RPC responde `slot_taken`, que ya se maneja.
+- **Regla**: si el código ya sabe cuál es la respuesta correcta, que la aplique. Devolverle el problema al modelo añade un punto de fallo justo donde ya sabes que es poco fiable. Rechazar solo sirve cuando el código **no** puede saber la respuesta correcta.
+- **Aplicar en**: toda validación sobre salidas de un LLM.
+
 ### 2026-08-05: la decisión de acceso no puede depender de lo que cada ROL puede LEER
 - **Error**: `proxy.ts` decidía el acceso leyendo `organizations` y `subscriptions` **desde la sesión del usuario**, así que mandaba la RLS. La policy `sub_select` solo deja ver la suscripción a `owner`/`manager`: un **`staff` recibía 0 filas**, el código concluía "no hay suscripción" y el acceso pasaba a depender solo de la prueba gratis. Resultado: **en un negocio que PAGA, todo el personal quedaba fuera al vencer la prueba**, con el cartel "Tu prueba gratis terminó".
 - **Fix**: RPC `my_app_access()` **SECURITY DEFINER** que devuelve un veredicto (`sin_org`/`con_acceso`/`bloqueado`), igual para todos los miembros, sin exponer datos de facturación.
