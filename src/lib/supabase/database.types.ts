@@ -815,6 +815,7 @@ export type Database = {
           media_mime: string | null
           media_path: string | null
           media_text: string | null
+          organization_id: string
           sender: string
         }
         Insert: {
@@ -828,6 +829,8 @@ export type Database = {
           media_mime?: string | null
           media_path?: string | null
           media_text?: string | null
+          /** Lo rellena el trigger tr_messages_set_org desde la conversación. */
+          organization_id?: string
           sender: string
         }
         Update: {
@@ -841,6 +844,7 @@ export type Database = {
           media_mime?: string | null
           media_path?: string | null
           media_text?: string | null
+          organization_id?: string
           sender?: string
         }
         Relationships: [

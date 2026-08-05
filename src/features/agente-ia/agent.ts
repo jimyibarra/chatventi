@@ -106,6 +106,8 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
+    '- 🔴 Si TÚ ofreciste una hora y el cliente acepta sin repetirla ("sí", "va", "perfecto"), eligió ESA hora, la de tu mensaje anterior. NO tomes otra de la lista de disponibilidad (ni la primera): reservar a una hora distinta de la pactada hace que el cliente se presente cuando no le toca.',
+    '- En book_appointment y reschedule_appointment, `hora_ofrecida` es la hora que le dijiste al cliente, copiada tal cual de tu mensaje, y debe corresponder al instante que pasas. Si la herramienta responde que no coinciden, corrige el instante para que sea el que prometiste; no cambies la hora en silencio.',
     '- Si el mensaje del cliente contiene una marca [slot:<instante>], eligió ese horario: pasa a book_appointment/reschedule_appointment el instante EXACTO que sigue a "slot:" sin modificarlo.',
     '- Si la marca es [slot:<instante>|<uuid>], el uuid tras la barra es el resource_id de ESE horario: pásalo tal cual a book_appointment. No lo omitas ni lo cambies, o reservarías con otra persona.',
     ...(resources
@@ -205,6 +207,53 @@ function fmtTime(iso: string, tz: string): string {
     minute: '2-digit',
     hourCycle: 'h23',
   }).format(new Date(iso))
+}
+
+// Minutos desde medianoche de "16:30", "4:30 pm", "16 h", "4pm"…
+// Devuelve null si no se reconoce; quien llama NO debe bloquear en ese caso
+// (ver la comprobación de book_appointment).
+function parseHoraHumana(raw: string): number | null {
+  const s = raw.trim().toLowerCase().replace(/\./g, '')
+  const m = s.match(/(\d{1,2})(?:[:h\s](\d{2}))?\s*(am|pm)?/)
+  if (!m) return null
+  let h = Number(m[1])
+  const min = m[2] ? Number(m[2]) : 0
+  if (h > 23 || min > 59) return null
+  if (m[3] === 'pm' && h < 12) h += 12
+  if (m[3] === 'am' && h === 12) h = 0
+  return h * 60 + min
+}
+
+/**
+ * Red de seguridad contra "confirmo una hora distinta a la pactada".
+ *
+ * `check_availability` devuelve hasta 3 horarios; se observó (1 de 3 intentos,
+ * 2026-08-05) que tras ofrecer el último —"a las 16:30"— y recibir un "sí,
+ * resérvalo", el modelo reservaba el PRIMERO del array. El cliente se presenta
+ * a otra hora y la culpa es del negocio.
+ *
+ * Se obliga al modelo a declarar la hora que dijo, y se compara con la que va a
+ * grabar. Si no cuadran, la herramienta rechaza y explica cómo corregir.
+ *
+ * Devuelve el mensaje de error, o null si todo cuadra. Si la hora declarada no
+ * se puede interpretar, NO bloquea: esto es una red de seguridad de coherencia,
+ * no una guarda de acceso, y tumbar una reserva legítima por un fallo del
+ * parser sería peor que el problema que evita.
+ */
+function desajusteDeHora(
+  horaOfrecida: string,
+  startsAtUtc: string,
+  tz: string
+): string | null {
+  const prometida = parseHoraHumana(horaOfrecida)
+  const real = parseHoraHumana(fmtTime(startsAtUtc, tz))
+  if (prometida === null || real === null || prometida === real) return null
+  return (
+    `No coincide: al cliente le dijiste "${horaOfrecida}" pero ibas a reservar las ` +
+    `${fmtTime(startsAtUtc, tz)}. Reserva EXACTAMENTE el horario que le prometiste. ` +
+    `Si ese horario ya no está libre, díselo con claridad y ofrécele otro; nunca lo ` +
+    `cambies en silencio. Usa siempre un instante devuelto por check_availability.`
+  )
 }
 
 // "jueves 10 de julio, 16:00" en la zona horaria de la sucursal.
@@ -488,14 +537,22 @@ export async function runAgent(params: {
       inputSchema: z.object({
         service_ids: z.array(z.string().uuid()).min(1),
         starts_at: z.string().describe('Instante ISO 8601 del inicio (de check_availability)'),
+        hora_ofrecida: z
+          .string()
+          .describe(
+            'La hora EXACTA que le dijiste al cliente en la conversación, tal cual (ej. "16:30" o "4:30 pm"). Debe corresponder a starts_at.'
+          ),
         resource_id: z
           .string()
           .uuid()
           .optional()
           .describe('Id de la persona elegida (o el uuid tras la barra de la marca [slot:...|uuid])'),
       }),
-      execute: async ({ service_ids, starts_at, resource_id }) => {
+      execute: async ({ service_ids, starts_at, hora_ofrecida, resource_id }) => {
         const startsAtUtc = isoWithTz(starts_at, tz)
+
+        const desajuste = desajusteDeHora(hora_ofrecida, startsAtUtc, tz)
+        if (desajuste) return { error: desajuste }
         // Sandbox: NO se crea la cita; solo se arma la confirmación (misma UI).
         if (sandbox) {
           const resourceName = resource_id
@@ -588,11 +645,19 @@ export async function runAgent(params: {
       inputSchema: z.object({
         appointment_id: z.string().uuid().describe('Id de la cita (de CITAS PRÓXIMAS DEL CLIENTE)'),
         new_starts_at: z.string().describe('Nuevo inicio ISO 8601 (de check_availability)'),
+        hora_ofrecida: z
+          .string()
+          .describe(
+            'La hora EXACTA que le dijiste al cliente en la conversación, tal cual (ej. "16:30" o "4:30 pm"). Debe corresponder a new_starts_at.'
+          ),
       }),
-      execute: async ({ appointment_id, new_starts_at }) => {
+      execute: async ({ appointment_id, new_starts_at, hora_ofrecida }) => {
         const appt = upcomingById(appointment_id)
         if (!appt) return { ok: false, error: 'Esa cita no está en la lista del cliente.' }
         const newStartsAtUtc = isoWithTz(new_starts_at, tz)
+
+        const desajuste = desajusteDeHora(hora_ofrecida, newStartsAtUtc, tz)
+        if (desajuste) return { ok: false, error: desajuste }
         // Sandbox: reagenda simulada (no toca la BD).
         if (sandbox) {
           actions.push({
