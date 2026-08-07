@@ -172,17 +172,14 @@ export async function saveReminder2h(enabled: boolean): Promise<ActionResult> {
   const { data: orgId } = await supabase.rpc('get_my_org')
   if (!orgId) return { ok: false, error: 'No tienes una organización.' }
 
-  // `reminder_2h` llega con la migración 20260806120000; hasta regenerar los
-  // tipos de Supabase (llevan la BD real, no las migraciones del repo) el cast
-  // evita el error de compilación sin cambiar nada en runtime.
-  const payload = {
-    organization_id: orgId,
-    reminder_2h: enabled,
-    updated_at: new Date().toISOString(),
-  }
-  const { error } = await supabase
-    .from('agent_configs')
-    .upsert(payload as never, { onConflict: 'organization_id' })
+  const { error } = await supabase.from('agent_configs').upsert(
+    {
+      organization_id: orgId,
+      reminder_2h: enabled,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'organization_id' }
+  )
   if (error) return { ok: false, error: 'No se pudo guardar el ajuste de recordatorios.' }
 
   revalidatePath('/dashboard/agente')

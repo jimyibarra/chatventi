@@ -29,6 +29,7 @@ export type Database = {
           id: string
           model: string
           organization_id: string
+          reminder_2h: boolean
           system_prompt: string | null
           updated_at: string
           voice_preset: string | null
@@ -50,6 +51,7 @@ export type Database = {
           id?: string
           model?: string
           organization_id: string
+          reminder_2h?: boolean
           system_prompt?: string | null
           updated_at?: string
           voice_preset?: string | null
@@ -71,6 +73,7 @@ export type Database = {
           id?: string
           model?: string
           organization_id?: string
+          reminder_2h?: boolean
           system_prompt?: string | null
           updated_at?: string
           voice_preset?: string | null
@@ -829,8 +832,7 @@ export type Database = {
           media_mime?: string | null
           media_path?: string | null
           media_text?: string | null
-          /** Lo rellena el trigger tr_messages_set_org desde la conversación. */
-          organization_id?: string
+          organization_id: string
           sender: string
         }
         Update: {
@@ -860,6 +862,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
