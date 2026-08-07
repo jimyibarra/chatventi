@@ -6,7 +6,7 @@ export type AgentContext = {
     status: string
     ai_enabled: boolean
     ai_paused_until: string | null
-    channel_type: 'whatsapp' | 'telegram' | 'web'
+    channel_type: 'whatsapp' | 'telegram' | 'web' | 'instagram' | 'messenger'
     channel_external_id: string
     client_id: string | null
     client_handle: string

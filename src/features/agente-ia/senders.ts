@@ -227,6 +227,15 @@ export async function sendToCustomerByChannel(
     }
     return waSendMessage(channelExternalId, token, sendTo, text)
   }
+  if (channelType === 'instagram' || channelType === 'messenger') {
+    const { getChannelToken, metaSendText } = await import('@/features/canales/meta-messaging')
+    const token = await getChannelToken(service, channelType, channelExternalId)
+    if (!token) {
+      console.error(`[senders] sin access_token para el canal ${channelType}`, channelExternalId)
+      return null
+    }
+    return metaSendText(channelExternalId, token, sendTo, text)
+  }
   return null
 }
 
@@ -254,6 +263,17 @@ export async function sendButtonsToCustomerByChannel(
       return null
     }
     return waSendInteractiveButtons(channelExternalId, token, sendTo, text, buttons)
+  }
+  if (channelType === 'instagram' || channelType === 'messenger') {
+    const { getChannelToken, metaSendText } = await import('@/features/canales/meta-messaging')
+    const token = await getChannelToken(service, channelType, channelExternalId)
+    if (!token) {
+      console.error(`[senders] sin access_token para el canal ${channelType}`, channelExternalId)
+      return null
+    }
+    // Quick replies de Meta: el payload vuelve como texto entrante (mismo
+    // contrato que los callback_data de Telegram: conf:/csat:/slot:).
+    return metaSendText(channelExternalId, token, sendTo, text, buttons)
   }
   return null
 }
