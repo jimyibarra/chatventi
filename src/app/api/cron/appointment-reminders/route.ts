@@ -160,19 +160,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         continue
       }
 
+      // La org de la cita se resuelve UNA vez y sirve para tres cosas: el
+      // filtro del recordatorio de 2 h, la encuesta post-cita y el registro
+      // del mensaje (messages.organization_id es NOT NULL desde 20260805223140;
+      // el trigger la rellenaría, pero pasarla explícita mantiene los tipos
+      // honestos y ahorra las consultas por rama que había antes).
+      const { data: apptOrg } = await service
+        .from('appointments')
+        .select('organization_id')
+        .eq('id', item.appointment_id)
+        .maybeSingle()
+      const orgId = apptOrg?.organization_id ?? null
+      if (!orgId) {
+        // Cita borrada entre la RPC y aquí (carrera improbable): sin org no se
+        // puede registrar el mensaje; se salta SIN reclamar y se reintenta.
+        summary[kind].skipped++
+        console.warn(`[cron-reminders] cita ${item.appointment_id} sin organización (${kind})`)
+        continue
+      }
+
       // Recordatorio de 2 h apagado por el negocio: se omite SIN reclamar,
       // así si el dueño lo reenciende dentro de la ventana, todavía sale.
-      // Con ninguna org apagada (skip2hOrgs vacío) este bloque no consulta nada.
-      if (kind === '2h' && skip2hOrgs.size > 0) {
-        const { data: appt2h } = await service
-          .from('appointments')
-          .select('organization_id')
-          .eq('id', item.appointment_id)
-          .maybeSingle()
-        if (appt2h?.organization_id && skip2hOrgs.has(appt2h.organization_id)) {
-          summary[kind].skipped++
-          continue
-        }
+      if (kind === '2h' && skip2hOrgs.has(orgId)) {
+        summary[kind].skipped++
+        continue
       }
 
       // Reclamo atómico: solo un envío por ventana (idempotente).
@@ -203,25 +214,18 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Follow-up post-cita: el mensaje YA pregunta "¿cómo estuvo tu
         // experiencia?" — la encuesta se cuelga de ahí con botones, en vez
         // de mandar un segundo mensaje preguntando lo mismo.
-        if (kind === 'followup' && csatOrgs.size > 0) {
-          const { data: appt } = await service
-            .from('appointments')
-            .select('organization_id')
-            .eq('id', item.appointment_id)
-            .maybeSingle()
-          if (appt?.organization_id && csatOrgs.has(appt.organization_id)) {
-            extId = await sendButtonsToCustomerByChannel(
-              service,
-              item.channel_type,
-              item.channel_external_id,
-              item.send_to,
-              text,
-              CSAT_BUTTONS.map((b) => ({
-                id: `csat:${item.appointment_id}:${b.score}`,
-                title: b.title,
-              }))
-            )
-          }
+        if (kind === 'followup' && csatOrgs.has(orgId)) {
+          extId = await sendButtonsToCustomerByChannel(
+            service,
+            item.channel_type,
+            item.channel_external_id,
+            item.send_to,
+            text,
+            CSAT_BUTTONS.map((b) => ({
+              id: `csat:${item.appointment_id}:${b.score}`,
+              title: b.title,
+            }))
+          )
         }
         if (!extId) {
           extId = await sendToCustomerByChannel(
@@ -239,6 +243,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       // Registra el mensaje saliente (sender 'system'). service_role bypassa RLS.
       await service.from('messages').insert({
         conversation_id: item.conversation_id,
+        organization_id: orgId,
         direction: 'outbound',
         sender: 'system',
         body: text,
@@ -355,13 +360,26 @@ async function runClientReminders(
       console.error('[cron-recurring] error enviando', err)
     }
 
-    await service.from('messages').insert({
-      conversation_id: item.conversation_id,
-      direction: 'outbound',
-      sender: 'system',
-      body: item.message,
-      external_id: extId,
-    })
+    // messages.organization_id es NOT NULL (20260805223140): se toma de la
+    // conversación. Si no aparece (borrada en carrera), el envío ya salió y
+    // solo se pierde el registro en la bandeja — se avisa por consola.
+    const { data: conv } = await service
+      .from('conversations')
+      .select('organization_id')
+      .eq('id', item.conversation_id)
+      .maybeSingle()
+    if (conv?.organization_id) {
+      await service.from('messages').insert({
+        conversation_id: item.conversation_id,
+        organization_id: conv.organization_id,
+        direction: 'outbound',
+        sender: 'system',
+        body: item.message,
+        external_id: extId,
+      })
+    } else {
+      console.warn(`[cron-recurring] conversación ${item.conversation_id} sin organización; mensaje enviado sin registrar`)
+    }
     await service
       .from('conversations')
       .update({ last_message_at: new Date().toISOString() })

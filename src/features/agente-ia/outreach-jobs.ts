@@ -80,6 +80,7 @@ export async function runColdFollowups(service: ServiceClient): Promise<ColdSumm
 
     await service.from('messages').insert({
       conversation_id: item.conversation_id,
+      organization_id: item.organization_id,
       direction: 'outbound',
       sender: 'system',
       body: text,
