@@ -39,17 +39,6 @@ function buildSystemPrompt(ctx: AgentContext): string {
     ? ctx.knowledge.map((k) => `- ${k}`).join('\n')
     : '(sin información adicional)'
 
-  const products = ctx.products?.length
-    ? ctx.products
-        .map(
-          (p) =>
-            `- ${p.name}${p.price != null ? ` — $${p.price}` : ''}${
-              p.description ? `: ${p.description}` : ''
-            }`
-        )
-        .join('\n')
-    : null
-
   const upcoming = ctx.upcoming_appointments?.length
     ? ctx.upcoming_appointments
         .map(
@@ -105,6 +94,10 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
     '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
+    // Cada mensaje de menos es dinero: desde oct-2026 Meta cobra cada respuesta.
+    // Un turno de "¿qué día te viene bien?" son dos mensajes que se ahorran
+    // consultando disponibilidad de una vez y ofreciendo huecos concretos.
+    '- AHORRA TURNOS: si ya sabes qué servicio quiere (o el negocio tiene uno solo) y el cliente no dijo fecha, NO preguntes "¿qué día te viene bien?". Llama check_availability para hoy o mañana y ofrece esos horarios de una vez, cerrando con "¿o prefieres otro día?". Resuelve en el menor número de mensajes posible.',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
     '- 🔴 Si TÚ ofreciste una hora y el cliente acepta sin repetirla ("sí", "va", "perfecto"), eligió ESA hora, la de tu mensaje anterior. NO tomes otra de la lista de disponibilidad (ni la primera): reservar a una hora distinta de la pactada hace que el cliente se presente cuando no le toca.',
     '- En book_appointment y reschedule_appointment, `hora_ofrecida` es la hora que le dijiste al cliente, copiada tal cual de tu mensaje (ej. "16:30" o "4:30 pm"). Es la que manda: si no coincide con el instante que pasas, el sistema reserva la que prometiste.',
@@ -141,13 +134,6 @@ function buildSystemPrompt(ctx: AgentContext): string {
     services,
     '',
     ...(resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
-    ...(products
-      ? [
-          'PRODUCTOS DEL NEGOCIO (responde precio/detalles; para apartar uno, dile al cliente que lo confirmas con el equipo y usa request_human_approval con el pedido como borrador):',
-          products,
-          '',
-        ]
-      : []),
     'CITAS PRÓXIMAS DEL CLIENTE:',
     upcoming,
     '',
@@ -382,6 +368,19 @@ const TRIAL_CAP_REPLY =
   'Gracias por escribir 🙏 En este momento no puedo responderte de forma automática, pero ya avisé al equipo para que te atienda personalmente en cuanto pueda.'
 
 // -------------------------------------------------------------------
+// Triage anti-curioso (Fase 0, coste oct-2026): una conversación que lleva
+// muchos turnos de IA sin que exista ninguna cita es, casi siempre, alguien
+// que no va a agendar — y desde octubre cada respuesta se paga. Al llegar al
+// tope, la IA se pausa 24 h (mismo mecanismo que usa el dueño con "Pausar"),
+// se avisa al cliente UNA vez y se notifica al dueño para que la retome si
+// vale la pena. El dueño puede Reanudar desde Conversaciones cuando quiera.
+// -------------------------------------------------------------------
+const TRIAGE_MAX_AI_REPLIES_24H = 8
+const TRIAGE_PAUSE_HOURS = 24
+const TRIAGE_REPLY =
+  'Gracias por tu paciencia 🙏 Le paso tu conversación a nuestro equipo para atenderte personalmente; en cuanto se conecten te responden por aquí.'
+
+// -------------------------------------------------------------------
 // Orquestador: obtiene contexto, corre el LLM con herramientas y decide
 // enviar directo o enrutar a aprobación humana.
 // -------------------------------------------------------------------
@@ -468,6 +467,49 @@ export async function runAgent(params: {
       }
     } catch (e) {
       console.error('[agent] tope de prueba: no se pudo consultar', e)
+    }
+  }
+
+  // Triage anti-curioso: muchos turnos de IA en 24 h y el cliente no tiene
+  // NINGUNA cita próxima -> se pausa la IA y se escala al dueño. Falla
+  // ABIERTO (como el tope de prueba): acota un coste, no protege un acceso.
+  if (!sandbox && ctx.conversation?.id && (ctx.upcoming_appointments?.length ?? 0) === 0) {
+    try {
+      const admin = createServiceClient()
+      const since = new Date(Date.now() - 24 * 3600_000).toISOString()
+      const { count } = await admin
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', ctx.conversation.id)
+        .eq('sender', 'ai')
+        .gte('created_at', since)
+      if ((count ?? 0) >= TRIAGE_MAX_AI_REPLIES_24H) {
+        await admin
+          .from('conversations')
+          .update({
+            ai_paused_until: new Date(
+              Date.now() + TRIAGE_PAUSE_HOURS * 3600_000
+            ).toISOString(),
+          })
+          .eq('id', ctx.conversation.id)
+        const extId = await senders.sendToCustomer(TRIAGE_REPLY)
+        await supabase.rpc('log_outbound_message', {
+          p_conversation_id: ctx.conversation.id,
+          p_body: TRIAGE_REPLY,
+          p_sender: 'ai',
+          p_external_id: extId ?? undefined,
+        })
+        // notifyOrgOwners nunca lanza (atrapa dentro); el push no bloquea el flujo.
+        await notifyOrgOwners(ctx.org_id, {
+          title: 'Conversación larga sin cita — IA en pausa',
+          body: 'Un cliente lleva muchos mensajes sin agendar. La IA se pausó 24 h; revísala y reanúdala si vale la pena.',
+          tag: 'triage',
+          data: { url: `/dashboard/conversaciones/${ctx.conversation.id}` },
+        })
+        return { handled: true, mode: 'sent', reply: TRIAGE_REPLY }
+      }
+    } catch (e) {
+      console.error('[agent] triage: no se pudo evaluar', e)
     }
   }
 

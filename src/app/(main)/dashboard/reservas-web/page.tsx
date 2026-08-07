@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { WebConfigForm } from '@/features/reservas-web/components/web-config-form'
-import { ProductManager } from '@/features/reservas-web/components/product-manager'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,11 +12,6 @@ export default async function ReservasWebPage() {
     .from('organizations')
     .select('id, web_slug, branding')
     .maybeSingle()
-
-  const { data: products } = await supabase
-    .from('products')
-    .select('id, name, price, description, image_url')
-    .order('name')
 
   return (
     <>
@@ -35,7 +29,6 @@ export default async function ReservasWebPage() {
           webSlug={org?.web_slug ?? null}
           branding={(org?.branding ?? null) as Branding}
         />
-        <ProductManager orgId={org?.id ?? ''} products={products ?? []} />
       </div>
     </>
   )

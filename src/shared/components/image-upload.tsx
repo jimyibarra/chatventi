@@ -14,7 +14,7 @@ const EXT: Record<string, string> = {
 
 // Subida de imagen desde el dispositivo (PC o celular) a Supabase Storage,
 // aislada por org (ruta "<orgId>/<folder>/<uuid>.<ext>"). Reutilizable para
-// logo, productos y profesionales. NO guarda en la BD: reporta la URL pública
+// logo y profesionales. NO guarda en la BD: reporta la URL pública
 // a `onChange`, que la persiste (y borra la imagen anterior en el servidor).
 export function ImageUpload({
   orgId,
@@ -26,7 +26,7 @@ export function ImageUpload({
   label = 'Subir imagen',
 }: {
   orgId: string
-  folder: 'logo' | 'products' | 'resources'
+  folder: 'logo' | 'resources'
   currentUrl: string | null
   // Devuelve true si la persistencia fue OK (para reflejar el cambio en el UI).
   onChange: (url: string | null) => Promise<boolean>

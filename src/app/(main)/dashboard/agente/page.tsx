@@ -45,6 +45,15 @@ export default async function AgentePage() {
     .select('cap_vision, cap_transcribe, cap_scoring, cap_csat, cap_cold_followup, cap_daily_report')
     .maybeSingle()
 
+  // Recordatorio de 2 h: consulta aparte y tolerante por el mismo motivo (la
+  // columna llega con la migración 20260806120000). Ausente o en error =
+  // encendido, que es el comportamiento de siempre.
+  const { data: rem2hRow, error: rem2hErr } = await supabase
+    .from('agent_configs')
+    .select('reminder_2h')
+    .maybeSingle()
+  const reminder2h = rem2hErr ? true : ((rem2hRow as { reminder_2h?: boolean | null } | null)?.reminder_2h ?? true)
+
   // Sugerencia de rubro para cuentas ANTIGUAS: hasta el alta en dos pasos
   // (2026-08-04) el rubro se elegía en el registro y se quedaba en los
   // metadatos sin persistirse nunca. Las cuentas nuevas ya traen
@@ -82,6 +91,7 @@ export default async function AgentePage() {
         <AgentConfigForm config={config ?? null} />
         <CapabilitiesForm
           state={readCapabilities(capsRow)}
+          reminder2h={reminder2h}
           // La transcripción no va por OpenRouter: necesita su propia clave.
           // Sin ella el interruptor se queda bloqueado, en vez de dejar que el
           // dueño lo encienda y crea que ya escucha las notas de voz.

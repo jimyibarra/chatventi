@@ -125,6 +125,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .eq('cap_csat', true)
   const csatOrgs = new Set((csatRows ?? []).map((r) => r.organization_id))
 
+  // Orgs que APAGARON el recordatorio de 2 h (default: encendido). Tolerante
+  // a que la columna aún no exista (migración 20260806120000 sin aplicar):
+  // si la consulta falla, el set queda vacío y se envía a todos, que es el
+  // comportamiento de siempre. Un mensaje menos por cita = dinero desde oct-2026.
+  const skip2hOrgs = new Set<string>()
+  try {
+    const { data: no2h, error: no2hErr } = await service
+      .from('agent_configs')
+      .select('organization_id')
+      .eq('reminder_2h', false)
+    if (!no2hErr) for (const r of no2h ?? []) skip2hOrgs.add(r.organization_id)
+  } catch {
+    // columna inexistente -> todos con 2h, como siempre
+  }
+
   for (const kind of kinds) {
     const { data, error } = await service.rpc('get_due_reminders', { p_kind: kind })
     if (error) {
@@ -143,6 +158,21 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
           `[cron-reminders] cita ${item.appointment_id} sin canal de contacto (${kind})`
         )
         continue
+      }
+
+      // Recordatorio de 2 h apagado por el negocio: se omite SIN reclamar,
+      // así si el dueño lo reenciende dentro de la ventana, todavía sale.
+      // Con ninguna org apagada (skip2hOrgs vacío) este bloque no consulta nada.
+      if (kind === '2h' && skip2hOrgs.size > 0) {
+        const { data: appt2h } = await service
+          .from('appointments')
+          .select('organization_id')
+          .eq('id', item.appointment_id)
+          .maybeSingle()
+        if (appt2h?.organization_id && skip2hOrgs.has(appt2h.organization_id)) {
+          summary[kind].skipped++
+          continue
+        }
       }
 
       // Reclamo atómico: solo un envío por ventana (idempotente).

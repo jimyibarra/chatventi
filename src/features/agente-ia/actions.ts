@@ -161,6 +161,34 @@ export async function saveCapabilities(raw: unknown): Promise<ActionResult> {
   return { ok: true }
 }
 
+/**
+ * Enciende/apaga el recordatorio de 2 h antes de la cita (el de 24 h siempre
+ * se envía). Desde oct-2026 cada mensaje de WhatsApp cuesta dinero: apagarlo
+ * ahorra un mensaje por cita. Si la migración 20260806120000 no está aplicada,
+ * el update falla y se informa sin romper nada.
+ */
+export async function saveReminder2h(enabled: boolean): Promise<ActionResult> {
+  const supabase = await createClient()
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return { ok: false, error: 'No tienes una organización.' }
+
+  // `reminder_2h` llega con la migración 20260806120000; hasta regenerar los
+  // tipos de Supabase (llevan la BD real, no las migraciones del repo) el cast
+  // evita el error de compilación sin cambiar nada en runtime.
+  const payload = {
+    organization_id: orgId,
+    reminder_2h: enabled,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await supabase
+    .from('agent_configs')
+    .upsert(payload as never, { onConflict: 'organization_id' })
+  if (error) return { ok: false, error: 'No se pudo guardar el ajuste de recordatorios.' }
+
+  revalidatePath('/dashboard/agente')
+  return { ok: true }
+}
+
 /** Vuelve al comportamiento anterior a la feature: sin bloque de voz. */
 export async function clearVoice(): Promise<ActionResult> {
   const supabase = await createClient()

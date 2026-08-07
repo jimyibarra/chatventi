@@ -9,25 +9,19 @@ type Branding = {
   primary_color?: string
   description?: string
   logo_url?: string
-  whatsapp_number?: string
   // Etiqueta del vertical: Profesionales / Salas / Equipos / a medida.
   resource_label?: string
 } | null
 
-// Deep link de WhatsApp con el pedido prellenado (Ola 3: pedidos por chat).
-function waOrderLink(number: string, orgName: string, product: { name: string; price: number | null }): string {
-  const text = `Hola ${orgName} 👋 Quiero pedir: ${product.name}${
-    product.price != null ? ` ($${product.price})` : ''
-  }. Lo vi en su página de reservas.`
-  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`
-}
-
+// El escaparate de productos se retiró el 2026-08-06 (decisión de Juan: la
+// página pública se centra en reservar). La RPC get_public_booking_context
+// sigue devolviendo `products`; este tipo simplemente lo ignora. La tabla y
+// la RPC se limpian en una fase contract posterior.
 type Ctx = {
   org: { name: string; branding: Branding }
   branch: { id: string; name: string; timezone: string } | null
   services: { id: string; name: string; duration_minutes: number; price: number | null }[]
   resources: { id: string; name: string; photo_url: string | null; service_ids: string[] }[]
-  products: { id: string; name: string; price: number | null; image_url: string | null; description: string | null }[]
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
@@ -92,48 +86,6 @@ export default async function PublicBookingPage({
           resourceLabel={ctx.org.branding?.resource_label || DEFAULT_RESOURCE_LABEL}
           primaryColor={primary}
         />
-
-        {/* Tienda de productos */}
-        {!isEmbed && ctx.products.length > 0 && (
-          <section className="mt-8">
-            <h2 className="mb-3 text-lg font-bold text-ink">Productos</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {ctx.products.map((p) => (
-                <div
-                  key={p.id}
-                  className="flex gap-3 rounded-card border border-line bg-white p-3"
-                  data-testid="pub-product"
-                >
-                  {p.image_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.image_url} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
-                  )}
-                  <div>
-                    <p className="font-medium text-ink">{p.name}</p>
-                    {p.description && <p className="text-xs text-ink-soft">{p.description}</p>}
-                    {p.price != null && (
-                      <p className="mt-1 text-sm font-semibold" style={{ color: primary }}>
-                        ${p.price}
-                      </p>
-                    )}
-                    {ctx.org.branding?.whatsapp_number && (
-                      <a
-                        href={waOrderLink(ctx.org.branding.whatsapp_number, ctx.org.name, p)}
-                        target="_blank"
-                        rel="noopener"
-                        data-testid="pub-product-order"
-                        className="mt-2 inline-block rounded-lg px-3 py-1.5 text-xs font-medium text-white"
-                        style={{ background: '#25D366' }}
-                      >
-                        Pedir por WhatsApp
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
 
         {!isEmbed && (
           <p className="mt-8 text-center text-xs text-ink-faint">

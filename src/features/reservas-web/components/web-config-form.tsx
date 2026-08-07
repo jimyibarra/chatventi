@@ -11,7 +11,6 @@ type Branding = {
   primary_color?: string
   description?: string
   logo_url?: string
-  whatsapp_number?: string
 } | null
 
 export function WebConfigForm({
@@ -28,7 +27,6 @@ export function WebConfigForm({
   const [slug, setSlug] = useState(webSlug ?? '')
   const [color, setColor] = useState(branding?.primary_color ?? '#2563eb')
   const [description, setDescription] = useState(branding?.description ?? '')
-  const [whatsappNumber, setWhatsappNumber] = useState(branding?.whatsapp_number ?? '')
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
 
@@ -44,7 +42,6 @@ export function WebConfigForm({
         slug,
         primaryColor: color || undefined,
         description: description || undefined,
-        whatsappNumber: whatsappNumber || undefined,
       })
       if (res.ok) {
         setMsg({ ok: true, text: 'Guardado. Tu página pública está lista.' })
@@ -111,22 +108,6 @@ export function WebConfigForm({
               onChange={async (url) => (await saveLogo(url)).ok}
             />
           </div>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">
-            WhatsApp del negocio (para pedidos de productos)
-          </label>
-          <input
-            value={whatsappNumber}
-            onChange={(e) => setWhatsappNumber(e.target.value)}
-            data-testid="web-whatsapp"
-            placeholder="5215512345678 (solo dígitos, con lada del país)"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-          />
-          <p className="mt-1 text-xs text-ink-faint">
-            Si lo configuras, cada producto de tu página mostrará un botón “Pedir por WhatsApp”.
-          </p>
         </div>
 
         <div>
