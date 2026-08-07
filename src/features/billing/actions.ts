@@ -5,20 +5,22 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import {
   getStripe,
-  PRICE_STARTER,
-  PRICE_DOMAIN,
-  PRICE_TEAM,
-  aiTierPriceId,
+  planPriceId,
+  PRICE_PWA,
+  PRICE_DOMAIN_V2,
+  PRICE_SEAT,
 } from '@/lib/stripe'
+import { planById } from '@/features/billing/plans'
 
 export type CheckoutResult =
   | { ok: true; url: string }
   | { ok: false; error: string }
 
 const checkoutSchema = z.object({
-  aiTier: z.enum(['none', '300', '1000', '3000']),
+  plan: z.enum(['arranque', 'negocio', 'profesional', 'multisede']),
+  pwa: z.coerce.boolean().optional(),
   domain: z.coerce.boolean().optional(),
-  teamSeats: z.coerce.number().int().min(0).max(50).optional(),
+  extraSeats: z.coerce.number().int().min(0).max(50).optional(),
 })
 
 function baseUrl(): string {
@@ -27,7 +29,8 @@ function baseUrl(): string {
 
 /**
  * Crea (o reutiliza) el customer de Stripe de la org y abre un Checkout de
- * suscripción con: base Starter + tier de IA elegido + add-ons. Trial 14 días.
+ * suscripción con: el plan elegido + add-ons. La prueba gratis (14 días, sin
+ * tarjeta) ocurre a nivel de app ANTES de llegar aquí.
  * El acceso NO se concede aquí — lo concede el webhook al confirmar Stripe.
  */
 export async function createCheckoutSession(raw: unknown): Promise<CheckoutResult> {
@@ -35,9 +38,11 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { aiTier, domain, teamSeats = 0 } = parsed.data
+  const { plan, pwa, domain, extraSeats = 0 } = parsed.data
+  const planDef = planById(plan)
+  const planPrice = planPriceId(plan)
 
-  if (!process.env.STRIPE_SECRET_KEY?.trim() || !PRICE_STARTER) {
+  if (!process.env.STRIPE_SECRET_KEY?.trim() || !planPrice) {
     return { ok: false, error: 'Stripe no está configurado todavía (faltan claves o price IDs).' }
   }
   const stripe = getStripe()
@@ -95,14 +100,14 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       }
     }
 
-    // Líneas del checkout.
+    // Líneas del checkout: el plan + add-ons que el plan no incluya ya.
     const lineItems: { price: string; quantity: number }[] = [
-      { price: PRICE_STARTER, quantity: 1 },
+      { price: planPrice, quantity: 1 },
     ]
-    const aiPrice = aiTierPriceId(aiTier)
-    if (aiPrice) lineItems.push({ price: aiPrice, quantity: 1 })
-    if (domain && PRICE_DOMAIN) lineItems.push({ price: PRICE_DOMAIN, quantity: 1 })
-    if (teamSeats > 0 && PRICE_TEAM) lineItems.push({ price: PRICE_TEAM, quantity: teamSeats })
+    if (pwa && !planDef.includesPwa && PRICE_PWA) lineItems.push({ price: PRICE_PWA, quantity: 1 })
+    if (domain && !planDef.includesDomain && PRICE_DOMAIN_V2)
+      lineItems.push({ price: PRICE_DOMAIN_V2, quantity: 1 })
+    if (extraSeats > 0 && PRICE_SEAT) lineItems.push({ price: PRICE_SEAT, quantity: extraSeats })
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',

@@ -53,8 +53,8 @@ export default async function FacturacionPage({
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-ink">Facturación</h1>
         <p className="mt-1 text-ink-muted">
-          Paga solo por lo que usas. Base con agenda, CRM y reservas web; suma el módulo de
-          Recepcionista IA cuando lo necesites.
+          Elige el plan del tamaño de tu negocio. Todos incluyen el recepcionista IA por
+          WhatsApp, la agenda, el CRM y las reservas web.
         </p>
       </div>
 
@@ -71,6 +71,7 @@ export default async function FacturacionPage({
           sub
             ? {
                 status: sub.status,
+                plan_id: sub.plan_id,
                 ai_tier: sub.ai_tier,
                 current_period_end: sub.current_period_end,
                 cancel_at_period_end: sub.cancel_at_period_end,

@@ -5,12 +5,11 @@
 //   pausa de IA, anti-solapamiento, portal de facturación, trial 14 días).
 // =====================================================================
 import {
-  STARTER_PRICE_USD,
   ADDON_DOMAIN_USD,
-  ADDON_TEAM_USD,
+  ADDON_PWA_USD,
+  ADDON_SEAT_USD,
   TRIAL_DAYS,
-  aiTierById,
-  monthlyTotalUsd,
+  planById,
 } from '@/features/billing/plans'
 
 export { TRIAL_DAYS }
@@ -212,54 +211,49 @@ export const TESTIMONIALS = [
 
 // ---------------------------------------------------------------------
 // Precios — derivados del catálogo REAL de billing (USD, trial 14 días).
-//   Starter $29 · IA ~300 +$19 · ~1.000 +$39 (popular) · ~3.000 +$109.
+//   Catálogo 2026-08: Arranque $19 · Negocio $39 (popular) · Profesional $79
+//   · Multi-sede $149. WhatsApp con IA en TODOS — es la promesa de la home.
 // ---------------------------------------------------------------------
-const TIER_1000 = aiTierById('1000')
-const TIER_3000 = aiTierById('3000')
-const TIER_300 = aiTierById('300')
+const ARRANQUE = planById('arranque')
+const NEGOCIO = planById('negocio')
+const PROFESIONAL = planById('profesional')
 
 export const PRICING = {
   starter: {
-    name: 'Starter · Solo agenda',
-    desc: 'La base completa para ordenar tu negocio. Tú respondes los chats.',
-    price: STARTER_PRICE_USD,
-    items: [
-      'Agenda inteligente sin dobles reservas',
-      'Página de reservas web con tu marca + widget',
-      'CRM: clientes, etiquetas, notas e historial',
-      'Recordatorios de cita automáticos (24 h y 2 h)',
-      '2 cuentas de equipo incluidas',
-    ],
+    name: `${ARRANQUE.name} · Para quien trabaja solo`,
+    desc: ARRANQUE.tagline,
+    price: ARRANQUE.priceUsd,
+    items: ARRANQUE.features,
     cta: 'Empezar prueba gratis',
   },
   popular: {
-    name: 'Starter + Recepcionista IA',
-    desc: `La IA responde y agenda por ti. ${TIER_1000.detail}.`,
-    price: monthlyTotalUsd({ aiTier: '1000' }),
+    name: `${NEGOCIO.name} · Para equipos pequeños`,
+    desc: NEGOCIO.tagline,
+    price: NEGOCIO.priceUsd,
     items: [
-      'Todo lo del plan Starter',
-      'Recepcionista IA en WhatsApp, Telegram y web',
-      'Agenda citas sola, 24/7, con lenguaje natural',
-      'Escala a humano y modo aprobación con un botón',
-      'Se pausa cuando tú intervienes en el chat',
+      'Todo lo del plan Arranque',
+      `Hasta ${NEGOCIO.maxResources} profesionales · ${NEGOCIO.maxSeats} accesos`,
+      'Superpoderes: lee comprobantes y escucha notas de voz',
+      'Rescata interesados que no cerraron cita',
+      'Resumen diario de tu negocio',
     ],
     cta: `Probar gratis ${TRIAL_DAYS} días`,
     badge: 'EL MÁS ELEGIDO',
     foot: 'Cancela cuando quieras, desde tu panel',
   },
   volume: {
-    name: 'IA · Volumen alto',
-    desc: `Para negocios con mucho chat. ${TIER_3000.detail}.`,
-    price: monthlyTotalUsd({ aiTier: '3000' }),
+    name: `${PROFESIONAL.name} · Clínicas y estéticas`,
+    desc: PROFESIONAL.tagline,
+    price: PROFESIONAL.priceUsd,
     items: [
-      'Todo lo de Starter + Recepcionista IA',
-      `${TIER_3000.detail} atendidas por la IA`,
-      'Ideal para clínicas y equipos con alto volumen',
-      'Add-ons disponibles: dominio y cuentas extra',
+      'Todo lo del plan Negocio',
+      `Hasta ${PROFESIONAL.maxResources} profesionales · ${PROFESIONAL.maxSeats} accesos`,
+      '"Tu App": app de marca para tus clientes, incluida',
+      'Expediente del cliente con archivos y recordatorios',
     ],
     cta: 'Empezar prueba gratis',
   },
-  footnote: `¿Poco volumen? Activa la IA con ${TIER_300.detail} por solo +$${TIER_300.priceUsd} (total $${monthlyTotalUsd({ aiTier: '300' })}/mes). Add-ons: dominio propio +$${ADDON_DOMAIN_USD}/mes · cuenta de empleado extra +$${ADDON_TEAM_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
+  footnote: `¿Varios locales? Plan Multi-sede por $${planById('multisede').priceUsd}/mes con profesionales ilimitados, dominio propio y "Tu App" incluidos. Add-ons: "Tu App" +$${ADDON_PWA_USD}/mes · dominio propio +$${ADDON_DOMAIN_USD}/mes · acceso de equipo extra +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
 }
 
 // ---------------------------------------------------------------------

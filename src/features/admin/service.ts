@@ -2,9 +2,9 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import {
   ADDON_DOMAIN_USD,
-  ADDON_TEAM_USD,
-  STARTER_PRICE_USD,
-  aiTierById,
+  ADDON_SEAT_USD,
+  planById,
+  planFromLegacyTier,
 } from '@/features/billing/plans'
 
 // Estadísticas globales de la plataforma (una fila, calculada en Postgres).
@@ -48,13 +48,17 @@ export interface AdminOrg {
   last_activity: string | null
 }
 
-/** Precio mensual (USD) de una suscripción, según el catálogo real de planes. */
+/**
+ * Precio mensual (USD) según el catálogo 2026-08. La RPC admin_list_organizations
+ * todavía expone ai_tier (legado): se traduce al plan equivalente. Cuando la RPC
+ * devuelva plan_id directamente (fase contract), usarlo aquí.
+ */
 export function orgMonthlyUsd(org: Pick<AdminOrg, 'ai_tier' | 'has_domain' | 'team_seats'>): number {
+  const plan = planById(planFromLegacyTier(org.ai_tier))
   return (
-    STARTER_PRICE_USD +
-    aiTierById(org.ai_tier).priceUsd +
-    (org.has_domain ? ADDON_DOMAIN_USD : 0) +
-    org.team_seats * ADDON_TEAM_USD
+    plan.priceUsd +
+    (org.has_domain && !plan.includesDomain ? ADDON_DOMAIN_USD : 0) +
+    org.team_seats * ADDON_SEAT_USD
   )
 }
 

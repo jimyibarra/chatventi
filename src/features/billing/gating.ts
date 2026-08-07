@@ -12,6 +12,8 @@ export function isBillingEnforced(): boolean {
 
 export interface OrgSubscription {
   status: string
+  /** Plan del catálogo 2026-08; null = suscripción del catálogo legado. */
+  plan_id: string | null
   ai_tier: string
   has_domain: boolean
   team_seats: number
@@ -29,10 +31,10 @@ export async function getMySubscription(): Promise<OrgSubscription | null> {
   const { data } = await supabase
     .from('subscriptions')
     .select(
-      'status, ai_tier, has_domain, team_seats, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id'
+      'status, plan_id, ai_tier, has_domain, team_seats, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id'
     )
     .maybeSingle()
-  return (data as OrgSubscription | null) ?? null
+  return (data as unknown as OrgSubscription | null) ?? null
 }
 
 /** ¿La suscripción da acceso vigente (trial o activa)? */
@@ -40,9 +42,14 @@ export function subIsActive(sub: OrgSubscription | null): boolean {
   return !!sub && ACTIVE_STATES.has(sub.status)
 }
 
-/** ¿Tiene el módulo Recepcionista IA contratado y vigente? */
+/**
+ * ¿Tiene el Recepcionista IA vigente? Catálogo 2026-08: TODOS los planes lo
+ * incluyen (plan_id no nulo basta). El criterio legado (ai_tier <> 'none') se
+ * conserva para suscripciones sin migrar. Mismo criterio que org_has_ai en la
+ * base (migración 20260806200000) — si se cambia aquí, se cambia allá.
+ */
 export function subHasAi(sub: OrgSubscription | null): boolean {
-  return subIsActive(sub) && !!sub && sub.ai_tier !== 'none'
+  return subIsActive(sub) && !!sub && (sub.plan_id !== null || sub.ai_tier !== 'none')
 }
 
 export interface OrgTrial {

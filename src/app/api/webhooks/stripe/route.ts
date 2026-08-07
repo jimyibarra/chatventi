@@ -1,21 +1,20 @@
 import { after } from 'next/server'
 import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
-import { getStripe, STRIPE_WEBHOOK_SECRET, PRICE_TEAM, describeSubscriptionItems } from '@/lib/stripe'
+import { getStripe, STRIPE_WEBHOOK_SECRET, describeSubscriptionItems } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
-import { aiTierById, monthlyTotalUsd, type AiTierId } from '@/features/billing/plans'
+import { planById, monthlyTotalUsd, type PlanId } from '@/features/billing/plans'
 import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
 import { subscriptionActiveEmail } from '@/features/emails/templates'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
 
 // Resumen legible del plan para el correo de suscripción activa.
-function planLine(aiTier: AiTierId, hasDomain: boolean, teamSeats: number): string {
-  const tier = aiTierById(aiTier)
-  const parts = ['ChatVenti Starter']
-  if (tier.id !== 'none') parts.push(`Recepcionista IA (${tier.detail})`)
-  if (hasDomain) parts.push('Dominio propio')
-  if (teamSeats > 0) parts.push(`${teamSeats} cuenta(s) de empleado extra`)
+function planLine(planId: PlanId | null, opts: { pwa: boolean; domain: boolean; seats: number }): string {
+  const parts = [planId ? `ChatVenti ${planById(planId).name}` : 'ChatVenti']
+  if (opts.pwa) parts.push('"Tu App" (app de marca)')
+  if (opts.domain) parts.push('Dominio propio')
+  if (opts.seats > 0) parts.push(`${opts.seats} acceso(s) de equipo extra`)
   return parts.join(' · ')
 }
 
@@ -100,11 +99,9 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     return
   }
 
-  const priceIds = sub.items.data.map((i) => i.price.id)
-  const { aiTier, hasDomain } = describeSubscriptionItems(priceIds)
-  const teamSeats = PRICE_TEAM
-    ? sub.items.data.filter((i) => i.price.id === PRICE_TEAM).reduce((n, i) => n + (i.quantity ?? 0), 0)
-    : 0
+  const { planId, hasPwa, hasDomain, extraSeats, legacyAiTier } = describeSubscriptionItems(
+    sub.items.data.map((i) => ({ priceId: i.price.id, quantity: i.quantity ?? 0 }))
+  )
 
   // El status 'deleted' de Stripe llega como canceled; normalizamos.
   const status = sub.status === 'canceled' ? 'canceled' : sub.status
@@ -127,27 +124,31 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
   }
   const alreadyEmailed = Boolean(existingRow?.subscription_email_sent_at)
 
-  const { error } = await admin.from('subscriptions').upsert(
-    {
-      organization_id: orgId,
-      stripe_customer_id: sub.customer,
-      stripe_subscription_id: sub.id,
-      status,
-      ai_tier: aiTier,
-      has_domain: hasDomain,
-      team_seats: teamSeats,
-      current_period_end: unixToIso(periodEnd),
-      trial_end: unixToIso(sub.trial_end),
-      cancel_at_period_end: sub.cancel_at_period_end,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'organization_id' }
-  )
+  // plan_id (catálogo 2026-08) y ai_tier (legado) se escriben AMBOS mientras
+  // conviven: el legado alimenta código no migrado y desaparece en contract.
+  // El cast es necesario hasta regenerar tipos con la columna plan_id.
+  const payload = {
+    organization_id: orgId,
+    stripe_customer_id: sub.customer,
+    stripe_subscription_id: sub.id,
+    status,
+    plan_id: planId,
+    ai_tier: legacyAiTier,
+    has_domain: hasDomain,
+    team_seats: extraSeats,
+    current_period_end: unixToIso(periodEnd),
+    trial_end: unixToIso(sub.trial_end),
+    cancel_at_period_end: sub.cancel_at_period_end,
+    updated_at: new Date().toISOString(),
+  }
+  const { error } = await admin
+    .from('subscriptions')
+    .upsert(payload as never, { onConflict: 'organization_id' })
   if (error) {
     console.error('[stripe] error upsert subscription', error)
     throw new Error('upsert failed')
   }
-  console.log(`[stripe] sync org=${orgId} status=${status} ai=${aiTier}`)
+  console.log(`[stripe] sync org=${orgId} status=${status} plan=${planId ?? legacyAiTier}`)
 
   // Correo de "suscripción activa" (una vez, al activarse el plan). Marcamos el
   // flag de inmediato para evitar doble envío entre eventos created/updated y
@@ -173,8 +174,10 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
         : null
       const { subject, html } = subscriptionActiveEmail({
         orgName: org.name,
-        planLine: planLine(aiTier, hasDomain, teamSeats),
-        totalUsd: monthlyTotalUsd({ aiTier, domain: hasDomain, teamSeats }),
+        planLine: planLine(planId, { pwa: hasPwa, domain: hasDomain, seats: extraSeats }),
+        totalUsd: planId
+          ? monthlyTotalUsd({ plan: planId, pwa: hasPwa, domain: hasDomain, extraSeats })
+          : 0,
         trialEndLabel,
         siteUrl: SITE,
       })

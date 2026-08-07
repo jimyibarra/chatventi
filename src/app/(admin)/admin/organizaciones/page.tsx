@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { getAdminOrganizations, orgMonthlyUsd } from '@/features/admin/service'
-import { aiTierById } from '@/features/billing/plans'
+import { planById, planFromLegacyTier } from '@/features/billing/plans'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 
 export const metadata: Metadata = { title: 'Super Admin · Organizaciones' }
@@ -57,7 +57,7 @@ export default async function AdminOrganizationsPage() {
                 <td className="px-4 py-3">
                   <OrgStatusBadge status={o.sub_status} />
                   <p className="mt-1 text-xs text-slate-400">
-                    {o.ai_tier === 'none' ? 'Solo agenda' : `IA ${aiTierById(o.ai_tier).label.replace(/^Sí · /, '')}`}
+                    {`Plan ${planById(planFromLegacyTier(o.ai_tier)).name}`}
                     {o.has_domain && ' · dominio'}
                     {o.team_seats > 0 && ` · ${o.team_seats} extra`}
                   </p>
