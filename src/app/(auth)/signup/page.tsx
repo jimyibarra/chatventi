@@ -1,5 +1,6 @@
 import { SignupForm } from '@/features/auth/components/signup-form'
 import { verticalBySlug } from '@/features/verticales/data'
+import { isTurnstileConfigured } from '@/shared/security/turnstile'
 
 // El giro se lee AQUÍ (servidor) y no con useSearchParams en el formulario:
 // useSearchParams obliga a envolver el componente en <Suspense> y convierte
@@ -22,7 +23,11 @@ export default async function SignupPage({
             : 'Tu agenda + recepcionista IA, lista en minutos'}
         </p>
       </div>
-      <SignupForm vertical={vertical?.slug} />
+      {/* El widget anti-bot solo se muestra si el SERVIDOR va a verificarlo
+          (TURNSTILE_SECRET_KEY presente). Evita el estado incoherente de
+          jul-2026: widget visible con la verificación apagada, que dejaba un
+          "Troubleshoot" huérfano sin proteger nada. Una sola llave manda. */}
+      <SignupForm vertical={vertical?.slug} antibotEnabled={isTurnstileConfigured()} />
     </div>
   )
 }

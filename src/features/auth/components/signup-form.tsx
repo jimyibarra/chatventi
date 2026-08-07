@@ -19,7 +19,15 @@ const INPUT =
 // No hay "confirmar contraseña" a propósito: el ojo permite ver lo escrito y
 // existe recuperación en un clic. El checkbox de términos SÍ se queda: el
 // registro legal depende de que la aceptación preceda a la cuenta.
-export function SignupForm({ vertical }: { vertical?: string }) {
+export function SignupForm({
+  vertical,
+  // Lo decide el SERVIDOR (isTurnstileConfigured): el widget solo se pinta si
+  // la verificación está activa. Default false = sin residuo cuando está apagada.
+  antibotEnabled = false,
+}: {
+  vertical?: string
+  antibotEnabled?: boolean
+}) {
   const [serverError, setServerError] = useState<string | null>(null)
   const [checkEmail, setCheckEmail] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
@@ -117,7 +125,7 @@ export function SignupForm({ vertical }: { vertical?: string }) {
         )}
       </div>
 
-      <TurnstileWidget onToken={setTurnstileToken} />
+      {antibotEnabled && <TurnstileWidget onToken={setTurnstileToken} />}
 
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
 
