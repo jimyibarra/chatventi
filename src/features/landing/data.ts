@@ -217,6 +217,7 @@ export const TESTIMONIALS = [
 const ARRANQUE = planById('arranque')
 const NEGOCIO = planById('negocio')
 const PROFESIONAL = planById('profesional')
+const MULTISEDE = planById('multisede')
 
 export const PRICING = {
   starter: {
@@ -253,7 +254,19 @@ export const PRICING = {
     ],
     cta: 'Empezar prueba gratis',
   },
-  footnote: `¿Varios locales? Plan Multi-sede por $${planById('multisede').priceUsd}/mes con profesionales ilimitados, dominio propio y "Tu App" incluidos. Add-ons: "Tu App" +$${ADDON_PWA_USD}/mes · dominio propio +$${ADDON_DOMAIN_USD}/mes · acceso de equipo extra +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
+  multisede: {
+    name: `${MULTISEDE.name} · Varios locales`,
+    desc: MULTISEDE.tagline,
+    price: MULTISEDE.priceUsd,
+    items: [
+      'Todo lo del plan Profesional',
+      `Profesionales ilimitados · ${MULTISEDE.maxSeats} accesos`,
+      'Dominio propio incluido',
+      'Crédito de uso ampliado y soporte prioritario',
+    ],
+    cta: 'Empezar prueba gratis',
+  },
+  footnote: `Add-ons: "Tu App" +$${ADDON_PWA_USD}/mes · dominio propio +$${ADDON_DOMAIN_USD}/mes · acceso de equipo extra +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
 }
 
 // ---------------------------------------------------------------------

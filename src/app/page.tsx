@@ -420,6 +420,18 @@ export default function Home() {
               </ul>
               <Link href="/signup" className="cv-btn-ghost" style={{ marginTop: 'auto', justifyContent: 'center', padding: '14px 24px', fontSize: 15.5, fontWeight: 700 }}>{PRICING.volume.cta}</Link>
             </article>
+
+            <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.multisede.name}</h3>
+              <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.multisede.desc}</p>
+              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>${PRICING.multisede.price}</span><span style={{ color: '#7A758F', fontSize: 15 }}> USD/mes</span></p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
+                {PRICING.multisede.items.map((it) => (
+                  <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
+                ))}
+              </ul>
+              <Link href="/signup" className="cv-btn-ghost" style={{ marginTop: 'auto', justifyContent: 'center', padding: '14px 24px', fontSize: 15.5, fontWeight: 700 }}>{PRICING.multisede.cta}</Link>
+            </article>
           </div>
           <p data-reveal style={{ textAlign: 'center', margin: '28px auto 0', maxWidth: 760, fontSize: 14, color: '#7A758F', lineHeight: 1.65 }}>{PRICING.footnote}</p>
         </section>
