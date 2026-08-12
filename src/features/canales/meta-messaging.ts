@@ -9,29 +9,36 @@ import type { Database } from '@/lib/supabase/database.types'
 
 const GRAPH_VERSION = 'v23.0'
 
-/** Token de un canal por (type, external_id): channels.credentials.access_token. */
-export async function getChannelToken(
+/**
+ * Token y nodo de envío de un canal por (type, external_id).
+ * Con token de Página, la Send API cuelga SIEMPRE del Page ID — también para
+ * Instagram: usar el IG Business ID como nodo da error #3 ("Application does
+ * not have the capability"). En el canal instagram el Page ID viaja en
+ * credentials.page_id; en messenger el external_id YA es el Page ID.
+ */
+export async function getChannelSendAuth(
   service: SupabaseClient<Database>,
   type: 'instagram' | 'messenger',
   externalId: string
-): Promise<string | null> {
+): Promise<{ token: string; sendId: string } | null> {
   const { data } = await service
     .from('channels')
     .select('credentials')
     .eq('type', type)
     .eq('external_id', externalId)
     .maybeSingle()
-  const creds = data?.credentials as { access_token?: string } | null
-  return creds?.access_token ?? null
+  const creds = data?.credentials as { access_token?: string; page_id?: string } | null
+  if (!creds?.access_token) return null
+  return { token: creds.access_token, sendId: creds.page_id ?? externalId }
 }
 
 /**
  * Envía texto (con quick replies opcionales) por Messenger o Instagram.
- * `channelExternalId` es el Page ID (Messenger) o el IG Business ID.
- * Devuelve el message_id de Meta o null.
+ * `sendId` es SIEMPRE el Page ID (ver getChannelSendAuth), nunca el IG
+ * Business ID. Devuelve el message_id de Meta o null.
  */
 export async function metaSendText(
-  channelExternalId: string,
+  sendId: string,
   token: string,
   recipientId: string,
   text: string,
@@ -48,7 +55,7 @@ export async function metaSendText(
     }))
   }
   const res = await fetch(
-    `https://graph.facebook.com/${GRAPH_VERSION}/${channelExternalId}/messages`,
+    `https://graph.facebook.com/${GRAPH_VERSION}/${sendId}/messages`,
     {
       method: 'POST',
       headers: {
@@ -64,7 +71,7 @@ export async function metaSendText(
   )
   const json = (await res.json().catch(() => null)) as { message_id?: string; error?: unknown } | null
   if (!res.ok) {
-    console.error('[meta-messaging] error enviando', channelExternalId, JSON.stringify(json?.error ?? res.status))
+    console.error('[meta-messaging] error enviando', sendId, JSON.stringify(json?.error ?? res.status))
     return null
   }
   return json?.message_id ?? null

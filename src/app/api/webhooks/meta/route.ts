@@ -12,7 +12,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import {
   parseMetaMessaging,
-  getChannelToken,
+  getChannelSendAuth,
   metaSendText,
   type MetaInboundMessage,
 } from '@/features/canales/meta-messaging'
@@ -106,16 +106,16 @@ async function handleInbound(
     supabase,
     senders: {
       sendToCustomer: async (text) => {
-        const token = await getChannelToken(service, msg.channelType, msg.channelExternalId)
-        if (!token) return null
-        return metaSendText(msg.channelExternalId, token, msg.senderId, text)
+        const auth = await getChannelSendAuth(service, msg.channelType, msg.channelExternalId)
+        if (!auth) return null
+        return metaSendText(auth.sendId, auth.token, msg.senderId, text)
       },
       // La aprobación humana viaja por Telegram, como en todos los canales.
       sendApproval: (chatId, draft, approvalId) => tgSendApproval(chatId, draft, approvalId),
       sendButtons: async (text, buttons) => {
-        const token = await getChannelToken(service, msg.channelType, msg.channelExternalId)
-        if (!token) return null
-        return metaSendText(msg.channelExternalId, token, msg.senderId, text, buttons)
+        const auth = await getChannelSendAuth(service, msg.channelType, msg.channelExternalId)
+        if (!auth) return null
+        return metaSendText(auth.sendId, auth.token, msg.senderId, text, buttons)
       },
     },
   })
