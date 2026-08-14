@@ -65,6 +65,20 @@ function buildSystemPrompt(ctx: AgentContext): string {
         .join('\n')
     : null
 
+  // Horario de atención del negocio. weekday 0=domingo..6=sábado. Sin horarios
+  // configurados queda null y la sección no se pinta (prompt idéntico al de antes).
+  const WEEKDAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+  const hoursLines = (ctx.business_hours ?? [])
+    .slice()
+    .sort((a, b) => a.weekday - b.weekday)
+    .map((h) => {
+      const day = WEEKDAYS[h.weekday] ?? `Día ${h.weekday}`
+      return h.is_closed
+        ? `- ${day}: cerrado`
+        : `- ${day}: ${h.open_time.slice(0, 5)} a ${h.close_time.slice(0, 5)}`
+    })
+  const hours = hoursLines.length ? hoursLines.join('\n') : null
+
   // Voz de marca. Va ANTES de REGLAS IMPORTANTES y lleva su propia cláusula de
   // subordinación, pero la garantía real es que se compone de enums cerrados
   // (ver voice.ts): no hay texto libre que pueda leerse como instrucción.
@@ -91,6 +105,10 @@ function buildSystemPrompt(ctx: AgentContext): string {
     voiceBlock
       ? '- Habla en español (es un chat de mensajería: WhatsApp, Telegram, Instagram o Messenger). UNA sola pregunta por mensaje.'
       : '- Habla en español, con tono cálido y breve (es un chat de mensajería: WhatsApp, Telegram, Instagram o Messenger). UNA sola pregunta por mensaje.',
+    // Los canales reales (WhatsApp/Instagram/Messenger) NO renderizan markdown:
+    // los **, __, ##, ` y las tablas se ven como símbolos literales y quedan
+    // feos. El guion simple de lista SÍ se tolera (se ve como un guion normal).
+    '- Escribe en TEXTO PLANO. El mensaje se envía TAL CUAL a WhatsApp, Instagram y Messenger, que NO entienden markdown: NUNCA uses **negritas**, __ o _cursivas_, # títulos, `código`, ni tablas — esos símbolos se ven literales. Para separar ideas usa saltos de línea; si enumeras algo, cada punto en su propia línea. Emojis con moderación.',
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
     '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
@@ -134,6 +152,7 @@ function buildSystemPrompt(ctx: AgentContext): string {
     services,
     '',
     ...(resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
+    ...(hours ? ['HORARIO DE ATENCIÓN (si preguntan por horarios, respóndelo con esto):', hours, ''] : []),
     'CITAS PRÓXIMAS DEL CLIENTE:',
     upcoming,
     '',

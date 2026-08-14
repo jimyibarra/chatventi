@@ -30,6 +30,15 @@ export type AgentContext = {
     cap_transcribe?: boolean | null
   } | null
   branch: { id: string; name: string; timezone: string } | null
+  // Horario de atención del branch. Opcional: hasta que se aplique la migración
+  // que lo añade a get_agent_context llega undefined y el prompt queda idéntico.
+  // weekday 0=domingo..6=sábado (convención DOW de Postgres).
+  business_hours?: {
+    weekday: number
+    open_time: string
+    close_time: string
+    is_closed: boolean
+  }[]
   services: {
     id: string
     name: string
