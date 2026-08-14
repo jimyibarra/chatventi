@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createWebhookClient } from '@/lib/supabase/webhook'
+import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { getClientIp } from '@/shared/security/request-context'
@@ -45,7 +45,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ reply: LIMIT_REPLY, limited: true })
   }
 
-  const supabase = createWebhookClient()
+  // service_role: get_agent_context / route_inbound_message ya no son
+  // ejecutables por anon (hardening 2026-08-14). La demo está acotada por el
+  // rate-limit de IP de arriba y el tope por sesión.
+  const supabase = createServiceClient()
   const fromHandle = `demo:${sessionId}`
 
   // Tope durable por sesión: mensajes entrantes ya registrados en la conversación.

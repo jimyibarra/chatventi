@@ -1,6 +1,5 @@
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createWebhookClient } from '@/lib/supabase/webhook'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
@@ -114,7 +113,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         try {
           await tgAnswerCallback(cb.id, choiceText)
           if (!chatId || !channelExternalId || !choiceText) return
-          const supabase = createWebhookClient()
+          const supabase = createServiceClient()
           const { data, error } = await supabase.rpc('route_inbound_message', {
             p_channel_type: 'telegram',
             p_external_id: channelExternalId,
@@ -160,7 +159,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         try {
           await tgAnswerCallback(cb.id, 'Confirmando…')
           if (!confChatId || !confChannelId || !appointmentId) return
-          const supabase = createWebhookClient()
+          const supabase = createServiceClient()
           // La pulsación entra al historial y dedupea reintentos por cb.id.
           const { data: routedData, error: routeErr } = await supabase.rpc(
             'route_inbound_message',
@@ -213,7 +212,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         try {
           await tgAnswerCallback(cb.id, '¡Gracias!')
           if (!csatChatId || !csatChannelId) return
-          const supabase = createWebhookClient()
+          const supabase = createServiceClient()
           const { data: routedData, error: routeErr } = await supabase.rpc(
             'route_inbound_message',
             {
@@ -337,7 +336,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ancla el archivo descargado.
   let routedMessageId: string | null = null
   try {
-    const supabase = createWebhookClient()
+    const supabase = createServiceClient()
     const { data, error } = await supabase.rpc('route_inbound_message', {
       p_channel_type: 'telegram',
       p_external_id: channelExternalId,
@@ -364,7 +363,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const mediaRef = isMedia ? tgMediaRef(msg) : null
   after(async () => {
     try {
-      const supabase = createWebhookClient()
+      const supabase = createServiceClient()
       const senders = {
         sendToCustomer: (text: string) => tgSendMessage(fromHandle, text),
         sendApproval: (chatId: string, draft: string, approvalId: string) =>

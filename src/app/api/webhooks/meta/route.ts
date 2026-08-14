@@ -7,7 +7,6 @@
 // =====================================================================
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { after, NextResponse, type NextRequest } from 'next/server'
-import { createWebhookClient } from '@/lib/supabase/webhook'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import {
@@ -64,7 +63,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 200 inmediato; el enrutado y el agente van en after() (evita reintentos).
   if (inbound.length > 0) {
     after(async () => {
-      const supabase = createWebhookClient()
+      // service_role: las RPCs internas del agente ya no son ejecutables por
+      // anon (hardening 2026-08-14). La firma HMAC de arriba es la puerta.
+      const supabase = createServiceClient()
       const service = createServiceClient()
       for (const msg of inbound) {
         try {
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
 async function handleInbound(
   msg: MetaInboundMessage,
-  supabase: ReturnType<typeof createWebhookClient>,
+  supabase: ReturnType<typeof createServiceClient>,
   service: ReturnType<typeof createServiceClient>
 ): Promise<void> {
   // Misma RPC que WhatsApp/Telegram: resuelve canal→org, crea client/

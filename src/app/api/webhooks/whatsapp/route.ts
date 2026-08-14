@@ -1,7 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
-import { createWebhookClient } from '@/lib/supabase/webhook'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
@@ -156,7 +155,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }[] = []
 
   try {
-    const supabase = createWebhookClient()
+    // service_role: estas RPCs (route_inbound_message, log_outbound_message…)
+    // ya NO son ejecutables por anon (hardening 2026-08-14). El webhook es un
+    // contexto de confianza: la firma HMAC de arriba es la puerta.
+    const supabase = createServiceClient()
     for (const entry of parsed.entry ?? []) {
       for (const change of entry.changes ?? []) {
         const phoneNumberId = change.value.metadata?.phone_number_id
@@ -209,7 +211,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // reintenta si tardamos, y son dos llamadas a Graph.
   if (mediaToEscalate.length > 0) {
     after(async () => {
-      const supabase = createWebhookClient()
+      const supabase = createServiceClient()
       const service = createServiceClient()
       for (const { phoneNumberId, from, mediaId, messageId } of mediaToEscalate) {
         try {
@@ -248,7 +250,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Botón "Confirmar asistencia": confirma la cita y responde estático (sin LLM).
   if (toConfirm.length > 0) {
     after(async () => {
-      const supabase = createWebhookClient()
+      const supabase = createServiceClient()
       const service = createServiceClient()
       for (const { phoneNumberId, from, appointmentId } of toConfirm) {
         try {
@@ -282,7 +284,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Botón de la encuesta: registra la nota y agradece. Sin LLM.
   if (toCsat.length > 0) {
     after(async () => {
-      const supabase = createWebhookClient()
+      const supabase = createServiceClient()
       const service = createServiceClient()
       for (const { phoneNumberId, from, appointmentId, score } of toCsat) {
         try {
@@ -319,7 +321,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // El agente IA responde tras devolver el 200 (evita timeouts/reintentos de Meta).
   if (toAnswer.length > 0) {
     after(async () => {
-      const supabase = createWebhookClient()
+      const supabase = createServiceClient()
       const service = createServiceClient()
       for (const { phoneNumberId, from } of toAnswer) {
         try {
