@@ -40,7 +40,14 @@ export function LoginForm() {
       options: { captchaToken: captchaToken ?? undefined },
     })
     if (error) {
-      setServerError('Correo o contraseña incorrectos.')
+      // Un fallo del captcha se distingue de credenciales malas: si no, un
+      // captcha mal configurado parecía "contraseña incorrecta" y no había
+      // forma de saber cuál era el problema.
+      setServerError(
+        error.code === 'captcha_failed' || /captcha/i.test(error.message)
+          ? 'No pudimos verificar que eres una persona. Recarga la página e inténtalo de nuevo.'
+          : 'Correo o contraseña incorrectos.'
+      )
       // Rehacer el reto para el siguiente intento (token de un solo uso).
       setCaptchaToken(null)
       setCaptchaNonce((n) => n + 1)

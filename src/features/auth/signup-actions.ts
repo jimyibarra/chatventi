@@ -165,7 +165,16 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
     },
   })
   if (error) {
-    // Tampoco aquí se revela si el correo ya existía.
+    // Un fallo del captcha NO se enmascara como "correo ya registrado": eso
+    // dejaba invisible una mala configuración del captcha (parecía que TODOS
+    // los correos estaban tomados). El resto de errores sí van al genérico,
+    // que no revela si el correo existía (anti-enumeración).
+    if (error.code === 'captcha_failed' || /captcha/i.test(error.message)) {
+      return {
+        ok: false,
+        error: 'No pudimos verificar que eres una persona. Recarga la página e inténtalo de nuevo.',
+      }
+    }
     return { ok: false, error: GENERIC_EMAIL_ERROR }
   }
 
