@@ -10,7 +10,6 @@ import { verticalBySlug } from '@/features/verticales/data'
 import { isDisposableEmail } from '@/shared/security/disposable-domains'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { getClientIp, getUserAgent } from '@/shared/security/request-context'
-import { isTurnstileConfigured, verifyTurnstile } from '@/shared/security/turnstile'
 import {
   ONE_DAY_SECONDS,
   ONE_HOUR_SECONDS,
@@ -46,11 +45,11 @@ async function siteOrigin(): Promise<string> {
  * Orden de las comprobaciones, de más barata a más cara y de menos a más
  * reveladora:
  *   1. forma de los datos      (Zod)
- *   2. Turnstile               (¿es una persona?)
- *   3. límite por IP           (¿cuántas cuentas lleva esta red?)
- *   4. correo desechable       (local, coste cero)
- *   5. límite por correo       (frena el machaque sobre una misma bandeja)
- *   6. bandeja ya registrada   (única que toca la base de usuarios)
+ *   2. límite por IP           (¿cuántas cuentas lleva esta red?)
+ *   3. correo desechable       (local, coste cero)
+ *   4. límite por correo       (frena el machaque sobre una misma bandeja)
+ *   5. bandeja ya registrada   (única que toca la base de usuarios)
+ *   6. captcha                 (lo verifica GoTrue en signUp, ver abajo)
  *
  * El usuario queda SIN perfil y SIN organización a propósito: eso lo hace el
  * asistente /bienvenida cuando el correo ya está verificado.
@@ -71,18 +70,11 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
   const ip = getClientIp(requestHeaders)
   const userAgent = getUserAgent(requestHeaders)
 
-  // 2. Turnstile. Si hay clave configurada y no se puede verificar, se BLOQUEA.
-  if (isTurnstileConfigured()) {
-    const verdict = await verifyTurnstile(turnstileToken, ip)
-    if (!verdict.ok) {
-      return {
-        ok: false,
-        error: 'No pudimos verificar que eres una persona. Recarga la página e inténtalo de nuevo.',
-      }
-    }
-  }
+  // El captcha ya NO se verifica aquí (siteverify propio): el token de Turnstile
+  // es de un solo uso y lo consume GoTrue en el signUp de abajo cuando el captcha
+  // de Supabase Auth está activo. Hacer ambos lo gastaría dos veces.
 
-  // 3. Límite por IP: dos ventanas. La de hora frena la ráfaga; la de día,
+  // 2. Límite por IP: dos ventanas. La de hora frena la ráfaga; la de día,
   //    al que vuelve cada rato.
   const ipHourOk = await consumeRateLimit({
     bucket: 'signup_ip',
@@ -155,6 +147,9 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
     email,
     password,
     options: {
+      // GoTrue verifica el captcha si está activo en Supabase Auth. Sin captcha
+      // configurado, el token va undefined y no cambia nada.
+      captchaToken: turnstileToken,
       emailRedirectTo: `${origin}/auth/confirm`,
       data: {
         // Click-wrap: el sello de tiempo lo pone el servidor al crear el

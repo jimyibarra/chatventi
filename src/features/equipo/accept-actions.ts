@@ -23,7 +23,7 @@ export async function acceptInvitation(raw: unknown): Promise<AcceptResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { token, fullName, password } = parsed.data
+  const { token, fullName, password, captchaToken } = parsed.data
 
   const supabase = await createClient()
 
@@ -72,7 +72,14 @@ export async function acceptInvitation(raw: unknown): Promise<AcceptResult> {
   }
 
   // 3. Autenticar (deja las cookies de sesión) para que auth.uid() exista.
-  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+  //    captchaToken: GoTrue lo exige aquí si el captcha de Supabase Auth está
+  //    activo (este signInWithPassword es un grant de contraseña como cualquier
+  //    login). Sin captcha configurado va undefined y no cambia nada.
+  const { error: signInError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+    options: { captchaToken: captchaToken ?? undefined },
+  })
   if (signInError) {
     return { ok: false, error: 'Tu cuenta se creó, pero no pudimos iniciar sesión. Prueba en /login.' }
   }

@@ -8,10 +8,18 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
 import { PasswordInput } from './password-input'
+import { TurnstileWidget } from './turnstile-widget'
 
 export function LoginForm() {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
+  // Captcha (Turnstile). Solo se pinta si hay NEXT_PUBLIC_TURNSTILE_SITE_KEY; si
+  // no, el widget no renderiza y captchaToken queda null -> se comporta como
+  // hoy. Cuando el captcha de Supabase Auth está activo, GoTrue exige este token.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  // El token de Turnstile es de un solo uso: tras un intento fallido hay que
+  // pedir uno nuevo. Cambiar la key re-monta el widget y emite otro token.
+  const [captchaNonce, setCaptchaNonce] = useState(0)
   // Campos "bloqueados" hasta que el usuario los enfoca: así el navegador NO
   // autorrellena las credenciales guardadas al aterrizar (privacidad en equipos
   // compartidos; los campos quedan vacíos al salir de sesión).
@@ -29,9 +37,13 @@ export function LoginForm() {
     const { error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
+      options: { captchaToken: captchaToken ?? undefined },
     })
     if (error) {
       setServerError('Correo o contraseña incorrectos.')
+      // Rehacer el reto para el siguiente intento (token de un solo uso).
+      setCaptchaToken(null)
+      setCaptchaNonce((n) => n + 1)
       return
     }
     router.replace('/dashboard')
@@ -69,6 +81,8 @@ export function LoginForm() {
           </Link>
         </div>
       </div>
+      <TurnstileWidget key={captchaNonce} onToken={setCaptchaToken} />
+
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
       <button
         type="submit"

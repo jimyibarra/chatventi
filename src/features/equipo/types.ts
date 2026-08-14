@@ -97,4 +97,7 @@ export const acceptInvitationSchema = z.object({
   token: uuid,
   fullName: z.string().trim().min(2, 'Escribe tu nombre').max(120),
   password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres').max(72),
+  // Token de Turnstile. GoTrue lo exige en el signInWithPassword del alta cuando
+  // el captcha de Supabase Auth está activo. Opcional: sin captcha va undefined.
+  captchaToken: z.string().optional(),
 })

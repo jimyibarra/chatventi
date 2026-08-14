@@ -19,15 +19,7 @@ const INPUT =
 // No hay "confirmar contraseña" a propósito: el ojo permite ver lo escrito y
 // existe recuperación en un clic. El checkbox de términos SÍ se queda: el
 // registro legal depende de que la aceptación preceda a la cuenta.
-export function SignupForm({
-  vertical,
-  // Lo decide el SERVIDOR (isTurnstileConfigured): el widget solo se pinta si
-  // la verificación está activa. Default false = sin residuo cuando está apagada.
-  antibotEnabled = false,
-}: {
-  vertical?: string
-  antibotEnabled?: boolean
-}) {
+export function SignupForm({ vertical }: { vertical?: string }) {
   const [serverError, setServerError] = useState<string | null>(null)
   const [checkEmail, setCheckEmail] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
@@ -125,7 +117,9 @@ export function SignupForm({
         )}
       </div>
 
-      {antibotEnabled && <TurnstileWidget onToken={setTurnstileToken} />}
+      {/* Se auto-oculta sin NEXT_PUBLIC_TURNSTILE_SITE_KEY. Con el captcha de
+          Supabase Auth activo, el token viaja a signUp y GoTrue lo verifica. */}
+      <TurnstileWidget onToken={setTurnstileToken} />
 
       {serverError && <p className="text-sm text-red-600">{serverError}</p>}
 

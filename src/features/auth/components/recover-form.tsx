@@ -6,11 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { recoverSchema, type RecoverInput } from '@/lib/validations/auth'
+import { TurnstileWidget } from './turnstile-widget'
 
 // Envía el correo de recuperación. El enlace aterriza en /auth/confirm?type=recovery
 // que, tras verificar, redirige a /nueva-clave para fijar la contraseña.
 export function RecoverForm() {
   const [sent, setSent] = useState(false)
+  // Captcha (inerte sin NEXT_PUBLIC_TURNSTILE_SITE_KEY). GoTrue lo exige en el
+  // flujo de recuperación cuando el captcha de Supabase Auth está activo.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const {
     register,
     handleSubmit,
@@ -22,6 +26,7 @@ export function RecoverForm() {
     // No revelamos si el correo existe (anti-enumeración): siempre "enviado".
     await supabase.auth.resetPasswordForEmail(values.email, {
       redirectTo: `${window.location.origin}/auth/confirm?type=recovery`,
+      captchaToken: captchaToken ?? undefined,
     })
     setSent(true)
   }
@@ -61,6 +66,7 @@ export function RecoverForm() {
           />
           {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
         </div>
+        <TurnstileWidget onToken={setCaptchaToken} />
         <button
           type="submit"
           disabled={isSubmitting}

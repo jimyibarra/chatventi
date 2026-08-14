@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { acceptInvitation } from '../accept-actions'
+import { TurnstileWidget } from '@/features/auth/components/turnstile-widget'
 
 export function AcceptInvitationForm({
   token,
@@ -18,11 +19,19 @@ export function AcceptInvitationForm({
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
+  // Captcha (inerte sin NEXT_PUBLIC_TURNSTILE_SITE_KEY). El alta autentica con
+  // contraseña, así que GoTrue lo exige si el captcha de Supabase Auth está activo.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
 
   function submit() {
     setError(null)
     startTransition(async () => {
-      const res = await acceptInvitation({ token, fullName, password })
+      const res = await acceptInvitation({
+        token,
+        fullName,
+        password,
+        captchaToken: captchaToken ?? undefined,
+      })
       if (res.ok) {
         // Ya quedó autenticado por la action: entra directo al panel.
         router.replace('/dashboard')
@@ -72,6 +81,8 @@ export function AcceptInvitationForm({
           className="w-full rounded-lg border border-line px-3 py-2 text-sm"
         />
       </div>
+
+      <TurnstileWidget onToken={setCaptchaToken} />
 
       {error && (
         <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" data-testid="accept-error">
