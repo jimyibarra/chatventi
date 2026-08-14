@@ -387,6 +387,16 @@ npm run lint         # ESLint
 - **Fix**: antes de declarar que algo no existe, mirar las herramientas disponibles e **intentarlo**. Un `grep` que no encuentra algo prueba que no está *ahí*, no que no exista.
 - **Aplicar en**: todo. Un error escrito como "aprendizaje" se fosiliza y contamina las sesiones futuras.
 
+### 2026-08-14: una RPC `SECURITY DEFINER` con `grant execute ... to anon` es PÚBLICA por PostgREST
+- **Error**: toda la familia de RPCs "internas del agente" (`get_agent_context`, `route_inbound_message`, `log_outbound_message`, `resolve_ai_approval`, `*_from_chat`…) llevaba `grant execute ... to anon` porque el webhook las llamaba con la **anon key** (`createWebhookClient`, el "patrón maestro" de defensa en profundidad). Pero la anon key es **pública** (va en el JS del navegador) y PostgREST expone toda función con execute a anon. Como son `SECURITY DEFINER` y **no autentican al llamante**, cualquiera las llamaba directo **saltándose la firma HMAC del webhook**. Verificado en vivo: con la anon key + un `external_id` público (page id de Messenger) + el teléfono del cliente, `get_agent_context` devolvía el **hilo privado completo de OTRO negocio** (mensajes, nombre, citas, `system_prompt`, chat de aprobación del dueño). Fuga multi-inquilino real, en producción.
+- **Fix**: el webhook es un contexto de confianza **tras validar la firma HMAC** → debe llamar con **`service_role`**, no con anon. Migración `20260814120000`: `revoke execute ... from anon, authenticated` + `grant ... to service_role` en las 16 RPCs internas. Las RPCs **públicas legítimas** (reserva web `/r/[slug]`, enlace mágico `/c/[token]`, `consume_rate_limit` del alta) SÍ deben seguir anon: están acotadas por token/slug (el secreto es el token).
+- **Reglas**:
+  - Antes de `grant execute ... to anon` en una RPC, preguntar: *¿esta función autentica al llamante por sí misma, o confía en sus argumentos?* Si confía en los argumentos (channel/external_id/handle), NO va a anon: la firma del webhook no la protege porque PostgREST la expone aparte.
+  - La firma HMAC de un webhook solo protege **el endpoint del webhook**, no las RPCs que ese endpoint invoca si además están abiertas a anon. La puerta hay que ponerla en las DOS.
+  - `SECURITY DEFINER` + anon = ejecuta como owner PERO lo dispara cualquiera. Es la combinación más peligrosa; el default debe ser `service_role`.
+- **Detección**: invisible en typecheck/lint/build/SQL en verde y `get_advisors` no lo aísla. Se caza **llamando la RPC con la anon key** y viendo que devuelve datos en vez de `42501 permission denied`.
+- **Aplicar en**: TODA RPC nueva. Si la llama un webhook/cron/servidor, va por `service_role` y se revoca de anon; solo se deja anon si es para una página pública y está acotada por un secreto en el argumento.
+
 ---
 
 *V4: Todo es un Skill. Agent-First. El usuario habla, tu construyes.*
