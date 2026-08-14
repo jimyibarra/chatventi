@@ -1,0 +1,58 @@
+1
+00:00:02,000 --> 00:00:10,000
+ChatVenti - SaaS appointment-booking platform
+with an AI receptionist for small businesses.
+
+2
+00:00:12,000 --> 00:00:20,000
+A business owner logs into their dashboard.
+
+3
+00:00:32,000 --> 00:00:42,000
+whatsapp_business_management: the business connects
+its own WhatsApp number via Embedded Signup.
+
+4
+00:00:44,000 --> 00:00:53,000
+ChatVenti (Tech Provider) registers the WABA
+and subscribes the app - no manual setup.
+
+5
+00:01:47,000 --> 00:01:57,000
+whatsapp_business_messaging: a customer messages
+the business on WhatsApp.
+
+6
+00:02:05,000 --> 00:02:15,000
+The AI receptionist replies within the 24-hour
+window and offers appointment slots.
+
+7
+00:02:30,000 --> 00:02:40,000
+The business sees and can take over
+the conversation from the dashboard.
+
+8
+00:02:47,000 --> 00:02:57,000
+pages_messaging: a customer messages
+the business's Facebook Page.
+
+9
+00:03:05,000 --> 00:03:15,000
+The AI receptionist answers automatically and the
+thread is available to the business in ChatVenti.
+
+10
+00:03:47,000 --> 00:03:57,000
+instagram_manage_messages: a customer sends
+an Instagram DM to the business account.
+
+11
+00:04:05,000 --> 00:04:15,000
+The AI receptionist replies and the conversation
+syncs to the business dashboard.
+
+12
+00:04:47,000 --> 00:04:58,000
+One inbox: WhatsApp, Messenger and Instagram DM
+all reach the same AI receptionist and dashboard.
