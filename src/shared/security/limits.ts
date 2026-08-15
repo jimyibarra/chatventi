@@ -26,6 +26,10 @@ export const SANDBOX_MAX_PER_ORG_PER_DAY = 40
 /** Demo pública de la landing — por IP y hora. */
 export const DEMO_MAX_PER_IP_PER_HOUR = 30
 
+/** Agente de ventas de la landing — por IP y hora. Un interesado real pregunta
+ *  varias cosas; se acota para que nadie queme el saldo de OpenRouter. */
+export const VENTAS_MAX_PER_IP_PER_HOUR = 40
+
 /** Ventanas en segundos, para no repetir multiplicaciones por ahí. */
 /** Análisis del sitio web para la voz de marca, por organización y hora.
  *  Cada intento hace que NUESTRO servidor descargue una URL que teclea el

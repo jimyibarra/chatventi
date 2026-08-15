@@ -19,6 +19,8 @@ export type RateBucket =
   | 'demo_ip'
   | 'sandbox_org'
   | 'login_ip'
+  // Agente de ventas de la landing: cada mensaje gasta una llamada de IA.
+  | 'ventas_ip'
   // Análisis del sitio web para la voz de marca: cada intento hace que el
   // servidor descargue una URL escrita por el usuario y gaste una llamada de IA.
   | 'voice_extract'

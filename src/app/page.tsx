@@ -17,7 +17,8 @@ import {
   TRIAL_DAYS,
 } from '@/features/landing/data'
 import { TRUST_LABELS, VERTICALS } from '@/features/verticales/data'
-import { Icon, PhoneIcon, WhatsAppIcon } from '@/features/landing/icons'
+import { Icon, PhoneIcon } from '@/features/landing/icons'
+import { SalesWidget } from '@/features/landing/sales-widget'
 import { LandingEffects } from '@/features/landing/effects'
 import { DemoChat } from '@/features/landing/demo-chat'
 import '@/features/landing/landing.css'
@@ -529,16 +530,10 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* CTA flotante */}
-      <Link
-        href="/signup"
-        aria-label="Empezar prueba gratis con ChatVenti"
-        className="cv-btn-green cv-pulse"
-        style={{ position: 'fixed', bottom: 22, right: 22, zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 24px', fontSize: 15.5, boxShadow: '0 12px 30px rgba(18,140,74,0.4)' }}
-      >
-        <WhatsAppIcon />
-        Prueba gratis
-      </Link>
+      {/* Asistente de ventas IA flotante (reemplaza al antiguo botón que
+          aparentaba WhatsApp y llevaba a /signup). Ahora el botón SÍ abre un
+          chat: el producto vendiéndose a sí mismo, 24/7. */}
+      <SalesWidget />
     </div>
   )
 }
