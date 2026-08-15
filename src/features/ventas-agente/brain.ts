@@ -49,7 +49,7 @@ function pricingFacts(): string {
       '; acceso de equipo adicional $' +
       ADDON_SEAT_USD +
       '.',
-    `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Se activa tocando el botón "Prueba gratis" de la página (NO menciones rutas ni URLs como "/signup"; di "el botón Prueba gratis").`,
+    `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`,
     'IMPORTANTE de canales: WhatsApp, web y Telegram están en TODOS los planes. Instagram y Messenger entran desde el plan Profesional.',
   ].join('\n')
 }

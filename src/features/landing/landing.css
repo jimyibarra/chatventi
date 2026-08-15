@@ -13,7 +13,11 @@ html {
   color: #201b36;
   font-family: var(--font-inter), 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  /* clip (no hidden): recorta el desbordamiento horizontal SIN crear un
+     contenedor de scroll. Con `hidden`, el eje Y pasa a `auto` y el header
+     `position: sticky` se fija a este div en vez de a la ventana -> se iba con
+     el scroll. Con `clip` el menú (y su botón azul "Prueba gratis") queda fijo. */
+  overflow-x: clip;
 }
 
 .cv-landing a {
