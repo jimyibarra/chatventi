@@ -908,6 +908,7 @@ export type Database = {
       }
       organizations: {
         Row: {
+          agent_mode: string
           ai_cap_exempt: boolean
           branding: Json | null
           business_type: string | null
@@ -938,6 +939,7 @@ export type Database = {
           welcome_email_sent_at: string | null
         }
         Insert: {
+          agent_mode?: string
           ai_cap_exempt?: boolean
           branding?: Json | null
           business_type?: string | null
@@ -968,6 +970,7 @@ export type Database = {
           welcome_email_sent_at?: string | null
         }
         Update: {
+          agent_mode?: string
           ai_cap_exempt?: boolean
           branding?: Json | null
           business_type?: string | null

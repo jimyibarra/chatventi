@@ -22,8 +22,16 @@ import {
 
 export type SalesTurn = { role: 'user' | 'assistant'; content: string }
 
+/**
+ * Dónde conversa el asesor. Cambia UNA cosa: cómo se invita a empezar.
+ *   'web'  → el widget de la página: hay un botón azul a la vista.
+ *   'chat' → WhatsApp, Instagram o Messenger: no hay botón; se da el enlace.
+ */
+export type SalesChannel = 'web' | 'chat'
+const SIGNUP_URL = 'https://www.chatventi.com/signup'
+
 // Datos verificables del catálogo, en un bloque que el modelo cita tal cual.
-function pricingFacts(): string {
+function pricingFacts(channel: SalesChannel): string {
   const planLines = PLANS.map((p) => {
     const resources =
       p.maxResources === null ? 'profesionales ilimitados' : `hasta ${p.maxResources} profesional(es)`
@@ -47,18 +55,20 @@ function pricingFacts(): string {
     'MENSAJES DE WHATSAPP: los cobra Meta directamente a la cuenta de WhatsApp Business del negocio, con las tarifas oficiales de Meta. ChatVenti NO cobra ni añade nada por mensaje. Si preguntan cuánto es, di que depende del país y que Meta publica sus tarifas; no inventes una cifra.',
     'RECOMIENDA Y GANA: cada negocio tiene un enlace para recomendar ChatVenti; cuando el recomendado hace su primer pago, quien recomendó recibe un mes de su plan.',
     'AÚN NO DISPONIBLE (no lo ofrezcas; si preguntan, di que está en camino y que no se cobra): app de marca para los clientes del negocio, dominio propio y varias sucursales en una misma cuenta.',
-    `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`,
+    channel === 'web'
+      ? `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`
+      : `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Estás en un chat (WhatsApp, Instagram o Messenger): aquí NO hay botones. Para empezar, da este enlace tal cual, en su propia línea: ${SIGNUP_URL}`,
     'IMPORTANTE de canales: WhatsApp, web y Telegram están en TODOS los planes. Instagram y Messenger entran desde el plan Profesional.',
   ].join('\n')
 }
 
-function systemPrompt(): string {
+function systemPrompt(channel: SalesChannel): string {
   return [
     'Eres el asesor de ventas de ChatVenti. Tu trabajo es resolver dudas de negocios interesados y ayudarles a empezar su prueba gratis. NO agendas citas ni atiendes a clientes finales: eso lo hace el producto una vez que el negocio se registra.',
     '',
     'QUÉ ES CHATVENTI: un recepcionista con inteligencia artificial que atiende por WhatsApp, Instagram, Messenger, Telegram y un widget en la web del negocio. Contesta al instante 24/7, agenda y confirma citas, evita dobles reservas, manda recordatorios y lleva un CRM de clientes. Está hecho para negocios que viven de su agenda: peluquerías, barberías, dentistas, veterinarias, spas, estéticas y consultorios. No hay que instalar nada ni saber de tecnología; queda listo en minutos.',
     '',
-    pricingFacts(),
+    pricingFacts(channel),
     '',
     'REGLAS:',
     '- Responde en español, cálido, cercano y BREVE (2-4 frases). Es un chat. Haz UNA sola pregunta por mensaje.',
@@ -67,7 +77,9 @@ function systemPrompt(): string {
     '- NUNCA inventes precios, planes ni funciones que no estén arriba. Si no sabes un dato concreto (facturas fiscales, casos muy específicos, integraciones raras), dilo con honestidad y ofrece que lo vean creando la cuenta gratis o escribiendo al equipo.',
     '- Cuando detectes intención (pregunta por precio, por su rubro, "cómo empiezo", "quiero probarlo"), INVITA a crear la cuenta gratis: di que la prueba es de ' +
       TRIAL_DAYS +
-      ' días sin tarjeta y que en el botón "Prueba gratis" quedan listos en minutos. No presiones; ayuda.',
+      (channel === 'web'
+        ? ' días sin tarjeta y que en el botón "Prueba gratis" quedan listos en minutos. No presiones; ayuda.'
+        : ' días sin tarjeta y comparte el enlace para empezar. No presiones; ayuda.'),
     '- Si preguntan por su rubro (ej. "¿sirve para mi veterinaria?"), responde que SÍ y por qué (agenda + atención automática 24/7 en su canal), con un ejemplo de su giro.',
     '- Si el interesado quiere hablar con una persona o tiene un caso complejo, sugiérele registrarse (así lo atienden dentro) o escribir a soporte@chatventi.com.',
   ].join('\n')
@@ -78,7 +90,7 @@ function systemPrompt(): string {
  * es Q&A + conversión, no un motor de reservas. Devuelve null si no hay clave
  * o si el modelo falla (quien llama muestra un fallback amable).
  */
-export async function salesReply(history: SalesTurn[]): Promise<string | null> {
+export async function salesReply(history: SalesTurn[], channel: SalesChannel = 'web'): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return null
 
@@ -91,7 +103,7 @@ export async function salesReply(history: SalesTurn[]): Promise<string | null> {
     const model = openrouter('openai/gpt-4o-mini')
     const result = await generateText({
       model,
-      system: systemPrompt(),
+      system: systemPrompt(channel),
       messages,
     })
     const text = result.text?.trim()

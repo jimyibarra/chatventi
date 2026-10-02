@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { notifyOrgOwners } from '@/features/notifications/send'
 import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
 import { renderVoiceBlock, resolveVoiceProfile } from './voice'
+import { salesReply, type SalesTurn } from '@/features/ventas-agente/brain'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -400,6 +401,51 @@ const TRIAGE_REPLY =
   'Gracias por tu paciencia 🙏 Le paso tu conversación a nuestro equipo para atenderte personalmente; en cuanto se conecten te responden por aquí.'
 
 // -------------------------------------------------------------------
+// Turno del asesor de ventas en un canal de chat (modo 'sales').
+// -------------------------------------------------------------------
+const SALES_MAX_AI_REPLIES_24H = 30
+
+async function runSalesTurn(
+  ctx: AgentContext,
+  supabase: AnyClient,
+  senders: AgentSenders
+): Promise<RunAgentResult> {
+  const convId = ctx.conversation.id
+  const messages = ctx.messages ?? []
+
+  // Tope por conversación: un curioso (o un bot) no puede quemar IA sin fin.
+  const since = Date.now() - 24 * 3600_000
+  const recentAi = messages.filter(
+    (m) => m.sender === 'ai' && new Date(m.created_at ?? 0).getTime() >= since
+  ).length
+  if (recentAi >= SALES_MAX_AI_REPLIES_24H) {
+    return { handled: false, reason: 'ventas: tope de respuestas en 24 h' }
+  }
+
+  const history: SalesTurn[] = messages
+    .filter((m) => m.body && (m.direction === 'inbound' || m.sender === 'ai' || m.sender === 'agent'))
+    .map((m) => ({
+      role: m.direction === 'inbound' ? ('user' as const) : ('assistant' as const),
+      content: m.body as string,
+    }))
+  if (history.length === 0 || history[history.length - 1].role !== 'user') {
+    return { handled: false, reason: 'ventas: sin mensaje entrante que responder' }
+  }
+
+  const reply =
+    (await salesReply(history, 'chat')) ??
+    'Gracias por escribir a ChatVenti. En este momento no puedo responderte; escríbenos a soporte@chatventi.com y te atendemos enseguida.'
+  const extId = await senders.sendToCustomer(reply)
+  await supabase.rpc('log_outbound_message', {
+    p_conversation_id: convId,
+    p_body: reply,
+    p_sender: 'ai',
+    p_external_id: extId ?? undefined,
+  })
+  return { handled: true, mode: 'sent', reply }
+}
+
+// -------------------------------------------------------------------
 // Orquestador: obtiene contexto, corre el LLM con herramientas y decide
 // enviar directo o enrutar a aprobación humana.
 // -------------------------------------------------------------------
@@ -436,6 +482,26 @@ export async function runAgent(params: {
     return { handled: false, reason: 'no debe responder (pausa/desactivado/pendiente)' }
   }
   if (!ctx.branch) return { handled: false, reason: 'sin sucursal' }
+
+  // Organización en modo VENTAS (la de ChatVenti en sus propias redes): quien
+  // escribe es un prospecto, no un cliente con cita. Responde el asesor de
+  // ventas y aquí se acaba el turno: sin herramientas de agenda, sin cobro.
+  // Si la consulta falla se sigue como recepcionista, que es lo de siempre.
+  if (!sandbox && ctx.conversation?.id) {
+    try {
+      const admin = createServiceClient()
+      const { data: orgRow } = await admin
+        .from('organizations')
+        .select('agent_mode')
+        .eq('id', ctx.org_id)
+        .maybeSingle()
+      if (orgRow?.agent_mode === 'sales') {
+        return await runSalesTurn(ctx, supabase, senders)
+      }
+    } catch (e) {
+      console.error('[agent] modo ventas: no se pudo consultar', e)
+    }
+  }
 
   // Gating del módulo IA: con el cobro activo, la org debe tener el módulo
   // Recepcionista IA vigente (trial/activo). Con BILLING_ENFORCED apagado no
