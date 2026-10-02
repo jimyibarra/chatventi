@@ -32,7 +32,7 @@ export default function TermsPage() {
         <div className="mt-8 space-y-8 text-ink-muted">
           <S title="1. Acerca de estos términos">
             <p>
-              ChatVenti (&quot;ChatVenti&quot;/&quot;nosotros&quot;) es el propietario y operador del
+              {LEGAL.legalName} (&quot;ChatVenti&quot;/&quot;nosotros&quot;) es el propietario y operador del
               servicio de software de agenda y recepcionista con inteligencia artificial ChatVenti
               (&quot;Servicio&quot;). Hemos desarrollado un portal (&quot;Portal&quot;) proporcionado
               a través de nuestro sitio web en chatventi.com (&quot;Sitio&quot;) y nuestra aplicación

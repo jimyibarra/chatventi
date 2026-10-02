@@ -189,16 +189,15 @@ export const STARTER_PRICE_USD = Math.min(...PLANS.map((p) => p.priceUsd))
 // ---------------------------------------------------------------------
 
 /**
- * Tarifa por mensaje saliente de WhatsApp, en USD, por mercado.
- * ✅ VERIFICADO el 2026-08-06 en el tarifario oficial de Meta
- * (whatsappbusiness.com/products/platform-pricing, categoría "Utilidad", USD).
- * Son las tarifas VIGENTES: Meta anunció que desde el 1-oct-2026 los mensajes
- * de servicio se cobran "a la misma tarifa que utilidad", y que publica las
- * tarifas definitivas de octubre ANTES DEL 1-SEP-2026.
+ * Tarifa por mensaje de SERVICIO de WhatsApp (las respuestas del agente dentro
+ * de la ventana de 24 h), en USD, por mercado.
+ * ✅ VERIFICADO el 2026-10-02 en la hoja de tarifas oficial de Meta con vigencia
+ * 1-oct-2026 (developers.facebook.com → WhatsApp → Pricing → Rate cards, USD):
+ * la columna "Service" coincide con "Utility" en cada mercado.
  *
- * 🔴 RECORDATORIO 1-SEP-2026: revisar el tarifario y actualizar esta tabla
- * (y recalibrar usageCreditUsd si las tarifas cambian con fuerza). Meta solo
- * puede cambiar precios el primer día de cada trimestre.
+ * 🔴 PRÓXIMA REVISIÓN 1-DIC-2026: Meta solo cambia precios el primer día de
+ * cada trimestre y avisa un mes antes. Si la tabla cambia con fuerza,
+ * recalibrar usageCreditUsd.
  */
 export const META_RATE_USD: Record<string, number> = {
   MX: 0.0085,
@@ -206,6 +205,15 @@ export const META_RATE_USD: Record<string, number> = {
   DE: 0.055,
 }
 export const META_RATE_FALLBACK_USD = 0.02
+
+/**
+ * Mensajes de servicio que Meta NO cobra cada mes, POR NÚMERO de teléfono
+ * (vigente desde el 1-oct-2026; no se acumulan de un mes a otro). Agotado el
+ * cupo, Meta solo sigue entregando si la cuenta de WhatsApp tiene método de pago.
+ * Es ahorro nuestro, no del cliente: lo que se repercute sigue saliendo de
+ * conversationCostUsd(), así que este cupo es margen adicional.
+ */
+export const META_FREE_SERVICE_MESSAGES_PER_NUMBER = 1000
 
 export function metaRateUsd(countryCode: string | null | undefined): number {
   return META_RATE_USD[countryCode ?? ''] ?? META_RATE_FALLBACK_USD
