@@ -15,7 +15,8 @@ export const runtime = 'nodejs'
 //   - `code`            -> se intercambia por un token de negocio (Graph API)
 //   - `phone_number_id` -> external_id del canal WhatsApp
 //   - `waba_id`         -> WhatsApp Business Account compartida con nuestro Tech Provider
-// Guardamos un `channel` (type='whatsapp') activo para la organizacion.
+// Guardamos un `channel` (type='whatsapp') para la organizacion: 'active' si la
+// suscripcion y el registro salieron bien, 'pending' si alguno fallo.
 // ---------------------------------------------------------------------
 const bodySchema = z.object({
   code: z.string().min(1),
@@ -24,8 +25,41 @@ const bodySchema = z.object({
   displayName: z.string().optional(),
 })
 
-const GRAPH_VERSION = 'v21.0'
+const GRAPH_VERSION = 'v25.0'
 const GRAPH = `https://graph.facebook.com/${GRAPH_VERSION}`
+
+const phoneInfoSchema = z.object({
+  id: z.string(),
+  display_phone_number: z.string().optional(),
+  verified_name: z.string().optional(),
+})
+
+/**
+ * Comprueba que el token recién emitido para ESTE negocio puede leer el número
+ * que el navegador dice haber conectado. `phoneNumberId` llega del cliente: sin
+ * esta comprobación, un dueño autenticado podría mandar el id de un número
+ * ajeno y quedarse con ese canal (el upsert reasigna la organización).
+ */
+async function readOwnedPhone(
+  phoneNumberId: string,
+  businessToken: string
+): Promise<z.infer<typeof phoneInfoSchema> | null> {
+  try {
+    const res = await fetch(
+      `${GRAPH}/${encodeURIComponent(phoneNumberId)}?fields=id,display_phone_number,verified_name`,
+      { headers: { authorization: `Bearer ${businessToken}` } }
+    )
+    if (!res.ok) {
+      console.error('[embedded-signup] phone check', res.status, (await res.text()).slice(0, 200))
+      return null
+    }
+    const info = phoneInfoSchema.parse(await res.json())
+    return info.id === phoneNumberId ? info : null
+  } catch (err) {
+    console.error('[embedded-signup] phone check error', String(err).slice(0, 200))
+    return null
+  }
+}
 
 const tokenResponseSchema = z.object({
   access_token: z.string(),
@@ -131,32 +165,73 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'token_exchange_error' }, { status: 502 })
   }
 
-  // 4. Token de gestión para llamar a la Graph API en nombre del cliente.
+  // 4. El número debe ser del negocio que acaba de autorizar. Sin esto el
+  //    `phoneNumberId` del body sería palabra del navegador.
+  const phone = await readOwnedPhone(body.phoneNumberId, accessToken)
+  if (!phone) {
+    return NextResponse.json({ error: 'phone_not_accessible' }, { status: 403 })
+  }
+
+  // 5. Un número conectado en OTRA organización no se reasigna. (type,
+  //    external_id) es único, así que maybeSingle() ve como mucho una fila.
+  const service = createServiceClient()
+  const { data: existing, error: existingErr } = await service
+    .from('channels')
+    .select('organization_id, status, credentials')
+    .eq('type', 'whatsapp')
+    .eq('external_id', body.phoneNumberId)
+    .maybeSingle()
+  if (existingErr) {
+    // Si no podemos saber de quién es el canal, no seguimos: fallar cerrado.
+    console.error('[embedded-signup] lookup channel error', existingErr.message)
+    return NextResponse.json({ error: 'channel_lookup_failed' }, { status: 500 })
+  }
+  if (existing && existing.organization_id !== profile.organization_id) {
+    return NextResponse.json({ error: 'number_in_use' }, { status: 409 })
+  }
+  const previous = (existing?.credentials ?? null) as {
+    access_token?: string
+    pin?: string
+    obtained_at?: string
+  } | null
+  const alreadyActive = existing?.status === 'active'
+
+  // 6. Token de gestión para llamar a la Graph API en nombre del cliente.
   //    Preferimos el token del System User de nuestro Tech Provider (permanente,
   //    ámbito acotado a nuestros assets); si no existe, usamos el token del
   //    negocio recién intercambiado (válido para su propia WABA).
   const mgmtToken = process.env.META_SYSTEM_USER_TOKEN?.trim() || accessToken
 
-  // 5. Suscribir nuestra app a la WABA del cliente (webhooks entrantes) y
-  //    registrar el número. No-fatales: si fallan, guardamos el canal como
-  //    'pending' con la nota del error para reintentar, en vez de perder la conexión.
-  const pin = String(randomInt(100000, 1000000)) // PIN de 2FA (6 dígitos).
+  // 7. Suscribir nuestra app a la WABA del cliente (webhooks entrantes) y
+  //    registrar el número. No-fatales: si fallan, el canal queda 'pending' con
+  //    la nota del error para reintentar, en vez de perder la conexión.
+  //    Un número que ya estaba activo NO se vuelve a registrar: ya tiene su PIN
+  //    y pedir otro lo dejaría en error sin motivo.
+  const pin = alreadyActive && previous?.pin ? previous.pin : String(randomInt(100000, 1000000))
   const subscribeErr = await subscribeAppToWaba(body.wabaId, mgmtToken)
   if (subscribeErr) console.error('[embedded-signup]', subscribeErr)
-  const registerErr = await registerPhoneNumber(body.phoneNumberId, mgmtToken, pin)
+  const registerErr = alreadyActive
+    ? null
+    : await registerPhoneNumber(body.phoneNumberId, mgmtToken, pin)
   if (registerErr) console.error('[embedded-signup]', registerErr)
 
-  // 6. Registrar/activar el canal (service_role: manejamos secretos server-side,
+  // 8. Registrar/activar el canal (service_role: manejamos secretos server-side,
   //    fuera del alcance de RLS de lectura del negocio).
-  const service = createServiceClient()
+  //    Al reconectar, el token anterior se conserva en `previous` en vez de
+  //    perderse: reconectar reemplazaba un token permanente sin dejar rastro.
   const credentials = {
     access_token: accessToken,
     pin,
     obtained_at: new Date().toISOString(),
     subscribe_error: subscribeErr,
     register_error: registerErr,
+    ...(previous?.access_token && previous.access_token !== accessToken
+      ? { previous: { access_token: previous.access_token, obtained_at: previous.obtained_at ?? null } }
+      : {}),
   }
-  const status = subscribeErr ? 'pending' : 'active'
+  // Con Embedded Signup v4 puede llegar un número aún sin verificar: si el
+  // registro falla, el canal NO está listo para enviar.
+  const status = subscribeErr || registerErr ? 'pending' : 'active'
 
   const { data: channel, error } = await service
     .from('channels')
@@ -166,7 +241,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         type: 'whatsapp',
         external_id: body.phoneNumberId,
         waba_id: body.wabaId,
-        display_name: body.displayName ?? null,
+        display_name: body.displayName ?? phone.verified_name ?? phone.display_phone_number ?? null,
         credentials,
         status,
       },

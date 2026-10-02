@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
-const WA_GRAPH_VERSION = 'v21.0'
+const WA_GRAPH_VERSION = 'v25.0'
 
 // -------------------------------------------------------------------
 // Telegram (Bot API con TELEGRAM_BOT_TOKEN global)

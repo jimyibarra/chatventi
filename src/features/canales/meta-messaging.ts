@@ -7,7 +7,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
-const GRAPH_VERSION = 'v23.0'
+const GRAPH_VERSION = 'v25.0'
 
 /**
  * Token y nodo de envío de un canal por (type, external_id).

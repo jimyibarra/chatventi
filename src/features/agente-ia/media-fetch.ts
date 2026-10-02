@@ -10,7 +10,7 @@ import { INBOUND_MAX_BYTES, normalizeMime } from '@/features/storage/inbound'
 // de siempre; nunca rompe la conversación.
 // =====================================================================
 
-const WA_GRAPH_VERSION = 'v21.0'
+const WA_GRAPH_VERSION = 'v25.0'
 
 // Las descargas corren después del ACK, pero no pueden quedarse colgadas:
 // la función serverless tiene su propio techo de ejecución.
