@@ -4,7 +4,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
 import { fetchTelegramMedia } from '@/features/agente-ia/media-fetch'
-import { parseCsatButton, csatReply, CSAT_ALREADY } from '@/features/agente-ia/csat'
+import { parseCsatButton, csatMessage, CSAT_ALREADY, type CsatInfo } from '@/features/agente-ia/csat'
+import { alertLowCsat } from '@/features/agente-ia/csat-alert'
 import {
   tgSendMessage,
   tgSendApproval,
@@ -234,8 +235,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             p_appointment_id: csat.appointmentId,
             p_score: csat.score,
           })
-          const info = data as { conversation_id?: string; duplicate?: boolean } | null
-          const text = error || info?.duplicate ? CSAT_ALREADY : csatReply(csat.score)
+          const info = data as CsatInfo | null
+          const fresh = !error && !info?.duplicate
+          const text = fresh ? csatMessage(csat.score, info) : CSAT_ALREADY
+          if (fresh) await alertLowCsat(csat.score, info)
           const extId = await tgSendMessage(csatChatId, text)
           if (info?.conversation_id) {
             await supabase.rpc('log_outbound_message', {

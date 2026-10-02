@@ -8,6 +8,8 @@ import { CapabilitiesForm } from '@/features/agente-ia/components/capabilities-f
 import { readCapabilities } from '@/features/agente-ia/capabilities'
 import { parseVoiceProfile } from '@/features/agente-ia/voice'
 import { transcriptionAvailable } from '@/features/agente-ia/transcribe'
+import { GoogleReviewsCard } from '@/features/resenas/components/google-reviews-card'
+import { placesAvailable } from '@/features/resenas/places'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,6 +54,12 @@ export default async function AgentePage() {
     .from('agent_configs')
     .select('reminder_2h')
     .maybeSingle()
+  // Enlace de reseñas: consulta aparte y tolerante, igual que las de arriba.
+  const { data: reviewRow } = await supabase
+    .from('organizations')
+    .select('google_review_url, google_place_id')
+    .maybeSingle()
+
   const reminder2h = rem2hErr ? true : ((rem2hRow as { reminder_2h?: boolean | null } | null)?.reminder_2h ?? true)
 
   // Sugerencia de rubro para cuentas ANTIGUAS: hasta el alta en dos pasos
@@ -100,6 +108,12 @@ export default async function AgentePage() {
               ? {}
               : { cap_transcribe: 'Aún no disponible: falta configurar el servicio de transcripción.' }
           }
+        />
+        <GoogleReviewsCard
+          reviewUrl={reviewRow?.google_review_url ?? null}
+          hasPlace={Boolean(reviewRow?.google_place_id)}
+          searchAvailable={placesAvailable()}
+          csatOn={readCapabilities(capsRow).cap_csat}
         />
         <VoiceForm
           initialPreset={voice?.voice_preset ?? null}

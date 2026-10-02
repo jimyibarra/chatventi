@@ -262,6 +262,25 @@ export function dataDeletedEmail(o: { orgName: string; siteUrl: string }): Built
  * "métricas"— y lo primero que se ve es con qué se encuentra hoy, no la
  * estadística de ayer.
  */
+/** Aviso inmediato al dueño cuando un cliente califica mal su visita. */
+export function lowCsatEmail(o: {
+  orgName: string
+  clientName: string | null
+  conversationUrl: string
+}): Built {
+  const who = o.clientName?.trim() || 'Un cliente'
+  return {
+    subject: `${who} calificó mal su visita`,
+    html: layout({
+      title: 'Una visita no salió bien',
+      bodyHtml: `<p style="margin:0 0 12px"><strong>${who}</strong> respondió la encuesta de ${o.orgName} con la nota más baja.</p>
+      <p style="margin:0">Le dijimos que el equipo lo revisaría. Una llamada o un mensaje tuyo hoy suele cambiar el final de la historia.</p>`,
+      cta: { label: 'Ver la conversación →', href: o.conversationUrl },
+      note: 'Recibes este aviso porque tienes encendida la encuesta al cliente.',
+    }),
+  }
+}
+
 export function dailyReportEmail(o: {
   orgName: string
   dayLabel: string
@@ -275,8 +294,19 @@ export function dailyReportEmail(o: {
     conversaciones_malas: number
     citas_de_hoy: number
   }
+  /** Lo que lleva agendado la recepcionista en el mes en curso. */
+  month?: { citas: number; importe: number }
 }): Built {
   const d = o.data
+  const money = (n: number) => `$${Math.round(n).toLocaleString('en-US')}`
+  const mes =
+    o.month && o.month.citas > 0
+      ? `<div style="border:1px solid #c7d2fe;background:#eef2ff;border-radius:10px;padding:12px 14px;margin:16px 0 0">
+      <p style="margin:0;font-size:13.5px;color:#3730a3">En lo que va del mes, tu recepcionista agendó <strong>${o.month.citas}</strong> ${
+        o.month.citas === 1 ? 'cita' : 'citas'
+      }${o.month.importe > 0 ? ` por <strong>${money(o.month.importe)}</strong> en servicios` : ''}.</p>
+    </div>`
+      : ''
   const row = (label: string, value: string) =>
     `<tr><td style="padding:6px 0;color:#6b7280">${label}</td><td style="padding:6px 0;text-align:right;font-weight:bold;color:#111827">${value}</td></tr>`
 
@@ -301,7 +331,7 @@ export function dailyReportEmail(o: {
       ${row('Pasadas a una persona', String(d.escalamientos))}
       ${row('Calidad de la atención', d.calificacion_media != null ? `${d.calificacion_media} / 5` : '—')}
     </table>
-    ${alerta}`
+    ${alerta}${mes}`
 
   return {
     subject: `Tu resumen de ayer · ${d.citas_de_hoy} ${d.citas_de_hoy === 1 ? 'cita hoy' : 'citas hoy'}`,

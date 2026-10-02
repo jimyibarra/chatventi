@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { addDays, dayRangeUtc, formatTime, ymdInTz } from '@/features/agenda/datetime'
+import { AI_SOURCES, sumAiBookings, type AiBookingRow } from './ai-revenue'
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 
@@ -10,7 +11,15 @@ export type PanelMetrics = {
   /** null cuando no hay citas en el rango (la celda se omite). */
   confirmacion: { value: string; detail: string } | null
   clientesNuevos: number
-  ia: { enabled: boolean; respondidas: number; agendadas: number; escaladas: number }
+  ia: {
+    enabled: boolean
+    respondidas: number
+    agendadas: number
+    escaladas: number
+    /** Mes en curso: citas que agendó la recepcionista y lo que valen. */
+    mesCitas: number
+    mesImporte: number
+  }
   proximas: { id: string; time: string; clientName: string; serviceName: string; confirmed: boolean }[]
 }
 
@@ -46,6 +55,8 @@ export async function getPanelMetrics(supabase: Supabase): Promise<PanelMetrics>
   const weekStart = dayRangeUtc(days[0], tz).from
   const prevWeekStart = dayRangeUtc(addDays(today, -13, tz), tz).from
   const monthStart = dayRangeUtc(addDays(today, -29, tz), tz).from
+  // Mes de calendario (no "últimos 30 días"): es como el dueño piensa su caja.
+  const calMonthStart = dayRangeUtc(`${today.slice(0, 8)}01`, tz).from
 
   const [
     apptWeek,
@@ -59,6 +70,7 @@ export async function getPanelMetrics(supabase: Supabase): Promise<PanelMetrics>
     iaAppts,
     iaApprovals,
     upcoming,
+    iaMonth,
   ] = await Promise.all([
     supabase
       .from('appointments')
@@ -97,7 +109,7 @@ export async function getPanelMetrics(supabase: Supabase): Promise<PanelMetrics>
     supabase
       .from('appointments')
       .select('*', { count: 'exact', head: true })
-      .in('source', ['whatsapp', 'telegram', 'ai'])
+      .in('source', AI_SOURCES)
       .gte('created_at', todayRange.from)
       .lt('created_at', todayRange.to),
     supabase
@@ -114,7 +126,14 @@ export async function getPanelMetrics(supabase: Supabase): Promise<PanelMetrics>
       .in('status', ['scheduled', 'confirmed'])
       .order('starts_at', { ascending: true })
       .limit(3),
+    supabase
+      .from('appointments')
+      .select('id, appointment_services(service:service_catalogs(price))')
+      .in('source', AI_SOURCES)
+      .gte('created_at', calMonthStart)
+      .not('status', 'in', '("cancelled","no_show")'),
   ])
+  const mes = sumAiBookings((iaMonth.data ?? []) as unknown as AiBookingRow[])
 
   // --- Citas hoy + sparkline 7 días -----------------------------------------
   const apptDates: string[] = (apptWeek.data ?? []).map((r: { starts_at: string }) => r.starts_at)
@@ -176,6 +195,8 @@ export async function getPanelMetrics(supabase: Supabase): Promise<PanelMetrics>
       respondidas: iaMsgs.count ?? 0,
       agendadas: iaAppts.count ?? 0,
       escaladas: iaApprovals.count ?? 0,
+      mesCitas: mes.citas,
+      mesImporte: mes.importe,
     },
     proximas,
   }

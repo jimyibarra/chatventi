@@ -5,7 +5,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
 import { fetchWhatsAppMedia } from '@/features/agente-ia/media-fetch'
-import { parseCsatButton, csatReply, CSAT_ALREADY } from '@/features/agente-ia/csat'
+import { parseCsatButton, csatMessage, CSAT_ALREADY, type CsatInfo } from '@/features/agente-ia/csat'
+import { alertLowCsat } from '@/features/agente-ia/csat-alert'
 import {
   waSendMessage,
   waSendInteractiveButtons,
@@ -299,12 +300,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             p_appointment_id: appointmentId,
             p_score: score,
           })
-          const info = data as { conversation_id?: string; duplicate?: boolean } | null
-          const text = error
-            ? CSAT_ALREADY
-            : info?.duplicate
-              ? CSAT_ALREADY
-              : csatReply(score)
+          const info = data as CsatInfo | null
+          const fresh = !error && !info?.duplicate
+          const text = fresh ? csatMessage(score, info) : CSAT_ALREADY
+          if (fresh) await alertLowCsat(score, info)
           const token = await getWaToken(service, phoneNumberId)
           const extId = token ? await waSendMessage(phoneNumberId, token, from, text) : null
           if (info?.conversation_id) {

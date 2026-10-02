@@ -24,6 +24,8 @@ export type RateBucket =
   // Análisis del sitio web para la voz de marca: cada intento hace que el
   // servidor descargue una URL escrita por el usuario y gaste una llamada de IA.
   | 'voice_extract'
+  // Búsqueda de la ficha del negocio en Google Places: cada una se factura.
+  | 'places_org'
 
 export interface RateLimitOptions {
   bucket: RateBucket

@@ -23,6 +23,27 @@ export function IaHeroCell({ ia }: { ia: PanelMetrics['ia'] }) {
           <p className="mt-1 text-[12.5px] text-white/75">
             Mientras trabajabas, agendó y respondió por ti.
           </p>
+          {ia.mesCitas > 0 && (
+            <p
+              data-testid="ia-mes"
+              className="mt-3 rounded-[13px] bg-white/15 px-3 py-2 text-[13px] font-medium"
+            >
+              Este mes agendó{' '}
+              <span className="font-extrabold tabular-nums">
+                {ia.mesCitas} {ia.mesCitas === 1 ? 'cita' : 'citas'}
+              </span>
+              {ia.mesImporte > 0 && (
+                <>
+                  {' '}
+                  por{' '}
+                  <span className="font-extrabold tabular-nums">
+                    ${Math.round(ia.mesImporte).toLocaleString('en-US')}
+                  </span>{' '}
+                  en servicios
+                </>
+              )}
+            </p>
+          )}
           <div className="mt-auto flex gap-2.5 pt-4">
             <div className="flex-1 rounded-[13px] bg-white/15 px-2 py-3 text-center">
               <span className="block text-xl font-extrabold tabular-nums">{ia.agendadas}</span>

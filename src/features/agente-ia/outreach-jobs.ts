@@ -3,6 +3,7 @@ import type { Database } from '@/lib/supabase/database.types'
 import { sendToCustomerByChannel } from './senders'
 import { sendEmail } from '@/features/emails/mailer'
 import { dailyReportEmail } from '@/features/emails/templates'
+import { AI_SOURCES, sumAiBookings, type AiBookingRow } from '@/features/dashboard/ai-revenue'
 
 type ServiceClient = SupabaseClient<Database>
 
@@ -158,10 +159,21 @@ export async function runDailyReports(service: ServiceClient): Promise<ReportSum
         citas_de_hoy?: number
       }
 
+      // Lo que lleva agendado la recepcionista en el mes (mes en UTC: el
+      // resumen ya trabaja en UTC y un día de borde no cambia el mensaje).
+      const { data: monthRows } = await service
+        .from('appointments')
+        .select('id, appointment_services(service:service_catalogs(price))')
+        .eq('organization_id', org.organization_id)
+        .in('source', AI_SOURCES)
+        .gte('created_at', `${day.slice(0, 8)}01T00:00:00Z`)
+        .not('status', 'in', '("cancelled","no_show")')
+
       const { subject, html } = dailyReportEmail({
         orgName: org.org_name,
         dayLabel,
         siteUrl,
+        month: sumAiBookings((monthRows ?? []) as unknown as AiBookingRow[]),
         data: {
           conversaciones: d.conversaciones ?? 0,
           mensajes_recibidos: d.mensajes_recibidos ?? 0,

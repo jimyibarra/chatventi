@@ -397,6 +397,17 @@ npm run lint         # ESLint
 - **Detección**: invisible en typecheck/lint/build/SQL en verde y `get_advisors` no lo aísla. Se caza **llamando la RPC con la anon key** y viendo que devuelve datos en vez de `42501 permission denied`.
 - **Aplicar en**: TODA RPC nueva. Si la llama un webhook/cron/servidor, va por `service_role` y se revoca de anon; solo se deja anon si es para una página pública y está acotada por un secreto en el argumento.
 
+### 2026-10-03: la RLS acota FILAS, no COLUMNAS — una policy de "tu propia fila" deja escribir el rol
+- **Error**: `profile_update_self` (`id = auth.uid()`) + el `GRANT ALL` de tabla que Supabase da a `authenticated` = cualquier usuario podía hacer `PATCH /rest/v1/profiles?id=eq.<yo>` con `{"role":"super_admin"}`. **Probado en vivo: una cuenta `staff` se puso `owner` y la base lo guardó.** Mismo defecto en `organizations` (el dueño se alargaba la prueba con `trial_ends_at` y se quitaba el tope con `ai_cap_exempt`), `agent_configs` (elegía `model`, que paga ChatVenti) y `channels` (escritura a mano + todo el equipo leía el token de WhatsApp en `credentials`).
+- **Fix**: permisos por **columna** (migración `20261003090000`): `revoke update on tabla from anon, authenticated` + `grant update (col_a, col_b) ...` solo de lo que el inquilino puede decidir. Tablas que solo escribe el servidor: `revoke insert, update, delete`. Un disparador en `profiles` como segundo candado.
+- **Reglas**:
+  - Al crear una policy de UPDATE, preguntar: *¿qué columnas de esta fila NO debe decidir quien la posee?* (rol, organización, plan, fechas de prueba, topes, modelo, marcas de sistema, secretos). Esas se revocan por columna.
+  - Toda **columna nueva** en una tabla con permisos por columna nace **sin** permiso de escritura para `authenticated`: si el usuario debe editarla, hay que concederla a propósito. Es el default correcto.
+  - Las funciones `SECURITY DEFINER` no se ven afectadas (corren como su dueño): los cambios de rol y de plan van por ahí.
+  - Con permisos de lectura por columna, `select('*')` da *permission denied*: pedir columnas explícitas.
+- **Detección**: invisible en typecheck/lint/build y en una auditoría de RLS "tabla por tabla" (las policies estaban bien). Se caza **haciendo el PATCH con la sesión de un usuario de rol bajo** y mirando si la base lo guarda. Control obligatorio: que lo legítimo (cambiar su nombre) siga en 200.
+- **Aplicar en**: toda tabla con policy de UPDATE/ALL y columnas que deciden acceso, dinero o identidad.
+
 ---
 
 *V4: Todo es un Skill. Agent-First. El usuario habla, tu construyes.*

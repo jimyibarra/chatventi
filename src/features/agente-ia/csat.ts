@@ -34,5 +34,30 @@ export function csatReply(score: number): string {
   return '¡Gracias por calificarnos! 🤩 Nos alegra que te haya gustado.'
 }
 
+/** Lo que devuelve la RPC record_csat. */
+export type CsatInfo = {
+  conversation_id?: string | null
+  duplicate?: boolean
+  review_url?: string | null
+  org_name?: string | null
+  contact_email?: string | null
+  client_name?: string | null
+}
+
+/**
+ * Respuesta completa a quien contestó la encuesta: el agradecimiento y, si el
+ * negocio configuró su enlace, la invitación a dejar una reseña en Google.
+ *
+ * 🔴 El enlace va a TODOS, con la misma frase, saque la nota que saque. Pedir
+ * reseñas solo a los contentos ("review gating") está prohibido por Google y
+ * sancionado por la FTC en EE. UU. No añadir aquí un `if (score >= 4)`.
+ */
+export function csatMessage(score: number, info: CsatInfo | null): string {
+  const thanks = csatReply(score)
+  return info?.review_url
+    ? `${thanks}\n\nSi quieres contar tu experiencia en Google, aquí puedes hacerlo: ${info.review_url}`
+    : thanks
+}
+
 /** Texto cuando la calificación ya estaba registrada (doble pulsación). */
 export const CSAT_ALREADY = 'Ya habíamos recibido tu opinión. ¡Gracias! 🙌'
