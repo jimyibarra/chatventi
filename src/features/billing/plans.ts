@@ -63,9 +63,13 @@ export interface Plan {
   usageCreditUsd: number
   /** Superpoderes del agente: lee comprobantes, oye notas de voz, encuesta. */
   hasSuperpowers: boolean
-  /** Módulo "Tu App" (PWA de marca) incluido sin coste adicional. */
+  /**
+   * Módulo "Tu App" (PWA de marca) incluido sin coste adicional.
+   * 🔴 AÚN NO EXISTE (2026-10-03): ni se anuncia ni se cobra. La bandera se
+   * conserva porque ya hay suscripciones sincronizadas con ella.
+   */
   includesPwa: boolean
-  /** Dominio propio incluido sin coste adicional. */
+  /** Dominio propio incluido. 🔴 Tampoco existe todavía: mismo criterio. */
   includesDomain: boolean
   popular: boolean
   /** Bullets de la tarjeta de precios, en orden. */
@@ -133,17 +137,17 @@ export const PLANS: Plan[] = [
     popular: false,
     features: [
       'Todo lo del plan Negocio',
-      'Instagram y Messenger además de WhatsApp*',
+      'Instagram y Messenger además de WhatsApp',
       'Hasta 10 profesionales · 5 accesos',
-      '"Tu App" incluida: app de marca para tus clientes',
       'Expediente del cliente con archivos y recordatorios recurrentes',
+      'El doble de uso de IA incluido que en Negocio',
     ],
   },
   {
     id: 'multisede',
     name: 'Multi-sede',
     priceUsd: 149,
-    tagline: 'Para varios locales bajo una misma marca.',
+    tagline: 'Para equipos grandes que atienden mucho volumen.',
     aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
     maxResources: null,
     maxSeats: 10,
@@ -155,8 +159,7 @@ export const PLANS: Plan[] = [
     features: [
       'Todo lo del plan Profesional',
       'Profesionales ilimitados · 10 accesos',
-      'Dominio propio incluido',
-      'Crédito de uso ampliado',
+      'El mayor uso de IA incluido de todos los planes',
       'Soporte prioritario',
     ],
   },
@@ -170,6 +173,8 @@ export function planById(id: string | null | undefined): Plan {
 // Add-ons (USD/mes)
 // ---------------------------------------------------------------------
 
+// 🔴 "Tu App" y el dominio propio NO se venden hasta estar construidos: sus
+// importes siguen aquí solo para leer suscripciones que ya los traigan.
 /** "Tu App": PWA de marca del negocio para sus clientes finales. */
 export const ADDON_PWA_USD = 19
 /** Conectar el dominio propio del dueño (incluido en Multi-sede). */

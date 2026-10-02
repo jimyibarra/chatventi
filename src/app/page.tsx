@@ -9,11 +9,12 @@ import { STARTER_PRICE_USD } from '@/features/billing/plans'
 import {
   FAQS,
   FEATURES,
+  FOUNDERS,
   INDUSTRIES,
   PRICING,
   PROBLEMS,
+  PROOF,
   STEPS,
-  TESTIMONIALS,
   TRIAL_DAYS,
 } from '@/features/landing/data'
 import { TRUST_LABELS, VERTICALS } from '@/features/verticales/data'
@@ -355,24 +356,43 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ============ TESTIMONIOS ============ */}
-        <section aria-labelledby="testimonios-titulo" className="cv-container cv-section">
+        {/* ============ PRUEBA VERIFICABLE + FUNDADORES ============
+            Aquí hubo testimonios de negocios inventados. Solo se afirma lo que
+            el visitante puede comprobar hoy; los testimonios reales saldrán
+            del programa de fundadores. */}
+        <section aria-labelledby="prueba-titulo" className="cv-container cv-section">
           <div data-reveal className="cv-section-head">
-            <p className="cv-eyebrow">Resultados reales</p>
-            <h2 id="testimonios-titulo" className="cv-h2" style={{ margin: 0 }}>Negocios como el tuyo, agendas llenas</h2>
+            <p className="cv-eyebrow">Compruébalo tú</p>
+            <h2 id="prueba-titulo" className="cv-h2" style={{ margin: 0 }}>No nos creas: pruébalo</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 24 }}>
-            {TESTIMONIALS.map((t) => (
-              <figure key={t.name} data-reveal className="cv-card" style={{ margin: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
-                <p aria-hidden style={{ margin: 0, color: '#F2B01E', fontSize: 16, letterSpacing: 2 }}>★★★★★</p>
-                <blockquote style={{ margin: 0, fontSize: 16, lineHeight: 1.65, color: '#37324D' }}>{t.quote}</blockquote>
-                <figcaption style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 'auto' }}>
-                  <span aria-hidden style={{ width: 44, height: 44, borderRadius: '50%', background: t.bg, display: 'grid', placeItems: 'center', fontWeight: 800, color: t.fg, fontFamily: 'var(--font-manrope), sans-serif' }}>{t.initials}</span>
-                  <span><strong style={{ display: 'block', fontSize: 14.5 }}>{t.name}</strong><span style={{ fontSize: 13, color: '#7A758F' }}>{t.role}</span></span>
-                  <span style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 800, color: '#128C4A', background: '#E9F9EF', padding: '5px 12px', borderRadius: 999, whiteSpace: 'nowrap' }}>{t.chip}</span>
-                </figcaption>
-              </figure>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
+            {PROOF.map((p) => (
+              <article key={p.title} data-reveal className="cv-card">
+                <span aria-hidden style={{ width: 52, height: 52, borderRadius: 16, background: p.tint, display: 'grid', placeItems: 'center', marginBottom: 18 }}>
+                  <Icon name={p.icon} stroke={p.stroke} />
+                </span>
+                <h3 style={{ ...H3, fontSize: 19 }}>{p.title}</h3>
+                <p style={BODY_MUTED}>{p.body}</p>
+              </article>
             ))}
+          </div>
+
+          <div data-reveal style={{ marginTop: 28, background: 'linear-gradient(140deg, #F4F1FF 0%, #E9F9EF 100%)', border: '1px solid #DCD6F7', borderRadius: 26, padding: 'clamp(28px, 4vw, 44px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 28, alignItems: 'center' }}>
+            <div>
+              <p style={{ display: 'inline-block', margin: '0 0 14px', fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#128C4A', background: '#fff', padding: '6px 14px', borderRadius: 999 }}>{FOUNDERS.seats} lugares</p>
+              <h3 style={{ ...H3, fontSize: 'clamp(22px, 3vw, 28px)' }}>{FOUNDERS.title}</h3>
+              <p style={{ ...BODY_MUTED, marginBottom: 22 }}>{FOUNDERS.lead}</p>
+              <Link href={FOUNDERS.href} className="cv-btn-green" style={{ display: 'inline-block', padding: '15px 28px', fontSize: 16 }}>{FOUNDERS.cta}</Link>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 14.5, color: '#2C2465' }}>Lo que recibes</p>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 18px', display: 'grid', gap: 10, fontSize: 15, color: '#37324D' }}>
+                {FOUNDERS.gives.map((g) => (
+                  <li key={g} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#128C4A', fontWeight: 800 }}>✓</span> {g}</li>
+                ))}
+              </ul>
+              <p style={{ margin: 0, fontSize: 14.5, color: '#5F5A75', lineHeight: 1.6 }}><strong style={{ color: '#2C2465' }}>Lo que pedimos:</strong> {FOUNDERS.asks}</p>
+            </div>
           </div>
         </section>
 
@@ -380,8 +400,8 @@ export default function Home() {
         <section id="precios" aria-labelledby="precios-titulo" className="cv-container cv-section">
           <div data-reveal className="cv-section-head">
             <p className="cv-eyebrow">Precios</p>
-            <h2 id="precios-titulo" className="cv-h2">Un plan base, y la IA cuando la necesites</h2>
-            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito. Elige cuánto volumen de conversaciones atiende la IA — y cámbialo cuando quieras. Precios en USD.</p>
+            <h2 id="precios-titulo" className="cv-h2">Cuatro planes. La recepcionista con IA va en todos</h2>
+            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito. Elige según el tamaño de tu equipo y cámbialo cuando quieras. Precios en USD.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, alignItems: 'stretch' }}>
             <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>

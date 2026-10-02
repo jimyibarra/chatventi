@@ -5,8 +5,6 @@
 //   pausa de IA, anti-solapamiento, portal de facturación, trial 14 días).
 // =====================================================================
 import {
-  ADDON_DOMAIN_USD,
-  ADDON_PWA_USD,
   ADDON_SEAT_USD,
   TRIAL_DAYS,
   planById,
@@ -34,7 +32,7 @@ export const PROBLEMS = [
     icon: 'user-x' as const,
     tint: '#EFEDFB',
     title: 'Clientes que se van a la competencia',
-    body: '6 de cada 10 personas agendan con el primer negocio que les responde. Si contestas hasta la noche, ya llegaste tarde.',
+    body: 'Quien escribe para agendar le escribe a varios negocios a la vez, y se queda con el primero que le contesta. Si respondes hasta la noche, ya llegaste tarde.',
   },
 ]
 
@@ -174,40 +172,50 @@ export const INDUSTRIES = [
 ]
 
 // ---------------------------------------------------------------------
-// Testimonios (ilustrativos, del diseño)
+// Prueba verificable (sustituye a los testimonios ilustrativos del diseño:
+// eran de negocios que no existen). Aquí solo va lo que el visitante puede
+// comprobar por sí mismo HOY. Los testimonios vuelven cuando sean reales:
+// salen del programa de fundadores.
 // ---------------------------------------------------------------------
-export const TESTIMONIALS = [
+export const PROOF = [
   {
-    quote:
-      '“Antes perdía clientas porque contestaba el WhatsApp hasta la noche. Ahora la IA las agenda al momento. Pasé de 80 a 130 citas al mes sin contratar a nadie.”',
-    initials: 'MG',
-    bg: '#C7BFF5',
-    fg: '#3E33B5',
-    name: 'Marcela García',
-    role: 'Estética Marcela · CDMX',
-    chip: '+62% citas',
+    icon: 'chat' as const,
+    tint: '#E9F9EF',
+    stroke: '#1DA851',
+    title: 'Pruébala antes de registrarte',
+    body: 'El asistente de esta página es la misma IA que atenderá a tus clientes. Escríbele ahora, pregúntale lo que quieras y juzga tú cómo responde.',
   },
   {
-    quote:
-      '“Los recordatorios automáticos cambiaron todo. Teníamos 8 o 10 pacientes que no llegaban cada semana; hoy son 2 o 3. Se paga solo con la primera semana.”',
-    initials: 'RA',
-    bg: '#B7E8CB',
-    fg: '#128C4A',
-    name: 'Dr. Ricardo Aguilar',
-    role: 'Dental Aguilar · Guadalajara',
-    chip: '−70% ausencias',
+    icon: 'calendar-check' as const,
+    tint: '#EFEDFB',
+    stroke: '#5B4FE0',
+    title: 'Conexión oficial con Meta',
+    body: 'ChatVenti pasó la revisión de Meta para usar la API oficial de WhatsApp, Instagram y Messenger. Sin aplicaciones piratas ni riesgo de que te bloqueen el número.',
   },
   {
-    quote:
-      '“Somos 4 barberos y era un desorden de chats. Ahora cada quien ve su agenda y no ha vuelto a haber una sola doble reserva. Lo configuré yo solo un domingo.”',
-    initials: 'LP',
-    bg: '#F5D9BF',
-    fg: '#A05B1F',
-    name: 'Luis Peña',
-    role: 'Barbería La Norteña · Monterrey',
-    chip: '0 dobles reservas',
+    icon: 'bell' as const,
+    tint: '#FFF4E3',
+    stroke: '#B8791A',
+    title: `${TRIAL_DAYS} días con todo, sin tarjeta`,
+    body: 'Usas el producto completo con tus clientes reales antes de pagar. Si no te convence, no hay nada que cancelar: simplemente no te suscribes.',
   },
 ]
+
+// Programa de negocios fundadores: el origen de los testimonios reales.
+// El alta entra con ?ref=fundadores y queda marcada en la organización.
+export const FOUNDERS = {
+  seats: 20,
+  href: '/signup?ref=fundadores',
+  title: 'Programa de negocios fundadores',
+  lead: 'Buscamos 20 negocios para crecer con ellos. Entras hoy con trato de fundador y, a cambio, nos cuentas con honestidad cómo te fue.',
+  gives: [
+    'Te lo dejamos funcionando: cargamos tus servicios, horarios y el tono de tu negocio',
+    'Tu precio no sube mientras sigas suscrito',
+    'Línea directa con el equipo que construye ChatVenti',
+  ],
+  asks: 'Tu opinión sincera y permiso para contar tu caso con tu nombre.',
+  cta: 'Quiero ser negocio fundador',
+}
 
 // ---------------------------------------------------------------------
 // Precios — derivados del catálogo REAL de billing (USD, trial 14 días).
@@ -249,24 +257,24 @@ export const PRICING = {
     items: [
       'Todo lo del plan Negocio',
       `Hasta ${PROFESIONAL.maxResources} profesionales · ${PROFESIONAL.maxSeats} accesos`,
-      '"Tu App": app de marca para tus clientes, incluida',
+      'Instagram y Messenger además de WhatsApp',
       'Expediente del cliente con archivos y recordatorios',
     ],
     cta: 'Empezar prueba gratis',
   },
   multisede: {
-    name: `${MULTISEDE.name} · Varios locales`,
+    name: `${MULTISEDE.name} · Equipos grandes`,
     desc: MULTISEDE.tagline,
     price: MULTISEDE.priceUsd,
     items: [
       'Todo lo del plan Profesional',
       `Profesionales ilimitados · ${MULTISEDE.maxSeats} accesos`,
-      'Dominio propio incluido',
-      'Crédito de uso ampliado y soporte prioritario',
+      'El mayor uso de IA incluido y soporte prioritario',
+      'Varias sucursales en una cuenta: próximamente',
     ],
     cta: 'Empezar prueba gratis',
   },
-  footnote: `Add-ons: "Tu App" +$${ADDON_PWA_USD}/mes · dominio propio +$${ADDON_DOMAIN_USD}/mes · acceso de equipo extra +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
+  footnote: `Acceso de equipo adicional: +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
 }
 
 // ---------------------------------------------------------------------
@@ -295,8 +303,8 @@ export const FAQS = [
     a: 'La agenda solo ofrece horarios realmente libres: respeta la duración de cada servicio, los horarios de tu negocio y de cada miembro del equipo, descansos y ausencias, y bloquea automáticamente cualquier solapamiento.',
   },
   {
-    q: '¿Qué cuenta como “conversación” en los planes de IA?',
-    a: 'Es el volumen mensual aproximado de conversaciones que atiende la IA: ~300, ~1.000 o ~3.000 según el nivel que elijas. Si tu negocio crece, subes de nivel desde tu panel cuando quieras.',
+    q: '¿En qué se diferencian los cuatro planes?',
+    a: 'La recepcionista con IA por WhatsApp, web y Telegram va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
   },
   {
     q: '¿Puedo cancelar cuando quiera?',

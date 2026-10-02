@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto'
-import { NextResponse, type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest, after } from 'next/server'
+import { ensureWaTemplates } from '@/features/agente-ia/wa-templates'
 import { z } from 'zod'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -254,6 +255,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[embedded-signup] upsert channel error', error.message)
     return NextResponse.json({ error: 'channel_persist_failed' }, { status: 500 })
   }
+
+  // 9. Plantillas de recordatorio en la cuenta del negocio: Meta tarda unos
+  //    minutos en aprobarlas, así que se piden ya, sin retrasar la respuesta.
+  after(async () => {
+    await ensureWaTemplates(body.wabaId, mgmtToken).catch((err) =>
+      console.error('[embedded-signup] plantillas', err)
+    )
+  })
 
   return NextResponse.json({
     ok: true,

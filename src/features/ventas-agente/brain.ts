@@ -13,8 +13,6 @@ import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import {
   PLANS,
   TRIAL_DAYS,
-  ADDON_PWA_USD,
-  ADDON_DOMAIN_USD,
   ADDON_SEAT_USD,
   STARTER_PRICE_USD,
 } from '@/features/billing/plans'
@@ -29,8 +27,6 @@ function pricingFacts(): string {
     const seats = `${p.maxSeats} acceso(s) de equipo`
     const canales = p.aiChannels.join(', ')
     const extra = [
-      p.includesPwa ? '"Tu App" (PWA de marca) incluida' : null,
-      p.includesDomain ? 'dominio propio incluido' : null,
       p.hasSuperpowers ? 'superpoderes del agente (lee comprobantes, oye notas de voz, encuesta)' : null,
     ]
       .filter(Boolean)
@@ -42,13 +38,8 @@ function pricingFacts(): string {
     `PLANES (precios en USD al mes, desde $${STARTER_PRICE_USD}):`,
     planLines,
     '',
-    'COMPLEMENTOS (opcionales, USD/mes): "Tu App" (PWA de marca) $' +
-      ADDON_PWA_USD +
-      '; dominio propio $' +
-      ADDON_DOMAIN_USD +
-      '; acceso de equipo adicional $' +
-      ADDON_SEAT_USD +
-      '.',
+    'COMPLEMENTO (opcional, USD/mes): acceso de equipo adicional $' + ADDON_SEAT_USD + '.',
+    'AÚN NO DISPONIBLE (no lo ofrezcas; si preguntan, di que está en camino y que no se cobra): app de marca para los clientes del negocio, dominio propio y varias sucursales en una misma cuenta.',
     `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`,
     'IMPORTANTE de canales: WhatsApp, web y Telegram están en TODOS los planes. Instagram y Messenger entran desde el plan Profesional.',
   ].join('\n')

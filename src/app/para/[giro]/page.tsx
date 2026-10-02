@@ -6,8 +6,9 @@ import { Inter, Manrope } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
 import { pageMetadata } from '@/shared/lib/seo'
 import { STARTER_PRICE_USD } from '@/features/billing/plans'
-import { FEATURES, PRICING, TESTIMONIALS, TRIAL_DAYS } from '@/features/landing/data'
+import { FEATURES, FOUNDERS, PRICING, PROOF, TRIAL_DAYS } from '@/features/landing/data'
 import { Icon } from '@/features/landing/icons'
+import { SalesWidget } from '@/features/landing/sales-widget'
 import { VERTICALS, verticalBySlug } from '@/features/verticales/data'
 import { verticalContent } from '@/features/verticales/content'
 import '@/features/landing/landing.css'
@@ -198,29 +199,31 @@ export default async function VerticalPage({ params }: { params: Promise<{ giro:
           </div>
         </section>
 
-        {/* ============ TESTIMONIOS (compartidos) ============ */}
+        {/* ============ PRUEBA VERIFICABLE (compartida) ============
+            Sustituye a los testimonios ilustrativos: solo lo comprobable. */}
         <section style={{ background: '#FBFAF6' }}>
           <div className="cv-container" style={{ padding: '64px 24px' }}>
             <div className="cv-section-head">
-              <p className="cv-eyebrow">Testimonios</p>
-              <h2 className="cv-h2">Negocios que ya no pierden citas</h2>
+              <p className="cv-eyebrow">Compruébalo tú</p>
+              <h2 className="cv-h2">No nos creas: pruébalo</h2>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-              {TESTIMONIALS.map((t) => (
-                <figure key={t.name} className="cv-card" style={{ padding: 26, margin: 0 }}>
-                  <blockquote style={{ ...BODY_MUTED, margin: '0 0 18px' }}>{t.quote}</blockquote>
-                  <figcaption style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <span aria-hidden style={{ display: 'inline-flex', width: 42, height: 42, borderRadius: '50%', background: t.bg, color: t.fg, alignItems: 'center', justifyContent: 'center', fontWeight: 800 }}>
-                      {t.initials}
-                    </span>
-                    <span>
-                      <strong style={{ display: 'block', fontSize: 15 }}>{t.name}</strong>
-                      <span style={{ fontSize: 13.5, color: '#7A758F' }}>{t.role}</span>
-                    </span>
-                  </figcaption>
-                </figure>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
+              {PROOF.map((p) => (
+                <div key={p.title} className="cv-card" style={{ padding: 26 }}>
+                  <span aria-hidden style={{ display: 'inline-flex', width: 44, height: 44, borderRadius: 12, background: p.tint, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+                    <Icon name={p.icon} stroke={p.stroke} />
+                  </span>
+                  <h3 style={H3}>{p.title}</h3>
+                  <p style={BODY_MUTED}>{p.body}</p>
+                </div>
               ))}
             </div>
+            <p style={{ margin: '28px 0 0', textAlign: 'center', fontSize: 15.5, color: '#5F5A75' }}>
+              {FOUNDERS.title}: {FOUNDERS.seats} lugares con puesta en marcha hecha por nosotros.{' '}
+              <Link href={`${FOUNDERS.href}&giro=${vertical.slug}`} className="cv-navlink" style={{ fontWeight: 700 }}>
+                {FOUNDERS.cta} →
+              </Link>
+            </p>
           </div>
         </section>
 
@@ -291,6 +294,9 @@ export default async function VerticalPage({ params }: { params: Promise<{ giro:
           </span>
         </div>
       </footer>
+
+      {/* Mismo asistente de ventas que la home: es la prueba en vivo. */}
+      <SalesWidget />
     </div>
   )
 }

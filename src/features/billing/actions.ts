@@ -3,14 +3,7 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import {
-  getStripe,
-  planPriceId,
-  PRICE_PWA,
-  PRICE_DOMAIN_V2,
-  PRICE_SEAT,
-} from '@/lib/stripe'
-import { planById } from '@/features/billing/plans'
+import { getStripe, planPriceId, PRICE_SEAT } from '@/lib/stripe'
 
 export type CheckoutResult =
   | { ok: true; url: string }
@@ -18,8 +11,6 @@ export type CheckoutResult =
 
 const checkoutSchema = z.object({
   plan: z.enum(['arranque', 'negocio', 'profesional', 'multisede']),
-  pwa: z.coerce.boolean().optional(),
-  domain: z.coerce.boolean().optional(),
   extraSeats: z.coerce.number().int().min(0).max(50).optional(),
 })
 
@@ -38,8 +29,7 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { plan, pwa, domain, extraSeats = 0 } = parsed.data
-  const planDef = planById(plan)
+  const { plan, extraSeats = 0 } = parsed.data
   const planPrice = planPriceId(plan)
 
   if (!process.env.STRIPE_SECRET_KEY?.trim() || !planPrice) {
@@ -100,13 +90,11 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       }
     }
 
-    // Líneas del checkout: el plan + add-ons que el plan no incluya ya.
+    // Líneas del checkout: el plan + accesos extra. "Tu App" y el dominio
+    // propio no se cobran: todavía no existen.
     const lineItems: { price: string; quantity: number }[] = [
       { price: planPrice, quantity: 1 },
     ]
-    if (pwa && !planDef.includesPwa && PRICE_PWA) lineItems.push({ price: PRICE_PWA, quantity: 1 })
-    if (domain && !planDef.includesDomain && PRICE_DOMAIN_V2)
-      lineItems.push({ price: PRICE_DOMAIN_V2, quantity: 1 })
     if (extraSeats > 0 && PRICE_SEAT) lineItems.push({ price: PRICE_SEAT, quantity: extraSeats })
 
     const session = await stripe.checkout.sessions.create({

@@ -47,6 +47,9 @@ const messageSchema = z.object({
       button_reply: z.object({ id: z.string(), title: z.string() }).optional(),
     })
     .optional(),
+  // Pulsación de un botón de PLANTILLA (recordatorios, encuesta): llega con
+  // otra forma que los reply buttons — type "button" y el id en `payload`.
+  button: z.object({ payload: z.string().optional(), text: z.string() }).optional(),
   image: z.object({ id: z.string() }).optional(),
   audio: z.object({ id: z.string() }).optional(),
   document: z.object({ id: z.string() }).optional(),
@@ -99,6 +102,7 @@ function extractBody(msg: z.infer<typeof messageSchema>): string | null {
     const { id, title } = msg.interactive.button_reply
     return id.startsWith('slot:') ? `${title} [${id}]` : title
   }
+  if (msg.button) return msg.button.text
   // Media: el placeholder se mantiene como cuerpo del mensaje; el binario se
   // descarga aparte, tras el 200, y se ancla con attach_message_media.
   if (msg.image || msg.audio || msg.document || msg.video) return `[${msg.type}]`
@@ -173,7 +177,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             p_ext_msg_id: msg.id,
           })
           const routed = data as { message_id: string | null; duplicate: boolean } | null
-          const buttonId = msg.interactive?.button_reply?.id
+          const buttonId = msg.interactive?.button_reply?.id ?? msg.button?.payload
           const confirmId =
             buttonId?.startsWith('conf:') &&
             z.string().uuid().safeParse(buttonId.slice(5)).success
@@ -189,7 +193,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             toConfirm.push({ phoneNumberId, from: msg.from, appointmentId: confirmId })
           } else if (csat) {
             toCsat.push({ phoneNumberId, from: msg.from, ...csat })
-          } else if (msg.text || msg.interactive?.button_reply) {
+          } else if (msg.text || msg.interactive?.button_reply || msg.button) {
             toAnswer.push({ phoneNumberId, from: msg.from })
           } else if (msg.image || msg.audio || msg.document || msg.video) {
             mediaToEscalate.push({

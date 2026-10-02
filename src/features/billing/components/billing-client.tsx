@@ -3,8 +3,6 @@
 import { useMemo, useState, useTransition } from 'react'
 import {
   PLANS,
-  ADDON_PWA_USD,
-  ADDON_DOMAIN_USD,
   ADDON_SEAT_USD,
   PROMO_CODE,
   PROMO_LABEL,
@@ -37,28 +35,26 @@ const SIZE_OPTIONS: { key: string; label: string; hint: string; plan: PlanId }[]
   { key: 'solo', label: 'Trabajo solo/a', hint: 'Yo atiendo y yo agendo', plan: 'arranque' },
   { key: 'small', label: 'Somos 2 o 3', hint: 'Un equipo pequeño', plan: 'negocio' },
   { key: 'clinic', label: 'Varios profesionales', hint: 'Clínica, salón o estética', plan: 'profesional' },
-  { key: 'multi', label: 'Más de un local', hint: 'Sucursales con una misma marca', plan: 'multisede' },
+  { key: 'multi', label: 'Más de 10 profesionales', hint: 'Un equipo grande con mucho volumen', plan: 'multisede' },
 ]
 
 export function BillingClient({ sub, active, businessType }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [quizPick, setQuizPick] = useState<string | null>(null)
-  const [pwa, setPwa] = useState(false)
-  const [domain, setDomain] = useState(false)
   const [extraSeats, setExtraSeats] = useState(0)
   const [error, setError] = useState('')
   const [pending, startTransition] = useTransition()
 
   const planDef = planById(plan)
   const total = useMemo(
-    () => monthlyTotalUsd({ plan, pwa, domain, extraSeats }),
-    [plan, pwa, domain, extraSeats]
+    () => monthlyTotalUsd({ plan, extraSeats }),
+    [plan, extraSeats]
   )
 
   function goCheckout() {
     setError('')
     startTransition(async () => {
-      const res = await createCheckoutSession({ plan, pwa, domain, extraSeats })
+      const res = await createCheckoutSession({ plan, extraSeats })
       if (!res.ok) {
         setError(res.error)
         return
@@ -220,53 +216,7 @@ export function BillingClient({ sub, active, businessType }: Props) {
         <p className="text-sm font-semibold uppercase tracking-wide text-brand-600">Paso 2</p>
         <h2 className="mt-1 text-lg font-bold text-ink">Extras opcionales</h2>
 
-        <label className="mt-4 flex cursor-pointer items-center justify-between rounded-xl border border-line px-4 py-3 transition-all hover:border-brand-200 hover:shadow-card-hover">
-          <span>
-            <span className="block font-medium text-ink">&quot;Tu App&quot; — app de marca</span>
-            <span className="text-sm text-ink-soft">
-              Tus clientes instalan tu propia app: agenda, citas y avisos con tu logo
-            </span>
-          </span>
-          <span className="flex items-center gap-3">
-            {planDef.includesPwa ? (
-              <span className="text-sm font-semibold text-success">Incluida en tu plan</span>
-            ) : (
-              <>
-                <span className="font-semibold text-brand-700">+{money(ADDON_PWA_USD)}</span>
-                <input
-                  type="checkbox"
-                  checked={pwa}
-                  onChange={(e) => setPwa(e.target.checked)}
-                  className="h-5 w-5"
-                />
-              </>
-            )}
-          </span>
-        </label>
-
-        <label className="mt-3 flex cursor-pointer items-center justify-between rounded-xl border border-line px-4 py-3 transition-all hover:border-brand-200 hover:shadow-card-hover">
-          <span>
-            <span className="block font-medium text-ink">Dominio propio</span>
-            <span className="text-sm text-ink-soft">Conecta tu dominio con SSL gratis</span>
-          </span>
-          <span className="flex items-center gap-3">
-            {planDef.includesDomain ? (
-              <span className="text-sm font-semibold text-success">Incluido en tu plan</span>
-            ) : (
-              <>
-                <span className="font-semibold text-brand-700">+{money(ADDON_DOMAIN_USD)}</span>
-                <input
-                  type="checkbox"
-                  checked={domain}
-                  onChange={(e) => setDomain(e.target.checked)}
-                  className="h-5 w-5"
-                />
-              </>
-            )}
-          </span>
-        </label>
-
-        <div className="mt-3 flex items-center justify-between rounded-xl border border-line px-4 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-xl border border-line px-4 py-3">
           <span>
             <span className="block font-medium text-ink">Accesos de equipo extra</span>
             <span className="text-sm text-ink-soft">

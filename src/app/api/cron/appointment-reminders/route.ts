@@ -15,6 +15,7 @@ import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 import { removeInboundFolder } from '@/features/storage/inbound'
 import { runConversationScoring } from '@/features/agente-ia/scoring-job'
 import { runColdFollowups, runDailyReports } from '@/features/agente-ia/outreach-jobs'
+import { waSendTemplate, type WaTemplateKey } from '@/features/agente-ia/wa-templates'
 
 export const runtime = 'nodejs'
 
@@ -39,6 +40,7 @@ type DueItem = {
   channel_external_id: string | null
   send_to: string | null
   starts_at: string
+  ends_at?: string
   tz: string
   org_name: string
   client_name: string | null
@@ -52,6 +54,26 @@ function manageUrl(token: string | null): string | null {
 }
 
 type Kind = '24h' | '2h' | 'followup'
+
+// Canales con transporte real: si el envío devuelve null, NO se entregó.
+const REAL_TRANSPORT = new Set(['whatsapp', 'telegram', 'instagram', 'messenger'])
+
+/**
+ * ¿Es buen momento para el mensaje post-cita en la corrida de cada 15 min?
+ * Una hora después de terminar y solo entre las 9:00 y las 20:00 del negocio:
+ * la opinión se pide en caliente, pero nunca de madrugada. Lo que no entre
+ * aquí lo recoge la corrida diaria de la mañana, como siempre.
+ */
+function followupTimely(item: DueItem): boolean {
+  if (!item.ends_at) return false
+  if (Date.now() - new Date(item.ends_at).getTime() < 60 * 60 * 1000) return false
+  const hour = Number(
+    new Intl.DateTimeFormat('en-US', { timeZone: item.tz, hour: '2-digit', hourCycle: 'h23' }).format(
+      new Date()
+    )
+  )
+  return hour >= 9 && hour < 20
+}
 
 function firstName(name: string | null): string {
   return name ? ` ${name.trim().split(/\s+/)[0]}` : ''
@@ -108,12 +130,20 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
 
+  // ?scope=reminders = la corrida de cada 15 minutos (pg_cron en Supabase).
+  // Solo lo que tiene HORA: recordatorios de cita y el mensaje post-cita en
+  // horario decente. Todo lo demás (reactivación, embudo de prueba, rescate,
+  // resumen diario, calificación) sigue en la corrida diaria de Vercel: si
+  // corriera cada 15 min, mandaría mensajes de madrugada.
+  const frequent = request.nextUrl.searchParams.get('scope') === 'reminders'
+
   const service = createServiceClient()
   const kinds: Kind[] = ['24h', '2h', 'followup']
-  const summary: Record<Kind, { sent: number; skipped: number; no_channel: number }> = {
-    '24h': { sent: 0, skipped: 0, no_channel: 0 },
-    '2h': { sent: 0, skipped: 0, no_channel: 0 },
-    followup: { sent: 0, skipped: 0, no_channel: 0 },
+  const blank = () => ({ sent: 0, skipped: 0, no_channel: 0, failed: 0 })
+  const summary: Record<Kind, ReturnType<typeof blank>> = {
+    '24h': blank(),
+    '2h': blank(),
+    followup: blank(),
   }
 
   // Orgs con la encuesta encendida. Se consulta UNA vez: el follow-up de
@@ -160,6 +190,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         continue
       }
 
+      // Post-cita en la corrida frecuente: solo si ya pasó una hora y es de
+      // día. Se omite SIN reclamar: la siguiente corrida lo vuelve a mirar.
+      if (kind === 'followup' && frequent && !followupTimely(item)) {
+        summary[kind].skipped++
+        continue
+      }
+
       // La org de la cita se resuelve UNA vez y sirve para tres cosas: el
       // filtro del recordatorio de 2 h, la encuesta post-cita y el registro
       // del mensaje (messages.organization_id es NOT NULL desde 20260805223140;
@@ -199,9 +236,30 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const text = buildMessage(kind, item)
       let extId: string | null = null
       try {
+        // WhatsApp: primero la PLANTILLA aprobada, lo único que Meta entrega
+        // fuera de la ventana de 24 h. Si la rechaza (aún en revisión, no
+        // existe…), cae al texto libre de abajo, que sí sale dentro de la ventana.
+        if (item.channel_type === 'whatsapp') {
+          const key: WaTemplateKey =
+            kind === '24h'
+              ? 'reminder_24h'
+              : kind === '2h'
+                ? 'reminder_2h'
+                : csatOrgs.has(orgId)
+                  ? 'followup_csat'
+                  : 'followup'
+          extId = await waSendTemplate(service, item.channel_external_id, item.send_to, key, {
+            clientName: item.client_name,
+            orgName: item.org_name,
+            when: kind === '2h' ? timeLabel(item.starts_at, item.tz) : whenLabel(item.starts_at, item.tz),
+            serviceNames: item.service_names,
+            appointmentId: item.appointment_id,
+            manageToken: item.manage_token,
+          })
+        }
         // Recordatorio 24h: botón "Confirmar asistencia" (WA reply button /
         // TG inline). Si el envío con botones falla, cae a texto plano.
-        if (kind === '24h') {
+        if (!extId && kind === '24h') {
           extId = await sendButtonsToCustomerByChannel(
             service,
             item.channel_type,
@@ -214,7 +272,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // Follow-up post-cita: el mensaje YA pregunta "¿cómo estuvo tu
         // experiencia?" — la encuesta se cuelga de ahí con botones, en vez
         // de mandar un segundo mensaje preguntando lo mismo.
-        if (kind === 'followup' && csatOrgs.has(orgId)) {
+        if (!extId && kind === 'followup' && csatOrgs.has(orgId)) {
           extId = await sendButtonsToCustomerByChannel(
             service,
             item.channel_type,
@@ -240,6 +298,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         console.error('[cron-reminders] error enviando', err)
       }
 
+      // Sin id del proveedor en un canal con transporte real = NO se entregó.
+      // No se anota en el hilo (el dueño vería un recordatorio que nunca
+      // llegó) y se cuenta aparte. El reclamo se queda: reintentar cada 15
+      // minutos un envío que Meta rechaza solo generaría ruido.
+      if (!extId && REAL_TRANSPORT.has(item.channel_type)) {
+        summary[kind].failed++
+        console.error(`[cron-reminders] cita ${item.appointment_id}: ${kind} no entregado`)
+        continue
+      }
+
       // Registra el mensaje saliente (sender 'system'). service_role bypassa RLS.
       await service.from('messages').insert({
         conversation_id: item.conversation_id,
@@ -257,6 +325,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       summary[kind].sent++
     }
   }
+
+  if (frequent) return NextResponse.json({ ok: true, scope: 'reminders', summary })
 
   // Recordatorios recurrentes del expediente ("vuelve a cortarte", "limpieza
   // dental cada 6 meses"). Independientes de las citas.
