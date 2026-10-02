@@ -1,6 +1,6 @@
 # PRP — Ola 5: abrir la puerta, medir y cobrar
 
-> **Estado**: EN PROGRESO (GO de Juan el 2026-10-03, modo Full Autonomy)
+> **Estado**: FASES 1–7 COMPLETADAS Y EN PRODUCCIÓN (2026-10-03) · Fase 8 (inglés) en plan, espera GO
 > **Fecha**: 2026-10-03
 > **Proyecto**: ChatVenti
 
@@ -31,19 +31,19 @@ por la que un prospecto no entra, no se queda o no paga lo que consume.
 ## Qué
 
 ### Criterios de Éxito
-- [ ] La home no menciona el modelo viejo ni testimonios inventados; ningún complemento sin construir se puede contratar.
-- [ ] Un recordatorio de 2 h sale con menos de 15 minutos de retraso, sin duplicarse y sin disparar a deshoras los envíos diarios.
-- [ ] Cada organización ve su consumo del mes; el cierre mensual crea un cargo de excedente idempotente.
-- [ ] El checkout acepta periodo anual; la suscripción anual se refleja en la base.
-- [ ] Un alta con código de referido acredita un mes a quien recomendó, una sola vez, tras el primer pago.
-- [ ] El Panel muestra las citas agendadas por la IA en el mes y su importe.
-- [ ] Con el enlace de reseñas configurado, quien responde la encuesta recibe el enlace.
-- [ ] Un socio con clave puede crear un negocio y consultar su consumo; nada de eso es accesible sin clave.
+- [x] La home no menciona el modelo viejo ni testimonios inventados; ningún complemento sin construir se puede contratar.
+- [x] Un recordatorio de 2 h sale con menos de 15 minutos de retraso, sin duplicarse y sin disparar a deshoras los envíos diarios.
+- [x] Cada organización ve su consumo del mes; el cierre mensual crea un cargo de excedente idempotente.
+- [x] El checkout acepta periodo anual; la suscripción anual se refleja en la base.
+- [x] Un alta con código de referido acredita un mes a quien recomendó, una sola vez, tras el primer pago.
+- [x] El Panel muestra las citas agendadas por la IA en el mes y su importe.
+- [x] Con el enlace de reseñas configurado, quien responde la encuesta recibe el enlace.
+- [x] Un socio con clave puede crear un negocio y consultar su consumo; nada de eso es accesible sin clave.
 
 ### Decisiones tomadas (cambiables en una línea)
-- **Unidad de consumo**: respuestas de la IA (`messages.sender = 'ai'`) y mensajes salientes por WhatsApp, contados desde `messages`. No se añade escritura nueva al camino del agente.
-- **Quién paga a Meta**: hoy el cliente (regla de Tech Provider). Constante `META_PAID_BY = 'client'`; con ella el costo medido es solo IA. Si pasa a `'chatventi'`, el mismo cierre cobra WhatsApp.
-- **Excedente** = (costo medido − crédito del plan) × (1 + `USAGE_COMMISSION_PCT`). Valor inicial 30 %: lo fija Juan.
+- **Unidad de consumo**: respuestas de la IA (`messages.sender = 'ai'`), contadas por un disparador en `usage_periods`. No se añade nada al camino del agente y el inquilino no puede bajar el contador.
+- **Quién paga a Meta**: el cliente, siempre. Los términos de Tech Provider (31-jul-2026, «No Resale») prohíben pagar o cobrar el consumo de WhatsApp del cliente. Por eso el excedente es SOLO de IA.
+- **Excedente** = respuestas por encima de las incluidas × costo por respuesta × (1 + `USAGE_COMMISSION_PCT`). Valor inicial 30 %: lo fija Juan en `plans.ts`.
 - **Anual** = 10 mensualidades. Precios de Stripe resueltos por `lookup_key` (sin variables nuevas en Vercel).
 - **Referido** = un mes del plan de quien recomienda, como saldo a favor en Stripe (mismo molde que PASEN).
 - **Reseñas**: se piden a todos los que responden la encuesta, nunca solo a los contentos.
@@ -98,9 +98,9 @@ por la que un prospecto no entra, no se queda o no paga lo que consume.
 **Objetivo**: conectar la página de Facebook y su Instagram desde Conexiones.
 **Validación**: canal creado con `page_id`; prueba real del popup por Juan.
 
-### Fase 8: Inglés
-**Objetivo**: home y alta en inglés primero; panel después.
-**Validación**: `/en` servido con `hreflang`; ninguna cadena en español en la versión inglesa de la home.
+### Fase 8: Inglés — EN PLAN, espera GO de Juan
+**Objetivo**: vender en EE. UU. Orden propuesto: (1) lo que ve el CLIENTE FINAL del negocio —respuestas del agente, plantillas `en_US`, recordatorios, página de reservas— según un idioma por organización; (2) página pública y alta en `/en`; (3) panel.
+**Validación**: `/en` servido con `hreflang`; ninguna cadena en español en la versión inglesa de la home; una organización en inglés recibe sus recordatorios en inglés.
 
 ### Fase N: Validación Final
 - [ ] `npm run typecheck`, `npm run lint`, `npm run build`
@@ -111,7 +111,26 @@ por la que un prospecto no entra, no se queda o no paga lo que consume.
 
 ## 🧠 Aprendizajes (Self-Annealing)
 
-_(se llena durante la ejecución)_
+### 2026-10-03: la RLS acota filas, no columnas
+- **Error**: cualquier usuario podía ponerse `role = 'super_admin'` con un PATCH a su propia fila de `profiles`. Encontrado al revisar permisos para columnas nuevas; probado en vivo.
+- **Fix**: permisos por columna (migración `20261003090000`). Documentado en `CLAUDE.md`.
+
+### 2026-10-03: un recordatorio "enviado" no es un recordatorio entregado
+- **Error**: los recordatorios salían como texto libre; Meta solo lo entrega dentro de la ventana de 24 h, así que quien agendaba con días de anticipación no lo recibía, y el cron lo contaba como enviado.
+- **Fix**: plantillas UTILITY creadas por API en la cuenta de cada negocio; el resumen del cron distingue `template` y `failed`.
+- **Aplicar en**: todo envío fuera de una conversación abierta (reactivación, recurrentes y rescate siguen en texto libre: pendiente).
+
+### 2026-10-03: Meta prohíbe al Tech Provider revender WhatsApp
+- **Hallazgo**: la cláusula «No Resale» impide el modelo "ChatVenti paga a Meta y cobra con comisión". Se cobra solo el uso de IA.
+- **Aplicar en**: cualquier diseño de precios o de socios. La vía sin tarjeta del cliente es una Multi-Partner Solution con un BSP.
+
+### 2026-10-03: Stripe no garantiza el orden de los eventos
+- **Error**: `invoice.paid` puede llegar antes que `subscription.created`; la recompensa de referido se perdía al no encontrar la fila de suscripción.
+- **Fix**: resolver la organización por los metadatos del cliente de Stripe.
+
+### 2026-10-03: un navegador nuevo recarga la página al instalar el service worker
+- **Síntoma**: en las pruebas, el Panel de una cuenta recién creada mostraba pasos pendientes que ya estaban hechos. No era el código: el contexto limpio del navegador de pruebas instala el service worker y recarga un segundo después, a media acción.
+- **Fix**: esperar a que termine antes de enviar el formulario; de paso, el arranque automático pasó a correr en paralelo (3 s → 1.8 s).
 
 ## Gotchas
 
