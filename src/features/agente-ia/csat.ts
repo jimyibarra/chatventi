@@ -49,8 +49,9 @@ export type CsatInfo = {
  * negocio configuró su enlace, la invitación a dejar una reseña en Google.
  *
  * 🔴 El enlace va a TODOS, con la misma frase, saque la nota que saque. Pedir
- * reseñas solo a los contentos ("review gating") está prohibido por Google y
- * sancionado por la FTC en EE. UU. No añadir aquí un `if (score >= 4)`.
+ * reseñas solo a los contentos ("review gating") va contra las políticas de
+ * Google, y en EE. UU. la FTC ha sancionado ocultar opiniones negativas. No
+ * añadir aquí un `if (score >= 4)`.
  */
 export function csatMessage(score: number, info: CsatInfo | null): string {
   const thanks = csatReply(score)
