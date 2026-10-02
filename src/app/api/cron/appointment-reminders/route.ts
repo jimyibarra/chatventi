@@ -147,7 +147,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: true, scope: 'usage', usage: await runUsageClose(service) })
   }
   const kinds: Kind[] = ['24h', '2h', 'followup']
-  const blank = () => ({ sent: 0, skipped: 0, no_channel: 0, failed: 0 })
+  // `template` = cuántos de los enviados salieron como plantilla de WhatsApp
+  // (los únicos que Meta entrega fuera de la ventana de 24 h).
+  const blank = () => ({ sent: 0, skipped: 0, no_channel: 0, failed: 0, template: 0 })
   const summary: Record<Kind, ReturnType<typeof blank>> = {
     '24h': blank(),
     '2h': blank(),
@@ -264,6 +266,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             appointmentId: item.appointment_id,
             manageToken: item.manage_token,
           })
+          if (extId) summary[kind].template++
         }
         // Recordatorio 24h: botón "Confirmar asistencia" (WA reply button /
         // TG inline). Si el envío con botones falla, cae a texto plano.
