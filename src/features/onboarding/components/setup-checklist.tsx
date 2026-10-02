@@ -1,5 +1,10 @@
 import Link from 'next/link'
 import type { SetupChecklist } from '../checklist'
+import { QuickSetupButton } from './quick-setup-button'
+
+// Pasos que "Déjamelo listo" resuelve solo. Conectar WhatsApp y la primera
+// cita no entran: el primero exige que el dueño inicie sesión en Meta.
+const AUTO_KEYS = new Set(['service', 'hours', 'availability', 'agent'])
 
 // Checklist de onboarding con % (patrón CitaFlow). Al 100% se colapsa a una
 // sola línea de celebración; mientras, cada pendiente enlaza a su pantalla.
@@ -34,6 +39,7 @@ export function SetupChecklistCard({ checklist }: { checklist: SetupChecklist })
       <p className="mb-3 text-xs text-ink-soft">
         {done} de {total} pasos completados
       </p>
+      {items.some((i) => !i.done && AUTO_KEYS.has(i.key)) && <QuickSetupButton />}
       <ul className="space-y-2">
         {items.map((item) =>
           item.done ? (

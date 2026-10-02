@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { LEGAL } from '@/shared/constants/legal'
 import { getClientIp, getUserAgent } from '@/shared/security/request-context'
 import { welcomeSchema } from './welcome-schema'
+import { runQuickSetup } from './quick-setup'
 
 // 🔴 Este módulo es 'use server': SOLO puede exportar funciones async. El
 // esquema de Zod vive en welcome-schema.ts porque exportarlo desde aquí hacía
@@ -66,6 +67,15 @@ export async function completeWelcome(raw: unknown): Promise<WelcomeResult> {
   }
 
   await attributeSignup(user.id, meta.pending_ref)
+
+  // El negocio nace listo para agendar (servicios y horario típicos de su
+  // giro, un primer profesional y la recepcionista encendida). Si algo falla
+  // aquí no se rompe el alta: el botón "Déjamelo listo" del Panel lo reintenta.
+  try {
+    await runQuickSetup()
+  } catch (err) {
+    console.error('[bienvenida] arranque automático', err)
+  }
   return { ok: true }
 }
 
