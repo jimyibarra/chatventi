@@ -26,6 +26,8 @@ export type RateBucket =
   | 'voice_extract'
   // Búsqueda de la ficha del negocio en Google Places: cada una se factura.
   | 'places_org'
+  // API de socios: tope por socio para que un bucle suyo no nos tumbe.
+  | 'partner_api'
 
 export interface RateLimitOptions {
   bucket: RateBucket

@@ -37,7 +37,7 @@ export default async function FacturacionPage({
   const { data: org } = orgId
     ? await supabase
         .from('organizations')
-        .select('business_type, referral_code')
+        .select('business_type, referral_code, partner_id')
         .eq('id', orgId)
         .maybeSingle()
     : { data: null }
@@ -57,6 +57,22 @@ export default async function FacturacionPage({
       ])
     : [{ data: null }, { data: null }]
   const active = subIsActive(sub)
+  // Negocio dado de alta por un socio: tiene plan activo pero no Stripe propio.
+  const managed = active && !sub?.stripe_customer_id
+
+  // Negocio de socio con el acceso en pausa: NO se le ofrece contratar
+  // directo con ChatVenti (sería saltarse a quien se lo vendió).
+  if (org?.partner_id && !active) {
+    return (
+      <div className="mx-auto max-w-2xl p-8">
+        <h1 className="text-2xl font-bold text-ink">Tu acceso está en pausa</h1>
+        <p className="mt-3 text-ink-soft" data-testid="partner-paused">
+          Tu cuenta la administra el proveedor con el que contrataste el servicio. Escríbele para
+          reactivarla: tus datos, tu agenda y tus conversaciones siguen guardados.
+        </p>
+      </div>
+    )
+  }
   // Banner de "prueba terminada" si el acceso está bloqueado (sin éxito reciente).
   const blocked = !!orgTrial && !hasAppAccess(orgTrial, sub) && !success
   const deleteIso =
@@ -103,13 +119,15 @@ export default async function FacturacionPage({
         }
         active={active}
         businessType={org?.business_type ?? null}
+        managed={managed}
       />
 
       <UsageCard
         aiReplies={usageRow?.ai_replies ?? 0}
         planId={active ? ((sub?.plan_id ?? null) as PlanId | null) : null}
+        managed={managed}
       />
-      {org?.referral_code && (
+      {org?.referral_code && !managed && (
         <ReferralCard
           link={`${LEGAL.siteUrl.replace(/\/$/, '')}/signup?ref=${org.referral_code}`}
           credited={(rewards ?? []).filter((r) => r.status === 'credited').length}

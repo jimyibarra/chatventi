@@ -923,6 +923,8 @@ export type Database = {
           id: string
           name: string
           onboarding_email_sent_at: string | null
+          partner_id: string | null
+          partner_ref: string | null
           phone: string | null
           referral_code: string | null
           referred_by: string | null
@@ -951,6 +953,8 @@ export type Database = {
           id?: string
           name: string
           onboarding_email_sent_at?: string | null
+          partner_id?: string | null
+          partner_ref?: string | null
           phone?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -979,6 +983,8 @@ export type Database = {
           id?: string
           name?: string
           onboarding_email_sent_at?: string | null
+          partner_id?: string | null
+          partner_ref?: string | null
           phone?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -993,6 +999,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "organizations_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "organizations_referred_by_fkey"
             columns: ["referred_by"]
             isOneToOne: false
@@ -1000,6 +1013,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      partners: {
+        Row: {
+          api_key_hash: string
+          api_key_prefix: string
+          billing_email: string
+          created_at: string
+          discount_pct: number
+          id: string
+          name: string
+          status: string
+          stripe_customer_id: string | null
+        }
+        Insert: {
+          api_key_hash: string
+          api_key_prefix: string
+          billing_email: string
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          name: string
+          status?: string
+          stripe_customer_id?: string | null
+        }
+        Update: {
+          api_key_hash?: string
+          api_key_prefix?: string
+          billing_email?: string
+          created_at?: string
+          discount_pct?: number
+          id?: string
+          name?: string
+          status?: string
+          stripe_customer_id?: string | null
+        }
+        Relationships: []
       }
       products: {
         Row: {
@@ -1658,6 +1707,14 @@ export type Database = {
       }
       _resolve_token_appointment: { Args: { p_token: string }; Returns: string }
       accept_team_invitation: { Args: { p_token: string }; Returns: Json }
+      admin_create_partner: {
+        Args: {
+          p_billing_email: string
+          p_discount_pct?: number
+          p_name: string
+        }
+        Returns: Json
+      }
       admin_global_stats: { Args: never; Returns: Json }
       admin_list_agent_models: {
         Args: never
@@ -1692,8 +1749,13 @@ export type Database = {
           users_count: number
         }[]
       }
+      admin_list_partners: { Args: never; Returns: Json }
       admin_set_agent_model: {
         Args: { p_model: string; p_org: string }
+        Returns: undefined
+      }
+      admin_set_partner_status: {
+        Args: { p_id: string; p_status: string }
         Returns: undefined
       }
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
@@ -1934,6 +1996,22 @@ export type Database = {
       org_has_ai: { Args: { p_org: string }; Returns: boolean }
       org_is_active: { Args: { p_org: string }; Returns: boolean }
       org_seats_used: { Args: { p_org: string }; Returns: number }
+      partner_create_organization: {
+        Args: {
+          p_business_type?: string
+          p_city?: string
+          p_country?: string
+          p_org_name: string
+          p_owner_name?: string
+          p_partner: string
+          p_partner_ref: string
+          p_phone?: string
+          p_plan: string
+          p_user: string
+          p_web_slug: string
+        }
+        Returns: string
+      }
       pause_ai: {
         Args: { p_conversation_id: string; p_minutes?: number }
         Returns: undefined

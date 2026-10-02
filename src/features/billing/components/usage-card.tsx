@@ -7,7 +7,16 @@ const n = (v: number) => v.toLocaleString('en-US')
  * fórmula (usageOverage) que el cierre mensual que carga en Stripe: lo que
  * aquí se ve es lo que se cobra.
  */
-export function UsageCard({ aiReplies, planId }: { aiReplies: number; planId: PlanId | null }) {
+export function UsageCard({
+  aiReplies,
+  planId,
+  managed = false,
+}: {
+  aiReplies: number
+  planId: PlanId | null
+  /** Plan administrado por un socio: el negocio no le paga nada a ChatVenti. */
+  managed?: boolean
+}) {
   const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(new Date())
   const usage = planId ? usageOverage(planId, aiReplies) : null
   const pct = usage ? Math.min(100, Math.round((aiReplies / Math.max(1, usage.included)) * 100)) : 0
@@ -31,7 +40,11 @@ export function UsageCard({ aiReplies, planId }: { aiReplies: number; planId: Pl
               style={{ width: `${pct}%` }}
             />
           </div>
-          {usage.extra > 0 ? (
+          {managed ? (
+            <p className="mt-3 text-sm text-ink-soft">
+              Tu recepcionista atiende sin interrupciones. El plan y el uso los cubre tu proveedor.
+            </p>
+          ) : usage.extra > 0 ? (
             <p className="mt-3 text-sm text-ink-soft">
               Llevas <strong>{n(usage.extra)}</strong> respuestas por encima de lo incluido en el plan{' '}
               {planById(planId).name}: <strong>${usage.chargeUsd.toFixed(2)} USD</strong> que se suman a tu

@@ -28,6 +28,8 @@ interface Props {
   } | null
   active: boolean
   businessType?: string | null
+  /** Plan administrado por un socio (sin Stripe propio): no hay nada que pagar aquí. */
+  managed?: boolean
 }
 
 function money(usd: number): string {
@@ -42,7 +44,7 @@ const SIZE_OPTIONS: { key: string; label: string; hint: string; plan: PlanId }[]
   { key: 'multi', label: 'Más de 10 profesionales', hint: 'Un equipo grande con mucho volumen', plan: 'multisede' },
 ]
 
-export function BillingClient({ sub, active, businessType }: Props) {
+export function BillingClient({ sub, active, businessType, managed }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
@@ -113,16 +115,25 @@ export function BillingClient({ sub, active, businessType }: Props) {
           </p>
         )}
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <button
-          onClick={goPortal}
-          disabled={pending}
-          className="mt-5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-        >
-          {pending ? 'Abriendo…' : 'Administrar suscripción'}
-        </button>
-        <p className="mt-2 text-xs text-ink-faint">
-          Cambia de plan, actualiza tu tarjeta o cancela desde el portal de Stripe.
-        </p>
+        {managed ? (
+          <p className="mt-4 text-sm text-ink-soft" data-testid="managed-plan">
+            Tu plan lo administra el proveedor con el que contrataste. Para cambiarlo o darlo de
+            baja, escríbele a él: aquí no tienes nada que pagar.
+          </p>
+        ) : (
+          <>
+            <button
+              onClick={goPortal}
+              disabled={pending}
+              className="mt-5 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
+            >
+              {pending ? 'Abriendo…' : 'Administrar suscripción'}
+            </button>
+            <p className="mt-2 text-xs text-ink-faint">
+              Cambia de plan, actualiza tu tarjeta o cancela desde el portal de Stripe.
+            </p>
+          </>
+        )}
       </div>
     )
   }
