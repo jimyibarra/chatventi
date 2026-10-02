@@ -18,6 +18,7 @@ export function AppointmentDialog({
   resources,
   resourceLabel,
   initialDate,
+  initialResourceId,
   appointment,
   onClose,
 }: {
@@ -28,6 +29,8 @@ export function AppointmentDialog({
   resources: ResourceOpt[]
   resourceLabel: string
   initialDate: string
+  /** Profesional preseleccionado (al agendar desde un hueco de su línea). */
+  initialResourceId?: string | null
   appointment?: { id: string; serviceIds: string[]; resourceId: string | null }
   onClose: () => void
 }) {
@@ -37,7 +40,9 @@ export function AppointmentDialog({
   const [serviceIds, setServiceIds] = useState<string[]>(
     mode === 'reschedule' ? (appointment?.serviceIds ?? []) : []
   )
-  const [resourceId, setResourceId] = useState<string>(appointment?.resourceId ?? '')
+  const [resourceId, setResourceId] = useState<string>(
+    appointment?.resourceId ?? (resources.some((r) => r.id === initialResourceId) ? (initialResourceId ?? '') : '')
+  )
   const [date, setDate] = useState<string>(initialDate)
   const [slotsResult, setSlotsResult] = useState<{ key: string; slots: Slot[] } | null>(null)
   const [pickedSlot, setPickedSlot] = useState<string>('')

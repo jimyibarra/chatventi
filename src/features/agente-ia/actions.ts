@@ -219,6 +219,29 @@ const configSchema = z.object({
   systemPrompt: z.string().trim().max(4000).optional(),
 })
 
+/**
+ * Pausa o reanuda a la recepcionista desde el Panel. Solo toca `enabled`: el
+ * resto de la configuración no viaja, así que no puede pisarse por accidente.
+ * La RLS limita el cambio a dueño y gerente; si no se actualizó ninguna fila
+ * (otro rol, o aún sin configurar) se dice, en vez de fingir que funcionó.
+ */
+export async function setAgentEnabled(enabled: boolean): Promise<ActionResult> {
+  const supabase = await createClient()
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return { ok: false, error: 'No tienes una organización.' }
+  const { data, error } = await supabase
+    .from('agent_configs')
+    .update({ enabled, updated_at: new Date().toISOString() })
+    .eq('organization_id', orgId)
+    .select('organization_id')
+  if (error || !data?.length) {
+    return { ok: false, error: 'No se pudo cambiar. Revisa la configuración de tu recepcionista.' }
+  }
+  revalidatePath('/dashboard')
+  revalidatePath('/dashboard/agente')
+  return { ok: true }
+}
+
 export async function saveAgentConfig(raw: unknown): Promise<ActionResult> {
   const parsed = configSchema.safeParse(raw)
   if (!parsed.success) {

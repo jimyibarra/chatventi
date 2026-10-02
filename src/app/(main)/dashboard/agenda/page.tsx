@@ -3,13 +3,14 @@ import { AgendaBoard } from '@/features/agenda/components/agenda-board'
 import { getBranches, getServices, getAppointmentsRange } from '@/features/agenda/services'
 import { getResources, getResourceLabel } from '@/features/profesionales/services'
 import { dayRangeUtc, weekRangeUtc, ymdInTz } from '@/features/agenda/datetime'
+import { buildDay } from '@/features/lineas/model'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AgendaPage({
   searchParams,
 }: {
-  searchParams: Promise<{ branch?: string; view?: string; date?: string }>
+  searchParams: Promise<{ branch?: string; view?: string; date?: string; new?: string; resource?: string }>
 }) {
   const sp = await searchParams
   const supabase = await createClient()
@@ -28,7 +29,8 @@ export default async function AgendaPage({
   const branch = branches.find((b) => b.id === sp.branch) ?? branches[0]
   const tz = branch.timezone
   const view = sp.view === 'week' ? 'week' : 'day'
-  const date = sp.date ?? ymdInTz(new Date(), tz)
+  // Fecha de la URL: solo YYYY-MM-DD; cualquier otra cosa cae a hoy.
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(sp.date ?? '') ? (sp.date as string) : ymdInTz(new Date(), tz)
 
   const week = weekRangeUtc(date, tz)
   const range = view === 'week' ? { from: week.from, to: week.to } : dayRangeUtc(date, tz)
@@ -50,6 +52,15 @@ export default async function AgendaPage({
     ])
 
   const activeResources = resources.filter((r) => r.active)
+
+  // El día se arma AQUÍ, en el servidor: si lo calculara el navegador, "ahora"
+  // sería otro instante y el HTML del servidor no coincidiría con el suyo.
+  const day = buildDay({
+    appointments,
+    resources: activeResources.map((r) => ({ id: r.id, name: r.name, schedules: r.schedules })),
+    tz,
+    date,
+  })
 
   // Sin horario de sucursal o sin horario de profesionales, get_available_slots_v2
   // no puede ofrecer NINGÚN hueco ("Sin horarios disponibles" sin causa aparente).
@@ -91,6 +102,9 @@ export default async function AgendaPage({
         view={view}
         date={date}
         weekDays={week.days}
+        day={day}
+        openNew={sp.new === '1'}
+        newResourceId={sp.resource ?? null}
         appointments={appointments}
         services={services.map((s) => ({
           id: s.id,

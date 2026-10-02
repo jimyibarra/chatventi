@@ -21,19 +21,20 @@ const config: Config = {
           800: '#362da3',
           900: '#2b247d',
         },
-        // Bento Grid claro (PRP prp-rediseno-bento-claro): tokens de la tarjeta
-        // aprobada en Claude Design (comparativa/panel-bento.html).
+        // Diseño «Líneas» (elegido por Juan el 2026-10-02, ver DESIGN.md): tinta
+        // violeta profunda sobre un fondo azulado muy claro. Sustituye a los
+        // grises del Bento Grid en todo el panel.
         ink: {
-          DEFAULT: '#1a1830',
-          muted: '#6b6a80',
-          soft: '#8a89a0',
-          faint: '#9997ae',
+          DEFAULT: '#2a1a5e',
+          muted: '#584d84',
+          soft: '#665e8d',
+          faint: '#7d7996',
         },
-        surface: '#f6f6fa',
+        surface: '#f1f4fb',
         line: {
-          DEFAULT: '#e8e7f2',
-          soft: '#eceaf5',
-          row: '#f1f0f8',
+          DEFAULT: '#dde2f0',
+          soft: '#e6e9f4',
+          row: '#edf0f8',
         },
         success: {
           DEFAULT: '#0d9463',
@@ -46,7 +47,12 @@ const config: Config = {
         },
       },
       borderRadius: {
-        card: '18px',
+        card: '20px',
+      },
+      fontFamily: {
+        // Rubik se carga en el layout del panel (variable --font-rubik). Fuera
+        // de él la variable no existe y cae a la pila del sistema, como antes.
+        sans: ['var(--font-rubik)', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
         'card-hover': '0 4px 20px rgba(91,79,224,.10)',
