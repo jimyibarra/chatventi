@@ -36,12 +36,20 @@ export async function registerReferralPayment(
     .select('organization_id')
     .eq('stripe_customer_id', customerId)
     .maybeSingle()
-  if (!sub?.organization_id) return
+  // Stripe no garantiza el orden de los eventos: `invoice.paid` puede llegar
+  // antes de que `subscription.created` haya escrito la fila. El cliente de
+  // Stripe lleva la organización en sus metadatos desde que se crea.
+  let orgId: string | undefined = sub?.organization_id ?? undefined
+  if (!orgId) {
+    const customer = await stripe.customers.retrieve(customerId)
+    if (!customer.deleted) orgId = customer.metadata?.organization_id
+  }
+  if (!orgId) return
 
   const { data: org } = await admin
     .from('organizations')
     .select('referred_by')
-    .eq('id', sub.organization_id)
+    .eq('id', orgId)
     .maybeSingle()
   if (!org?.referred_by) return
 
@@ -49,7 +57,7 @@ export async function registerReferralPayment(
   const { error } = await admin
     .from('referral_rewards')
     .upsert(
-      { referrer_org: org.referred_by, referred_org: sub.organization_id },
+      { referrer_org: org.referred_by, referred_org: orgId },
       { onConflict: 'referred_org', ignoreDuplicates: true }
     )
   if (error) {
