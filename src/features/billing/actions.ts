@@ -3,7 +3,7 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { getStripe, planPriceId, PRICE_SEAT } from '@/lib/stripe'
+import { annualLookupKey, annualPriceIds, getStripe, planPriceId, PRICE_SEAT } from '@/lib/stripe'
 
 export type CheckoutResult =
   | { ok: true; url: string }
@@ -11,6 +11,7 @@ export type CheckoutResult =
 
 const checkoutSchema = z.object({
   plan: z.enum(['arranque', 'negocio', 'profesional', 'multisede']),
+  interval: z.enum(['month', 'year']).optional(),
   extraSeats: z.coerce.number().int().min(0).max(50).optional(),
 })
 
@@ -29,13 +30,30 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { plan, extraSeats = 0 } = parsed.data
-  const planPrice = planPriceId(plan)
-
-  if (!process.env.STRIPE_SECRET_KEY?.trim() || !planPrice) {
+  const { plan, interval = 'month', extraSeats = 0 } = parsed.data
+  if (!process.env.STRIPE_SECRET_KEY?.trim()) {
     return { ok: false, error: 'Stripe no está configurado todavía (faltan claves o price IDs).' }
   }
   const stripe = getStripe()
+
+  // Mensual: price ids de entorno. Anual: por lookup_key en Stripe. Una
+  // suscripción no puede mezclar periodicidades, así que el acceso extra
+  // también tiene su precio anual.
+  let planPrice = planPriceId(plan)
+  let seatPrice = PRICE_SEAT
+  if (interval === 'year') {
+    try {
+      const annual = await annualPriceIds()
+      planPrice = annual[annualLookupKey(plan)] ?? ''
+      seatPrice = annual[annualLookupKey('seat')] ?? ''
+    } catch (e) {
+      console.error('[billing] precios anuales', e)
+      planPrice = ''
+    }
+  }
+  if (!planPrice) {
+    return { ok: false, error: 'Stripe no está configurado todavía (faltan claves o price IDs).' }
+  }
 
   const supabase = await createClient()
   const {
@@ -95,7 +113,7 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
     const lineItems: { price: string; quantity: number }[] = [
       { price: planPrice, quantity: 1 },
     ]
-    if (extraSeats > 0 && PRICE_SEAT) lineItems.push({ price: PRICE_SEAT, quantity: extraSeats })
+    if (extraSeats > 0 && seatPrice) lineItems.push({ price: seatPrice, quantity: extraSeats })
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
@@ -103,7 +121,9 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       line_items: lineItems,
       // El código de promo (30% off 3 meses) se aplica aquí. Ya NO hay trial de
       // Stripe: la prueba gratis (sin tarjeta) ocurre a nivel de app antes.
-      allow_promotion_codes: true,
+      // En el plan anual NO: ya lleva dos meses de regalo, y ese cupón sobre
+      // una factura de un año entero descontaría el 30 % de los doce meses.
+      allow_promotion_codes: interval !== 'year',
       subscription_data: {
         metadata: { organization_id: orgId as string },
       },

@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { LEGAL } from '@/shared/constants/legal'
 import { getClientIp, getUserAgent } from '@/shared/security/request-context'
 import { welcomeSchema } from './welcome-schema'
@@ -36,6 +37,7 @@ export async function completeWelcome(raw: unknown): Promise<WelcomeResult> {
     pending_terms_version?: string
     signup_ip?: string
     signup_user_agent?: string
+    pending_ref?: string
   }
 
   // Si el alta es anterior a este flujo, no habrá metadatos: se usa la IP de
@@ -63,5 +65,43 @@ export async function completeWelcome(raw: unknown): Promise<WelcomeResult> {
     return { ok: false, error: 'No pudimos crear tu negocio. Inténtalo de nuevo en un momento.' }
   }
 
+  await attributeSignup(user.id, meta.pending_ref)
   return { ok: true }
+}
+
+/**
+ * Anota de dónde vino el negocio recién creado: el programa (?ref=fundadores)
+ * o el negocio que lo recomendó (?ref=<código>). Va con service_role porque
+ * `signup_ref` y `referred_by` NO son escribibles por el usuario: nadie debe
+ * poder asignarse quién lo recomendó. Nunca lanza: perder una atribución no
+ * puede dejar a alguien sin su cuenta.
+ */
+async function attributeSignup(userId: string, ref: string | undefined): Promise<void> {
+  if (!ref || !/^[A-Za-z0-9_-]{3,40}$/.test(ref)) return
+  try {
+    const admin = createServiceClient()
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .maybeSingle()
+    const orgId = profile?.organization_id
+    if (!orgId) return
+    const { data: referrer } = await admin
+      .from('organizations')
+      .select('id')
+      .eq('referral_code', ref.toUpperCase())
+      .maybeSingle()
+    await admin
+      .from('organizations')
+      .update({
+        signup_ref: ref.toLowerCase(),
+        // Recomendarse a uno mismo no cuenta.
+        referred_by: referrer && referrer.id !== orgId ? referrer.id : null,
+      })
+      .eq('id', orgId)
+      .is('signup_ref', null)
+  } catch (err) {
+    console.error('[bienvenida] no se pudo anotar la procedencia', err)
+  }
 }

@@ -14,7 +14,10 @@ import {
   PLANS,
   TRIAL_DAYS,
   ADDON_SEAT_USD,
+  ANNUAL_MONTHS_FREE,
+  EXTRA_REPLY_PRICE_USD,
   STARTER_PRICE_USD,
+  aiRepliesIncluded,
 } from '@/features/billing/plans'
 
 export type SalesTurn = { role: 'user' | 'assistant'; content: string }
@@ -31,7 +34,7 @@ function pricingFacts(): string {
     ]
       .filter(Boolean)
       .join('; ')
-    return `- ${p.name}: $${p.priceUsd} USD/mes${p.popular ? ' (EL MÁS POPULAR)' : ''}. ${p.tagline} Canales del agente: ${canales}. ${resources}, ${seats}.${extra ? ' Incluye: ' + extra + '.' : ''}`
+    return `- ${p.name}: $${p.priceUsd} USD/mes${p.popular ? ' (EL MÁS POPULAR)' : ''}. ${p.tagline} Canales del agente: ${canales}. ${resources}, ${seats}. Incluye ${aiRepliesIncluded(p.id).toLocaleString('en-US')} respuestas de IA al mes.${extra ? ' Incluye también: ' + extra + '.' : ''}`
   }).join('\n')
 
   return [
@@ -39,6 +42,10 @@ function pricingFacts(): string {
     planLines,
     '',
     'COMPLEMENTO (opcional, USD/mes): acceso de equipo adicional $' + ADDON_SEAT_USD + '.',
+    `PAGO ANUAL: se pagan 10 meses y se usan 12 (${ANNUAL_MONTHS_FREE} meses de regalo). Se elige al activar el plan.`,
+    `SI SE REBASA LO INCLUIDO: el servicio NO se corta. Cada 1,000 respuestas de IA adicionales cuestan $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD y se suman a la siguiente factura. El consumo se ve en el panel.`,
+    'MENSAJES DE WHATSAPP: los cobra Meta directamente a la cuenta de WhatsApp Business del negocio, con las tarifas oficiales de Meta. ChatVenti NO cobra ni añade nada por mensaje. Si preguntan cuánto es, di que depende del país y que Meta publica sus tarifas; no inventes una cifra.',
+    'RECOMIENDA Y GANA: cada negocio tiene un enlace para recomendar ChatVenti; cuando el recomendado hace su primer pago, quien recomendó recibe un mes de su plan.',
     'AÚN NO DISPONIBLE (no lo ofrezcas; si preguntan, di que está en camino y que no se cobra): app de marca para los clientes del negocio, dominio propio y varias sucursales en una misma cuenta.',
     `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`,
     'IMPORTANTE de canales: WhatsApp, web y Telegram están en TODOS los planes. Instagram y Messenger entran desde el plan Profesional.',

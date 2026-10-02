@@ -6,7 +6,10 @@
 // =====================================================================
 import {
   ADDON_SEAT_USD,
+  ANNUAL_MONTHS_FREE,
+  EXTRA_REPLY_PRICE_USD,
   TRIAL_DAYS,
+  aiRepliesIncluded,
   planById,
 } from '@/features/billing/plans'
 
@@ -274,6 +277,7 @@ export const PRICING = {
     ],
     cta: 'Empezar prueba gratis',
   },
+  annual: `Paga el año completo y te regalamos ${ANNUAL_MONTHS_FREE} meses: 12 por el precio de 10.`,
   footnote: `Acceso de equipo adicional: +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
 }
 
@@ -305,6 +309,14 @@ export const FAQS = [
   {
     q: '¿En qué se diferencian los cuatro planes?',
     a: 'La recepcionista con IA por WhatsApp, web y Telegram va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
+  },
+  {
+    q: '¿Qué pasa si mi recepcionista atiende más de lo que incluye mi plan?',
+    a: `Nunca se detiene. El plan Arranque incluye ${aiRepliesIncluded('arranque').toLocaleString('en-US')} respuestas de IA al mes y el plan Negocio ${aiRepliesIncluded('negocio').toLocaleString('en-US')}: mucho más de lo que usa un negocio normal. Si un mes lo rebasas, cada 1,000 respuestas adicionales cuestan $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD y se suman a tu siguiente factura. Tu consumo lo ves en tiempo real en tu panel.`,
+  },
+  {
+    q: '¿Hay descuento si pago el año completo?',
+    a: `Sí: pagas 10 meses y usas 12. Eliges pago mensual o anual al activar tu plan, después de tus ${TRIAL_DAYS} días de prueba.`,
   },
   {
     q: '¿Puedo cancelar cuando quiera?',

@@ -19,7 +19,7 @@ const INPUT =
 // No hay "confirmar contraseña" a propósito: el ojo permite ver lo escrito y
 // existe recuperación en un clic. El checkbox de términos SÍ se queda: el
 // registro legal depende de que la aceptación preceda a la cuenta.
-export function SignupForm({ vertical }: { vertical?: string }) {
+export function SignupForm({ vertical, referral }: { vertical?: string; referral?: string }) {
   const [serverError, setServerError] = useState<string | null>(null)
   const [checkEmail, setCheckEmail] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
@@ -38,6 +38,7 @@ export function SignupForm({ vertical }: { vertical?: string }) {
       // Giro de la landing de procedencia. El servidor lo valida contra el
       // catálogo; aquí solo se transporta.
       vertical,
+      ref: referral,
     })
     if (!result.ok) {
       setServerError(result.error)

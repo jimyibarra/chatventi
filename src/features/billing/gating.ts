@@ -21,6 +21,7 @@ export interface OrgSubscription {
   trial_end: string | null
   cancel_at_period_end: boolean
   stripe_customer_id: string | null
+  billing_interval?: string | null
 }
 
 const ACTIVE_STATES = new Set(['trialing', 'active'])
@@ -31,7 +32,7 @@ export async function getMySubscription(): Promise<OrgSubscription | null> {
   const { data } = await supabase
     .from('subscriptions')
     .select(
-      'status, plan_id, ai_tier, has_domain, team_seats, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id'
+      'status, plan_id, ai_tier, has_domain, team_seats, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, billing_interval'
     )
     .maybeSingle()
   return (data as unknown as OrgSubscription | null) ?? null

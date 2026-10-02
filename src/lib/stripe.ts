@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { planFromLegacyTier, type PlanId } from '@/features/billing/plans'
+import { planFromLegacyTier, type BillingInterval, type PlanId } from '@/features/billing/plans'
 
 /**
  * Cliente Stripe (server-only), inicializado de forma PEREZOSA. El constructor
@@ -58,6 +58,32 @@ export function planPriceId(plan: PlanId): string {
   }
 }
 
+// ---------------------------------------------------------------------
+// Precios ANUALES: se resuelven por `lookup_key` en Stripe, no por variable de
+// entorno. Así un precio nuevo no exige tocar la configuración del hosting, y
+// el mismo código vale para el modo de prueba y el real (basta con crear en
+// cada uno precios con estas claves).
+// ---------------------------------------------------------------------
+const ANNUAL_LOOKUP = /^chatventi_(arranque|negocio|profesional|multisede|seat)_year$/
+
+export function annualLookupKey(item: PlanId | 'seat'): string {
+  return `chatventi_${item}_year`
+}
+
+let annualCache: Record<string, string> | null = null
+
+/** lookup_key -> price id de los precios anuales activos (se cachea en memoria). */
+export async function annualPriceIds(): Promise<Record<string, string>> {
+  if (annualCache) return annualCache
+  const keys = (['arranque', 'negocio', 'profesional', 'multisede', 'seat'] as const).map(annualLookupKey)
+  const list = await getStripe().prices.list({ lookup_keys: keys, active: true, limit: 20 })
+  const found: Record<string, string> = {}
+  for (const price of list.data) if (price.lookup_key) found[price.lookup_key] = price.id
+  // Solo se cachea un catálogo completo: uno a medias obligaría a redesplegar.
+  if (keys.every((k) => found[k])) annualCache = found
+  return found
+}
+
 /**
  * Mapeo inverso price ids -> significado, para reconstruir el estado de la
  * suscripción desde los items de Stripe en el webhook (fuente de verdad).
@@ -65,9 +91,11 @@ export function planPriceId(plan: PlanId): string {
  * tier de IA), que se traduce al plan equivalente con planFromLegacyTier.
  */
 export function describeSubscriptionItems(
-  items: { priceId: string; quantity: number }[]
+  items: { priceId: string; quantity: number; lookupKey?: string | null; interval?: string | null }[]
 ): {
   planId: PlanId | null
+  /** Periodicidad de la suscripción (la de su primer item). */
+  interval: BillingInterval
   hasPwa: boolean
   hasDomain: boolean
   extraSeats: number
@@ -80,10 +108,14 @@ export function describeSubscriptionItems(
   let extraSeats = 0
   let legacyAiTier: 'none' | '300' | '1000' | '3000' = 'none'
 
-  for (const { priceId, quantity } of items) {
+  for (const { priceId, quantity, lookupKey } of items) {
     if (!priceId) continue
+    // Precios anuales (por lookup_key)
+    const annual = ANNUAL_LOOKUP.exec(lookupKey ?? '')?.[1]
+    if (annual === 'seat') extraSeats += quantity
+    else if (annual) planId = annual as PlanId
     // Catálogo nuevo
-    if (priceId === PRICE_ARRANQUE) planId = 'arranque'
+    else if (priceId === PRICE_ARRANQUE) planId = 'arranque'
     else if (priceId === PRICE_NEGOCIO) planId = 'negocio'
     else if (priceId === PRICE_PROFESIONAL) planId = 'profesional'
     else if (priceId === PRICE_MULTISEDE) planId = 'multisede'
@@ -105,5 +137,6 @@ export function describeSubscriptionItems(
     planId = planFromLegacyTier(legacyAiTier)
   }
 
-  return { planId, hasPwa, hasDomain, extraSeats, legacyAiTier }
+  const interval: BillingInterval = items[0]?.interval === 'year' ? 'year' : 'month'
+  return { planId, interval, hasPwa, hasDomain, extraSeats, legacyAiTier }
 }

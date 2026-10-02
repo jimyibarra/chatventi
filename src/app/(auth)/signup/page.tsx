@@ -7,9 +7,9 @@ import { verticalBySlug } from '@/features/verticales/data'
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ giro?: string }>
+  searchParams: Promise<{ giro?: string; ref?: string }>
 }) {
-  const { giro } = await searchParams
+  const { giro, ref } = await searchParams
   const vertical = verticalBySlug(giro)
 
   return (
@@ -25,7 +25,7 @@ export default async function SignupPage({
       {/* El captcha lo verifica ahora Supabase Auth (GoTrue). El widget se
           auto-oculta si no hay NEXT_PUBLIC_TURNSTILE_SITE_KEY, así que el
           registro sigue funcionando en desarrollo y mientras esté apagado. */}
-      <SignupForm vertical={vertical?.slug} />
+      <SignupForm vertical={vertical?.slug} referral={ref} />
     </div>
   )
 }

@@ -30,6 +30,9 @@ export const signupSchema = z.object({
   // user_metadata para llegar preseleccionado a /bienvenida. El servidor lo
   // valida contra el catálogo y lo ignora si no encaja — nunca se confía en él.
   vertical: z.string().max(40).optional(),
+  // Procedencia (?ref=): código de quien recomendó o nombre de un programa
+  // ("fundadores"). Solo atribución; el servidor lo valida al crear el negocio.
+  ref: z.string().max(40).optional(),
 })
 
 export const recoverSchema = z.object({

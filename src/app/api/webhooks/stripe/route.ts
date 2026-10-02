@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { planById, monthlyTotalUsd, type PlanId } from '@/features/billing/plans'
 import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
 import { subscriptionActiveEmail } from '@/features/emails/templates'
+import { registerReferralPayment, settlePendingRewards } from '@/features/billing/referrals'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
 
@@ -52,9 +53,17 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.deleted':
         await syncSubscription(event.data.object as Stripe.Subscription)
         break
+      case 'invoice.paid': {
+        // Solo para "recomienda y gana": el primer pago real de un negocio
+        // recomendado dispara la recompensa. El acceso NO depende de esto.
+        const invoice = event.data.object as unknown as { customer?: string; amount_paid?: number }
+        if (typeof invoice.customer === 'string') {
+          await registerReferralPayment(createServiceClient(), getStripe(), invoice.customer, invoice.amount_paid ?? 0)
+        }
+        break
+      }
       default:
-        // Otros eventos (invoice.*, checkout.session.completed) no son
-        // necesarios: subscription.* ya trae el estado completo.
+        // El resto no hace falta: subscription.* ya trae el estado completo.
         break
     }
   } catch (e) {
@@ -73,7 +82,13 @@ interface SubShape {
   current_period_end?: number
   trial_end?: number | null
   metadata?: Record<string, string>
-  items: { data: Array<{ price: { id: string }; quantity?: number; current_period_end?: number }> }
+  items: {
+    data: Array<{
+      price: { id: string; lookup_key?: string | null; recurring?: { interval?: string } | null }
+      quantity?: number
+      current_period_end?: number
+    }>
+  }
 }
 
 function unixToIso(sec?: number | null): string | null {
@@ -99,8 +114,13 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     return
   }
 
-  const { planId, hasPwa, hasDomain, extraSeats, legacyAiTier } = describeSubscriptionItems(
-    sub.items.data.map((i) => ({ priceId: i.price.id, quantity: i.quantity ?? 0 }))
+  const { planId, interval, hasPwa, hasDomain, extraSeats, legacyAiTier } = describeSubscriptionItems(
+    sub.items.data.map((i) => ({
+      priceId: i.price.id,
+      quantity: i.quantity ?? 0,
+      lookupKey: i.price.lookup_key,
+      interval: i.price.recurring?.interval,
+    }))
   )
 
   // El status 'deleted' de Stripe llega como canceled; normalizamos.
@@ -133,6 +153,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     stripe_subscription_id: sub.id,
     status,
     plan_id: planId,
+    billing_interval: interval,
     ai_tier: legacyAiTier,
     has_domain: hasDomain,
     team_seats: extraSeats,
@@ -148,7 +169,15 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     console.error('[stripe] error upsert subscription', error)
     throw new Error('upsert failed')
   }
-  console.log(`[stripe] sync org=${orgId} status=${status} plan=${planId ?? legacyAiTier}`)
+  console.log(`[stripe] sync org=${orgId} status=${status} plan=${planId ?? legacyAiTier} (${interval})`)
+
+  // Quien recomendó a otros y acaba de activar su plan cobra aquí las
+  // recompensas que tuviera esperando (no había a qué cliente abonarlas).
+  if (incomingLive) {
+    await settlePendingRewards(admin, getStripe(), orgId).catch((e) =>
+      console.error('[stripe] recompensas pendientes', e)
+    )
+  }
 
   // Correo de "suscripción activa" (una vez, al activarse el plan). Marcamos el
   // flag de inmediato para evitar doble envío entre eventos created/updated y

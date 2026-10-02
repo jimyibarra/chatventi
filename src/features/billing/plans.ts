@@ -6,6 +6,15 @@
 //   (profesionales, accesos, canales) + una BOLSA DE CRÉDITO DE USO.
 //   WhatsApp con IA va en TODOS los planes: es la promesa de la home.
 //
+//   🔴 QUÉ CUBRE HOY LA BOLSA (2026-10-03): SOLO EL USO DE IA.
+//   Los mensajes de WhatsApp se los factura Meta directamente a cada negocio.
+//   ChatVenti es Tech Provider y sus términos (31-jul-2026, cláusula "No
+//   Resale") prohíben pagar el consumo de WhatsApp del cliente con crédito
+//   propio o cobrarle una tarifa por él. Lo que sí se puede cobrar —y se
+//   cobra— es nuestro propio servicio: las respuestas de la recepcionista.
+//   Ver usageOverage(). El razonamiento de abajo sigue valiendo si algún día
+//   se opera con un socio que ponga la línea de crédito.
+//
 //   🔴 POR QUÉ LA BOLSA VA EN DINERO Y NO EN MENSAJES
 //   Desde el 1-oct-2026 Meta cobra los mensajes de servicio dentro de la
 //   ventana de 24 h (hoy gratis). Una bolsa medida en MENSAJES ata el plan a
@@ -57,8 +66,9 @@ export interface Plan {
    */
   maxSeats: number | null
   /**
-   * Crédito de uso incluido al mes, en USD. Cubre los mensajes que Meta nos
-   * cobra MÁS el consumo del modelo de IA. Es el techo del coste variable.
+   * Crédito de uso incluido al mes, en USD. Hoy cubre el consumo del modelo
+   * de IA (WhatsApp lo factura Meta al negocio). Es el techo del coste
+   * variable; en respuestas, ver aiRepliesIncluded().
    */
   usageCreditUsd: number
   /** Superpoderes del agente: lee comprobantes, oye notas de voz, encuesta. */
@@ -247,9 +257,49 @@ export function conversationsIncluded(planId: PlanId, countryCode?: string | nul
   return Math.floor(planById(planId).usageCreditUsd / conversationCostUsd({ countryCode }))
 }
 
-/** Consumo por encima del crédito incluido. Se repercute AL COSTO, sin margen. */
-export function overageUsd(planId: PlanId, usedUsd: number): number {
-  return Number(Math.max(0, usedUsd - planById(planId).usageCreditUsd).toFixed(2))
+// ---------------------------------------------------------------------
+// Uso de IA: lo incluido y el excedente
+// ---------------------------------------------------------------------
+
+/**
+ * Recargo sobre el costo de cada respuesta de IA que rebasa lo incluido.
+ * 0.30 = costo + 30 %. Es NUESTRO servicio (la recepcionista), no una tarifa
+ * por mensaje de WhatsApp: eso último lo prohíben los términos de Meta.
+ */
+export const USAGE_COMMISSION_PCT = 0.3
+
+/** Respuestas de la recepcionista que el plan trae incluidas cada mes. */
+export function aiRepliesIncluded(planId: PlanId): number {
+  return Math.floor(planById(planId).usageCreditUsd / AI_TURN_COST_USD)
+}
+
+/** Precio de cada respuesta adicional (costo + recargo), en USD. */
+export const EXTRA_REPLY_PRICE_USD = AI_TURN_COST_USD * (1 + USAGE_COMMISSION_PCT)
+
+/**
+ * Excedente de un mes. Una sola fórmula para el panel del cliente y para el
+ * cierre que carga en Stripe: lo que el cliente ve es lo que se le cobra.
+ */
+export function usageOverage(
+  planId: PlanId,
+  aiReplies: number
+): { included: number; extra: number; chargeUsd: number } {
+  const included = aiRepliesIncluded(planId)
+  const extra = Math.max(0, aiReplies - included)
+  return { included, extra, chargeUsd: Number((extra * EXTRA_REPLY_PRICE_USD).toFixed(2)) }
+}
+
+// ---------------------------------------------------------------------
+// Plan anual: 12 meses por el precio de 10
+// ---------------------------------------------------------------------
+
+export type BillingInterval = 'month' | 'year'
+export const ANNUAL_MONTHS_CHARGED = 10
+export const ANNUAL_MONTHS_FREE = 12 - ANNUAL_MONTHS_CHARGED
+
+/** Importe del periodo (mes o año) para un precio mensual dado. */
+export function periodPriceUsd(monthlyUsd: number, interval: BillingInterval): number {
+  return interval === 'year' ? monthlyUsd * ANNUAL_MONTHS_CHARGED : monthlyUsd
 }
 
 // ---------------------------------------------------------------------

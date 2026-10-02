@@ -4,11 +4,14 @@ import { useMemo, useState, useTransition } from 'react'
 import {
   PLANS,
   ADDON_SEAT_USD,
+  ANNUAL_MONTHS_FREE,
   PROMO_CODE,
   PROMO_LABEL,
   monthlyTotalUsd,
+  periodPriceUsd,
   planById,
   STATUS_LABELS,
+  type BillingInterval,
   type PlanId,
 } from '@/features/billing/plans'
 import { createCheckoutSession, createPortalSession } from '@/features/billing/actions'
@@ -21,6 +24,7 @@ interface Props {
     ai_tier: string
     current_period_end: string | null
     cancel_at_period_end: boolean
+    billing_interval?: string | null
   } | null
   active: boolean
   businessType?: string | null
@@ -40,6 +44,7 @@ const SIZE_OPTIONS: { key: string; label: string; hint: string; plan: PlanId }[]
 
 export function BillingClient({ sub, active, businessType }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
+  const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
   const [extraSeats, setExtraSeats] = useState(0)
   const [error, setError] = useState('')
@@ -47,14 +52,14 @@ export function BillingClient({ sub, active, businessType }: Props) {
 
   const planDef = planById(plan)
   const total = useMemo(
-    () => monthlyTotalUsd({ plan, extraSeats }),
-    [plan, extraSeats]
+    () => periodPriceUsd(monthlyTotalUsd({ plan, extraSeats }), interval),
+    [plan, extraSeats, interval]
   )
 
   function goCheckout() {
     setError('')
     startTransition(async () => {
-      const res = await createCheckoutSession({ plan, extraSeats })
+      const res = await createCheckoutSession({ plan, interval, extraSeats })
       if (!res.ok) {
         setError(res.error)
         return
@@ -96,7 +101,12 @@ export function BillingClient({ sub, active, businessType }: Props) {
           )}
         </div>
         <p className="mt-4 text-sm text-ink-muted">Tu plan actual</p>
-        <p className="text-lg font-semibold text-ink">{currentName}</p>
+        <p className="text-lg font-semibold text-ink">
+          {currentName}
+          {sub.billing_interval === 'year' && (
+            <span className="ml-2 text-sm font-medium text-ink-muted">· pago anual</span>
+          )}
+        </p>
         {sub.current_period_end && (
           <p className="mt-1 text-sm text-ink-soft">
             Próxima renovación: {new Date(sub.current_period_end).toLocaleDateString('es-MX')}
@@ -172,6 +182,23 @@ export function BillingClient({ sub, active, businessType }: Props) {
         <p className="mt-1 text-sm text-ink-soft">
           WhatsApp, Telegram y widget en tu web, con IA que agenda sola, en todos los planes.
         </p>
+        {/* Periodicidad: el anual cobra 10 meses y regala 2. */}
+        <div className="mt-4 inline-flex rounded-xl border border-line bg-surface p-1" role="group" aria-label="Periodicidad de pago">
+          {(['month', 'year'] as const).map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              data-testid={`interval-${opt}`}
+              aria-pressed={interval === opt}
+              onClick={() => setBillingInterval(opt)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                interval === opt ? 'bg-white text-ink shadow-sm' : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              {opt === 'month' ? 'Mensual' : `Anual · ${ANNUAL_MONTHS_FREE} meses de regalo`}
+            </button>
+          ))}
+        </div>
         <div className="mt-4 space-y-2">
           {PLANS.map((p) => {
             const selected = plan === p.id
@@ -197,7 +224,9 @@ export function BillingClient({ sub, active, businessType }: Props) {
                   </span>
                   <span className="text-sm text-ink-soft">{p.tagline}</span>
                 </span>
-                <span className="shrink-0 font-semibold text-brand-700">{money(p.priceUsd)}/mes</span>
+                <span className="shrink-0 font-semibold text-brand-700">
+                  {money(periodPriceUsd(p.priceUsd, interval))}/{interval === 'year' ? 'año' : 'mes'}
+                </span>
               </button>
             )
           })}
@@ -248,15 +277,28 @@ export function BillingClient({ sub, active, businessType }: Props) {
       <div className="sticky bottom-4 rounded-card border border-ink bg-ink p-6 text-white shadow-lg">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Total mensual</p>
-            <p className="text-3xl font-bold">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">
+              {interval === 'year' ? 'Total anual' : 'Total mensual'}
+            </p>
+            <p className="text-3xl font-bold" data-testid="total">
               {money(total)}
-              <span className="text-base font-normal text-ink-faint"> /mes</span>
+              <span className="text-base font-normal text-ink-faint">
+                {' '}
+                /{interval === 'year' ? 'año' : 'mes'}
+              </span>
             </p>
             <p className="mt-1 text-xs text-ink-faint">
-              Plan {planDef.name} + extras · usa el código{' '}
-              <span className="font-semibold text-white">{PROMO_CODE}</span> y obtén {PROMO_LABEL} ·
-              cancela cuando quieras
+              {interval === 'year' ? (
+                <>
+                  Plan {planDef.name} + extras · pagas 10 meses y usas 12 · cancela cuando quieras
+                </>
+              ) : (
+                <>
+                  Plan {planDef.name} + extras · usa el código{' '}
+                  <span className="font-semibold text-white">{PROMO_CODE}</span> y obtén {PROMO_LABEL} ·
+                  cancela cuando quieras
+                </>
+              )}
             </p>
           </div>
           <button

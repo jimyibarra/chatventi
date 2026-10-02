@@ -16,6 +16,7 @@ import { removeInboundFolder } from '@/features/storage/inbound'
 import { runConversationScoring } from '@/features/agente-ia/scoring-job'
 import { runColdFollowups, runDailyReports } from '@/features/agente-ia/outreach-jobs'
 import { waSendTemplate, type WaTemplateKey } from '@/features/agente-ia/wa-templates'
+import { runUsageClose } from '@/features/billing/usage-close'
 
 export const runtime = 'nodejs'
 
@@ -135,9 +136,16 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // horario decente. Todo lo demás (reactivación, embudo de prueba, rescate,
   // resumen diario, calificación) sigue en la corrida diaria de Vercel: si
   // corriera cada 15 min, mandaría mensajes de madrugada.
-  const frequent = request.nextUrl.searchParams.get('scope') === 'reminders'
+  const scope = request.nextUrl.searchParams.get('scope')
+  const frequent = scope === 'reminders'
 
   const service = createServiceClient()
+
+  // ?scope=usage: solo el cierre del consumo. Sirve para cerrar un mes a
+  // mano sin disparar el resto de la corrida diaria.
+  if (scope === 'usage') {
+    return NextResponse.json({ ok: true, scope: 'usage', usage: await runUsageClose(service) })
+  }
   const kinds: Kind[] = ['24h', '2h', 'followup']
   const blank = () => ({ sent: 0, skipped: 0, no_channel: 0, failed: 0 })
   const summary: Record<Kind, ReturnType<typeof blank>> = {
@@ -353,6 +361,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // es una calificación, no el recordatorio de una cita.
   const scoring = await runConversationScoring(service)
 
+  // Cierre del consumo de meses ya terminados (y cargo del excedente).
+  const usage = await runUsageClose(service)
+
   // Diagnóstico del SMTP (handshake real, sin enviar): confirma que las
   // credenciales de correo en producción son correctas.
   const emailsStatus = await verifyTransport()
@@ -365,6 +376,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     cold,
     dailyReport,
     scoring,
+    usage,
     emails: emailsStatus,
   })
 }

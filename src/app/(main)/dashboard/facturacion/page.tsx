@@ -10,7 +10,10 @@ import { BillingClient } from '@/features/billing/components/billing-client'
 import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout'
 import { TrialEndedBanner } from '@/features/billing/components/subscription-required'
 import { OnboardingHelpCard } from '@/features/marketing/components/onboarding-help-card'
-import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
+import { DATA_RETENTION_DAYS, type PlanId } from '@/features/billing/plans'
+import { UsageCard } from '@/features/billing/components/usage-card'
+import { ReferralCard } from '@/features/billing/components/referral-card'
+import { LEGAL } from '@/shared/constants/legal'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,8 +35,27 @@ export default async function FacturacionPage({
     supabase.rpc('get_my_org'),
   ])
   const { data: org } = orgId
-    ? await supabase.from('organizations').select('business_type').eq('id', orgId).maybeSingle()
+    ? await supabase
+        .from('organizations')
+        .select('business_type, referral_code')
+        .eq('id', orgId)
+        .maybeSingle()
     : { data: null }
+
+  // Consumo del mes y recompensas por recomendar. Ambas tablas se leen por
+  // RLS (solo dueño y gerente), con el filtro de organización explícito.
+  const period = `${new Date().toISOString().slice(0, 7)}-01`
+  const [{ data: usageRow }, { data: rewards }] = orgId
+    ? await Promise.all([
+        supabase
+          .from('usage_periods')
+          .select('ai_replies')
+          .eq('organization_id', orgId)
+          .eq('period_start', period)
+          .maybeSingle(),
+        supabase.from('referral_rewards').select('status').eq('referrer_org', orgId),
+      ])
+    : [{ data: null }, { data: null }]
   const active = subIsActive(sub)
   // Banner de "prueba terminada" si el acceso está bloqueado (sin éxito reciente).
   const blocked = !!orgTrial && !hasAppAccess(orgTrial, sub) && !success
@@ -75,12 +97,25 @@ export default async function FacturacionPage({
                 ai_tier: sub.ai_tier,
                 current_period_end: sub.current_period_end,
                 cancel_at_period_end: sub.cancel_at_period_end,
+                billing_interval: sub.billing_interval,
               }
             : null
         }
         active={active}
         businessType={org?.business_type ?? null}
       />
+
+      <UsageCard
+        aiReplies={usageRow?.ai_replies ?? 0}
+        planId={active ? ((sub?.plan_id ?? null) as PlanId | null) : null}
+      />
+      {org?.referral_code && (
+        <ReferralCard
+          link={`${LEGAL.siteUrl.replace(/\/$/, '')}/signup?ref=${org.referral_code}`}
+          credited={(rewards ?? []).filter((r) => r.status === 'credited').length}
+          pending={(rewards ?? []).filter((r) => r.status !== 'credited' && r.status !== 'skipped').length}
+        />
+      )}
 
       {!active && <OnboardingHelpCard />}
     </div>

@@ -924,6 +924,9 @@ export type Database = {
           name: string
           onboarding_email_sent_at: string | null
           phone: string | null
+          referral_code: string | null
+          referred_by: string | null
+          signup_ref: string | null
           trial_ai_capped_at: string | null
           trial_ai_messages_used: number
           trial_ended_email_sent_at: string | null
@@ -949,6 +952,9 @@ export type Database = {
           name: string
           onboarding_email_sent_at?: string | null
           phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
+          signup_ref?: string | null
           trial_ai_capped_at?: string | null
           trial_ai_messages_used?: number
           trial_ended_email_sent_at?: string | null
@@ -974,6 +980,9 @@ export type Database = {
           name?: string
           onboarding_email_sent_at?: string | null
           phone?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
+          signup_ref?: string | null
           trial_ai_capped_at?: string | null
           trial_ai_messages_used?: number
           trial_ended_email_sent_at?: string | null
@@ -982,7 +991,15 @@ export type Database = {
           web_slug?: string | null
           welcome_email_sent_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "organizations_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -1153,6 +1170,54 @@ export type Database = {
           key?: string
         }
         Relationships: []
+      }
+      referral_rewards: {
+        Row: {
+          amount_cents: number | null
+          created_at: string
+          credited_at: string | null
+          id: string
+          referred_org: string
+          referrer_org: string
+          status: string
+          stripe_txn_id: string | null
+        }
+        Insert: {
+          amount_cents?: number | null
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          referred_org: string
+          referrer_org: string
+          status?: string
+          stripe_txn_id?: string | null
+        }
+        Update: {
+          amount_cents?: number | null
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          referred_org?: string
+          referrer_org?: string
+          status?: string
+          stripe_txn_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_referred_org_fkey"
+            columns: ["referred_org"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_org_fkey"
+            columns: ["referrer_org"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resource_services: {
         Row: {
@@ -1360,6 +1425,7 @@ export type Database = {
       subscriptions: {
         Row: {
           ai_tier: string
+          billing_interval: string
           cancel_at_period_end: boolean
           created_at: string
           current_period_end: string | null
@@ -1379,6 +1445,7 @@ export type Database = {
         }
         Insert: {
           ai_tier?: string
+          billing_interval?: string
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
@@ -1398,6 +1465,7 @@ export type Database = {
         }
         Update: {
           ai_tier?: string
+          billing_interval?: string
           cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
@@ -1520,6 +1588,56 @@ export type Database = {
             columns: ["resource_id"]
             isOneToOne: false
             referencedRelation: "resources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_periods: {
+        Row: {
+          ai_replies: number
+          billed_customer: string | null
+          charge_usd: number | null
+          closed_at: string | null
+          extra_replies: number | null
+          included_replies: number | null
+          organization_id: string
+          period_start: string
+          plan_id: string | null
+          status: string
+          stripe_invoice_item_id: string | null
+        }
+        Insert: {
+          ai_replies?: number
+          billed_customer?: string | null
+          charge_usd?: number | null
+          closed_at?: string | null
+          extra_replies?: number | null
+          included_replies?: number | null
+          organization_id: string
+          period_start: string
+          plan_id?: string | null
+          status?: string
+          stripe_invoice_item_id?: string | null
+        }
+        Update: {
+          ai_replies?: number
+          billed_customer?: string | null
+          charge_usd?: number | null
+          closed_at?: string | null
+          extra_replies?: number | null
+          included_replies?: number | null
+          organization_id?: string
+          period_start?: string
+          plan_id?: string | null
+          status?: string
+          stripe_invoice_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_periods_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]

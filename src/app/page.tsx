@@ -454,7 +454,10 @@ export default function Home() {
               <Link href="/signup" className="cv-btn-ghost" style={{ marginTop: 'auto', justifyContent: 'center', padding: '14px 24px', fontSize: 15.5, fontWeight: 700 }}>{PRICING.multisede.cta}</Link>
             </article>
           </div>
-          <p data-reveal style={{ textAlign: 'center', margin: '28px auto 0', maxWidth: 760, fontSize: 14, color: '#7A758F', lineHeight: 1.65 }}>{PRICING.footnote}</p>
+          <p data-reveal style={{ textAlign: 'center', margin: '32px auto 0', maxWidth: 760 }}>
+            <span style={{ display: 'inline-block', background: '#E9F9EF', color: '#128C4A', fontWeight: 800, fontSize: 15, padding: '10px 20px', borderRadius: 999 }}>{PRICING.annual}</span>
+          </p>
+          <p data-reveal style={{ textAlign: 'center', margin: '16px auto 0', maxWidth: 760, fontSize: 14, color: '#7A758F', lineHeight: 1.65 }}>{PRICING.footnote}</p>
         </section>
 
         {/* ============ FAQ ============ */}

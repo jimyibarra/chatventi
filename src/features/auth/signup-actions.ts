@@ -59,7 +59,9 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
-  const { email, password, turnstileToken, vertical } = parsed.data
+  const { email, password, turnstileToken, vertical, ref } = parsed.data
+  // Texto de la URL: solo letras, números y guiones. Lo demás se descarta.
+  const pendingRef = ref && /^[A-Za-z0-9_-]{3,40}$/.test(ref) ? ref : null
 
   // El giro llega de la URL (/para/<giro> → /signup?giro=…), así que es texto
   // que escribe cualquiera: se resuelve contra el catálogo y si no encaja se
@@ -161,6 +163,8 @@ export async function signUpAction(raw: unknown): Promise<SignupResult> {
         // Giro de la landing de procedencia, ya resuelto a clave de plantilla.
         // /bienvenida lo usa para preseleccionar "¿A qué se dedica?".
         ...(pendingBusinessType ? { pending_business_type: pendingBusinessType } : {}),
+        // Quién lo recomendó o por qué programa llegó (?ref=).
+        ...(pendingRef ? { pending_ref: pendingRef } : {}),
       },
     },
   })
