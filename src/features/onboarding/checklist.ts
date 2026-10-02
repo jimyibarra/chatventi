@@ -25,7 +25,9 @@ export async function getSetupChecklist(
     supabase.from('service_catalogs').select('*', { count: 'exact', head: true }),
     supabase.from('business_hours').select('*', { count: 'exact', head: true }),
     supabase.from('staff_schedules').select('*', { count: 'exact', head: true }),
-    supabase.from('channels').select('*', { count: 'exact', head: true }),
+    // `id` y no `*`: las sesiones de usuario ya no pueden leer `credentials`
+    // (token de acceso), y pedir todas las columnas daría permiso denegado.
+    supabase.from('channels').select('id', { count: 'exact', head: true }),
     supabase.from('agent_configs').select('enabled').maybeSingle(),
     supabase.from('appointments').select('*', { count: 'exact', head: true }),
   ])
