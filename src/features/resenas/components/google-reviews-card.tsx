@@ -75,7 +75,7 @@ export function GoogleReviewsCard({
 
       {!csatOn && (
         <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-          Enciende el superpoder “Encuesta al cliente” (arriba) para que el enlace empiece a enviarse.
+          Enciende el superpoder “Pregunta qué tal fue” (arriba) para que el enlace empiece a enviarse.
         </p>
       )}
 
