@@ -5,12 +5,15 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Link from 'next/link'
 import { signupSchema, type SignupInput, PASSWORD_MIN } from '@/lib/validations/auth'
+import { Button, ButtonLink } from '@/shared/components/ui/button'
+import { CHECKBOX, FIELD_LABEL, FieldError, Input } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
 import { signUpAction } from '../signup-actions'
 import { PasswordInput } from './password-input'
 import { TurnstileWidget } from './turnstile-widget'
 
-const INPUT =
-  'mt-1 w-full rounded-lg border border-line px-3 py-2 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400'
+const LINK = 'rounded-[6px] font-semibold text-brand-600 underline-offset-4 hover:underline'
 
 // Alta en DOS pasos. Aquí solo la CUENTA; los datos del negocio se piden en
 // /bienvenida con el correo ya verificado. Antes había 9 campos por delante
@@ -49,105 +52,101 @@ export function SignupForm({ vertical, referral }: { vertical?: string; referral
 
   if (checkEmail) {
     return (
-      <div className="space-y-3 rounded-lg border border-success-bg bg-success-bg p-5 text-sm text-success">
-        <p className="text-base font-semibold">Revisa tu correo</p>
+      <Notice tone="success" icon="mail" title="Revisa tu correo">
         <p>
-          Te enviamos un enlace para confirmar tu cuenta. Al abrirlo, configuramos tu negocio en
-          menos de un minuto.
+          Te enviamos un enlace para confirmar tu cuenta. Al abrirlo, configuramos tu negocio en menos
+          de un minuto.
         </p>
-        <p className="text-xs opacity-80">
-          ¿No lo ves? Mira en spam o promociones antes de volver a intentarlo.
-        </p>
-      </div>
+        <p className="mt-1.5 text-[13.5px]">¿No lo ves? Mira en spam o promociones antes de volver a intentarlo.</p>
+      </Notice>
     )
   }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium text-ink-muted">Correo electrónico</label>
-        <input
+        <label htmlFor="signup-email" className={FIELD_LABEL}>
+          Correo electrónico
+        </label>
+        <Input
+          id="signup-email"
           type="email"
           autoComplete="email"
           placeholder="hola@tunegocio.com"
+          aria-invalid={errors.email ? true : undefined}
+          aria-describedby={errors.email ? 'signup-email-error' : undefined}
           {...register('email')}
-          className={INPUT}
         />
-        {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+        {errors.email && <FieldError id="signup-email-error">{errors.email.message}</FieldError>}
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-ink-muted">Contraseña</label>
+        <label htmlFor="signup-password" className={FIELD_LABEL}>
+          Contraseña
+        </label>
         <PasswordInput
+          id="signup-password"
           registration={register('password')}
           autoComplete="new-password"
           placeholder={`Al menos ${PASSWORD_MIN} caracteres`}
+          errorId={errors.password ? 'signup-password-error' : undefined}
         />
-        {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+        {errors.password && <FieldError id="signup-password-error">{errors.password.message}</FieldError>}
       </div>
 
       <div>
-        <label className="flex items-start gap-2.5 text-sm text-ink-muted">
+        <label className="flex cursor-pointer items-start gap-3 text-[14.5px] leading-snug text-ink-muted">
           <input
             type="checkbox"
             {...register('acceptTerms')}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-brand-500 focus:ring-brand-400"
+            aria-invalid={errors.acceptTerms ? true : undefined}
+            aria-describedby={errors.acceptTerms ? 'signup-terms-error' : undefined}
+            className={`${CHECKBOX} mt-px`}
           />
           <span>
             He leído y acepto los{' '}
-            <Link
-              href="/terms"
-              target="_blank"
-              className="font-semibold text-brand-600 hover:underline"
-            >
+            <Link href="/terms" target="_blank" className={LINK}>
               Términos y condiciones
             </Link>{' '}
             y la{' '}
-            <Link
-              href="/privacy"
-              target="_blank"
-              className="font-semibold text-brand-600 hover:underline"
-            >
+            <Link href="/privacy" target="_blank" className={LINK}>
               Política de privacidad
             </Link>
             .
           </span>
         </label>
-        {errors.acceptTerms && (
-          <p className="mt-1 text-sm text-red-600">{errors.acceptTerms.message}</p>
-        )}
+        {errors.acceptTerms && <FieldError id="signup-terms-error">{errors.acceptTerms.message}</FieldError>}
       </div>
 
       {/* Se auto-oculta sin NEXT_PUBLIC_TURNSTILE_SITE_KEY. Con el captcha de
           Supabase Auth activo, el token viaja a signUp y GoTrue lo verifica. */}
       <TurnstileWidget onToken={setTurnstileToken} />
 
-      {serverError && <p className="text-sm text-red-600">{serverError}</p>}
+      {serverError && (
+        <Notice tone="danger" size="sm">
+          {serverError}
+        </Notice>
+      )}
 
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-lg bg-brand-500 px-4 py-2 font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-      >
-        {isSubmitting ? 'Creando…' : 'Crear mi cuenta gratis'}
-      </button>
+      <div>
+        <Button type="submit" disabled={isSubmitting} className="w-full">
+          {isSubmitting ? 'Creando…' : 'Crear mi cuenta gratis'}
+        </Button>
+        <p className="mt-2 text-center text-[13px] text-ink-muted">Prueba gratis. Sin tarjeta de crédito.</p>
+      </div>
 
-      <p className="text-center text-xs text-ink-faint">
-        Prueba gratis. Sin tarjeta de crédito.
-      </p>
-
-      <p className="text-center text-sm text-ink-muted">
-        ¿Ya tienes cuenta?{' '}
-        <Link href="/login" className="font-medium text-brand-600 hover:underline">
-          Iniciar sesión
-        </Link>
-      </p>
-      <Link
-        href="/"
-        className="block w-full rounded-lg border border-line bg-surface px-4 py-2 text-center text-sm font-medium text-ink-muted transition-colors hover:bg-line-soft"
-      >
-        ← Regresar
-      </Link>
+      <div className="space-y-3 border-t border-line pt-4">
+        <p className="text-center text-[14.5px] text-ink-muted">
+          ¿Ya tienes cuenta?{' '}
+          <Link href="/login" className={LINK}>
+            Inicia sesión
+          </Link>
+        </p>
+        <ButtonLink href="/" variant="ghost" className="w-full">
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          Regresar al inicio
+        </ButtonLink>
+      </div>
     </form>
   )
 }

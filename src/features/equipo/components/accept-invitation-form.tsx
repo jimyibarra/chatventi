@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { acceptInvitation } from '../accept-actions'
 import { TurnstileWidget } from '@/features/auth/components/turnstile-widget'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input } from '@/shared/components/ui/field'
+import { Notice } from '@/shared/components/ui/notice'
 
 export function AcceptInvitationForm({
   token,
@@ -43,33 +46,22 @@ export function AcceptInvitationForm({
 
   return (
     <div className="space-y-4">
-      <div>
-        <label className="mb-1 block text-sm font-medium text-ink-muted">Correo</label>
-        <input
-          value={email}
-          disabled
-          data-testid="accept-email"
-          className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-soft"
-        />
-        <p className="mt-1 text-xs text-ink-faint">
-          La invitación es para este correo y no se puede cambiar.
-        </p>
-      </div>
+      <Field label="Correo" hint="La invitación es para este correo y no se puede cambiar.">
+        <Input value={email} disabled data-testid="accept-email" />
+      </Field>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-ink-muted">Tu nombre</label>
-        <input
+      <Field label="Tu nombre">
+        <Input
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           data-testid="accept-name"
+          autoComplete="name"
           placeholder="Ana García"
-          className="w-full rounded-lg border border-line px-3 py-2 text-sm"
         />
-      </div>
+      </Field>
 
-      <div>
-        <label className="mb-1 block text-sm font-medium text-ink-muted">Crea tu contraseña</label>
-        <input
+      <Field label="Crea tu contraseña">
+        <Input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
@@ -77,27 +69,27 @@ export function AcceptInvitationForm({
             if (e.key === 'Enter' && fullName.trim() && password.length >= 8) submit()
           }}
           data-testid="accept-password"
+          autoComplete="new-password"
           placeholder="Mínimo 8 caracteres"
-          className="w-full rounded-lg border border-line px-3 py-2 text-sm"
         />
-      </div>
+      </Field>
 
       <TurnstileWidget onToken={setCaptchaToken} />
 
       {error && (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" data-testid="accept-error">
+        <Notice tone="danger" size="sm" testId="accept-error">
           {error}
-        </p>
+        </Notice>
       )}
 
-      <button
+      <Button
         onClick={submit}
         disabled={pending || !fullName.trim() || password.length < 8}
         data-testid="accept-submit"
-        className="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
+        className="w-full"
       >
         {pending ? 'Creando tu cuenta…' : `Unirme a ${orgName}`}
-      </button>
+      </Button>
     </div>
   )
 }

@@ -1,8 +1,10 @@
 # DESIGN.md — ChatVenti, diseño «Líneas»
 
-Sistema visual del panel (todo lo que vive bajo `/dashboard`). Elegido por Juan el 2026-10-02
-entre cuatro propuestas; en código desde el 2026-10-03. El contexto de producto está en
-`PRODUCT.md`. La página pública y las de acceso tienen su propio lenguaje y no se rigen por esto.
+Sistema visual de la app. Elegido por Juan el 2026-10-02 entre cuatro propuestas para el panel
+(`/dashboard`); en código desde el 2026-10-03, y ese mismo día extendido a TODAS las pantallas del
+sistema: acceso, alta, super admin, páginas públicas del cliente final y errores. El contexto de
+producto está en `PRODUCT.md`. Solo el sitio de marketing (la home `/` y `/para/*`) tiene su propio
+lenguaje (Manrope + Inter bajo `.cv-landing`) y no se rige por esto.
 
 ## La idea
 
@@ -55,7 +57,10 @@ El estado se distingue por **forma además de color**: funciona para daltónicos
 
 ## Tipografía
 
-**Rubik** (400, 500, 600, 700), cargada solo en el panel (`--font-rubik`). Cifras tabulares en todo
+**Rubik** (400, 500, 600, 700), cargada en el layout raíz (`--font-rubik` en `<html>`, con
+`preload: false` porque la home no la usa; el panel conserva su propia carga precargada). La pila
+`font-sans` lleva respaldo DENTRO del `var()`: un `var()` sin respaldo cuya variable no existe invalida
+el `font-family` entero y el navegador cae a Times (así se veían acceso y públicas). Cifras tabulares en todo
 lo que sea hora o conteo. Escala corta: título de página 28 px/700, título de tarjeta 18 px/700,
 cuerpo 15 px, apoyo 13 px. La hora de «Próxima estación» es el único texto gigante (42–51 px).
 
@@ -106,7 +111,12 @@ No es el escritorio encogido: es otra disposición.
 | · Canal (WhatsApp, Telegram, Instagram, Messenger, Web) | `channel.tsx` → `ChannelChip` |
 | · Iconos dibujados (trazo 2 px; nada de emojis como icono) | `icon.tsx` → `Icon` |
 | · Selección, cursor, foco de teclado, puntos «escribiendo…» | `panel.css` (cargado en el layout del panel bajo `.cv-panel`) |
+| · Mensaje de validación bajo un campo (enlazar con `aria-describedby`) | `field.tsx` → `FieldError` |
 | Formatos (miles con coma, «hace 5 min», fechas en hora de México) | `src/shared/lib/format.ts` |
+| Color de marca de un negocio: validarlo y decidir qué texto aguanta encima | `src/shared/lib/color.ts` → `safeHex`, `textOn`, `strokeOnWhite` |
+| Armazón de acceso y alta (panel violeta con el plano de muestra + formulario) | `src/features/auth/components/auth-shell.tsx`, `auth-card.tsx`, `lines-showcase.tsx` |
+| Super admin: barra de tinta con sus secciones y tablas densas | `src/features/admin/components/admin-nav.tsx`, `admin-table.tsx` |
+| 404, error y error del layout raíz | `src/shared/components/error-screen.tsx` → `src/app/not-found.tsx`, `error.tsx`, `global-error.tsx` |
 
 El día se arma **en el servidor** (`buildDay`): si lo calculara el navegador, «ahora» sería otro
 instante y el HTML no coincidiría.
@@ -115,11 +125,18 @@ instante y el HTML no coincidiría.
 
 - Con seis o más profesionales el plano horizontal se aprieta: usar el filtro por línea de la Agenda.
 - Una persona con horario partido se dibuja como una sola ventana (de su primera entrada a su última salida).
+- Desde el 2026-10-03 también usan Líneas y sus primitivas: **acceso** (login, registro, recuperar, nueva contraseña), **alta** (`/bienvenida`, con los dos pasos dibujados como estaciones), **super admin** (`/admin/**`), **públicas del cliente final** (`/r/[slug]`, `/c/[token]`, `/invitacion/[token]`) y **errores** (404 y error). `privacy` y `terms` solo heredan la letra.
+  - Acceso, alta e invitación comparten `AuthShell`: en computadora, panel violeta (el del riel) con «El día en líneas» de muestra (mismas clases que el Panel, `lineas.css`); en celular, la barra violeta del panel arriba.
+  - El super admin lleva la barra de arriba en **tinta**, no en violeta: se distingue de un vistazo del panel de un negocio. Sus tablas (`AdminTable`) se deslizan de lado en celular con la columna del negocio fija.
+  - La reserva web (`/r/[slug]`) respeta el color de cada negocio con tres variables CSS que pone la página: `--brand` (fondo), `--on-brand` (texto encima: blanco solo si pasa 4.5:1, si no tinta) y `--brand-ink` (trazo sobre blanco). Los pasos son estaciones de la línea del negocio: huecas mientras faltan, con palomita al completarse.
+  - La cita del cliente (`/c/[token]`) usa `apptChip`: el cliente ve los mismos nombres y formas que el negocio en su Agenda; la hora va en grande, como en «Próxima estación».
+  - Gotchas: (1) una imagen en `not-found.tsx` se precarga en TODAS las páginas (Next arma la 404 de antemano) → `loading="lazy"`; (2) un texto `sr-only` dentro de una tabla desplazable escapa del recorte si el contenedor no es `relative` y ensancha la página en celular.
 - Desde el 2026-10-02 todas las pantallas del panel usan las primitivas de `src/shared/components/ui/`: Chats y su conversación, Clientes y su ficha, Profesionales, Equipo, Recepcionista IA y su chat de prueba, Reservas Web, Conexiones, Facturación, Configuración de la agenda, los diálogos de cita y la lista de arranque. Una pantalla nueva empieza por `Page` + `PageHeader` + `Section`; no copia clases de tarjeta, botón o campo.
 - Reglas de las primitivas que no se ven en el código a primera vista:
   - El amarillo (`StatusChip tone="wait"`, `Notice tone="action"`) solo para lo que espera una acción: «Sin confirmar», «Te espera», «Sin horario» de un profesional activo, la prueba vencida. Un cliente inactivo o un recordatorio en pausa van en `off` (aro gris y pausa), no en amarillo.
   - `CONTROL` (la clase suelta de los campos) no fija el ancho; `Input`, `Select` y `Textarea` ocupan su contenedor. Para un ancho fijo, envolver en un contenedor con ese ancho en vez de sumar otra clase `w-*` (dos clases de la misma propiedad no tienen orden garantizado en Tailwind).
   - Un `<Field>` es un `<label>` que envuelve UN control. Si dentro hay un botón (subir imagen, buscar), usar `as="div"` y darle `aria-label` al campo.
   - Los colores de marca de terceros se oscurecen para que el texto blanco pase 4.5:1: WhatsApp `#0b7d47`, Facebook `#1468d6`.
-- La lista de Chats marca «Te espera» con el estado `pending` de la conversación. Ese estado solo se limpia al aprobar o al cerrar el chat: si el dueño contesta a mano, el chip sigue ahí hasta que pulse «Cerrar».
+- La lista de Chats marca «Te espera» con el estado `pending` de la conversación. Se limpia al aprobar, al cerrar el chat o cuando el dueño contesta a mano (vuelve a `open`).
+- Guías públicas en `/ayuda/*` (hoy: conectar Facebook e Instagram). Capturas reales en `public/guia/`, dentro de `PhoneShot` (`src/features/guia/components/phone-shot.tsx`) con el aro amarillo de «Toca aquí».
 - Las barras pegadas abajo (el total de Facturación) en celular van a `bottom: 84px + safe-area` para quedar sobre la barra de navegación, y se compactan: la letra pequeña sale de la barra.

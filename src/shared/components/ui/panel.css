@@ -49,8 +49,12 @@
 .cv-panel details[open] > summary .cv-chevron { transform: rotate(180deg); }
 .cv-chevron { transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
 
+/* Estación que no existe (pantalla 404): late despacio. */
+.cv-lost { transform-box: fill-box; transform-origin: center; animation: cv-lost 2.4s ease-in-out infinite; }
+@keyframes cv-lost { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
 @media (prefers-reduced-motion: reduce) {
-  .cv-dot, .cv-pop { animation: none; }
+  .cv-dot, .cv-pop, .cv-lost { animation: none; }
   .cv-dot { opacity: 0.7; }
   .cv-chevron { transition: none; }
 }

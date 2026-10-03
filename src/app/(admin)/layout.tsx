@@ -2,9 +2,15 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/features/auth/components/logout-button'
+import { AdminNav } from '@/features/admin/components/admin-nav'
+import { buttonClass } from '@/shared/components/ui/button'
 
 // Área de Super Admin ("god mode"): separada del dashboard de cliente.
 // Doble guarda: aquí (rol) + las RPC admin_* validan super_admin en la BD.
+//
+// Diseño «Líneas» en claro, como el panel. La barra de arriba va en TINTA (no
+// en el violeta del panel): así se sabe de un vistazo que esto es la consola
+// interna y no el panel de un negocio.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const {
@@ -22,49 +28,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile?.role !== 'super_admin') redirect('/dashboard')
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-900/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-4 px-5 py-3">
-          <Link href="/admin" className="flex items-center gap-2.5">
+    <div className="cv-panel min-h-screen bg-surface text-ink">
+      <header className="bg-ink text-white md:sticky md:top-0 md:z-30">
+        <div className="mx-auto flex max-w-[1280px] flex-wrap items-center gap-x-5 gap-y-2 px-4 pb-2 pt-2.5 md:flex-nowrap md:px-6 md:py-3">
+          <Link href="/admin" className="flex flex-none items-center gap-2.5 rounded-[12px] focus-visible:outline-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/chatventi-icon.png" alt="" className="h-7 w-7 rounded-md" />
-            <span className="text-sm font-extrabold tracking-tight">
-              ChatVenti <span className="text-slate-400">· Super Admin</span>
+            <img src="/brand/chatventi-icon.png" alt="" className="h-9 w-9 rounded-[11px] bg-white p-1" />
+            <span className="leading-tight">
+              <span className="block text-[15px] font-bold tracking-tight">ChatVenti</span>
+              <span className="block text-[12px] font-semibold text-[#c4bff5]">Super admin</span>
             </span>
           </Link>
-          <nav className="ml-4 flex items-center gap-1 text-sm">
-            <Link
-              href="/admin"
-              className="rounded-lg px-3 py-1.5 font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            >
-              Resumen
-            </Link>
-            <Link
-              href="/admin/organizaciones"
-              className="rounded-lg px-3 py-1.5 font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            >
-              Organizaciones
-            </Link>
-            <Link
-              href="/admin/agente"
-              className="rounded-lg px-3 py-1.5 font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            >
-              Agente IA
-            </Link>
-            <Link
-              href="/admin/socios"
-              className="rounded-lg px-3 py-1.5 font-medium text-slate-300 hover:bg-slate-800 hover:text-white"
-            >
-              Socios
-            </Link>
-          </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-xs text-slate-400 sm:inline">{user.email}</span>
-            <LogoutButton />
+          <AdminNav />
+          <div className="ml-auto flex min-w-0 items-center gap-3">
+            <span className="hidden max-w-[16rem] truncate text-[13.5px] text-[#dcd8f7] lg:inline">{user.email}</span>
+            <LogoutButton className={`${buttonClass('inverse', 'sm')} focus-visible:outline-white`} />
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-5 py-8">{children}</main>
+      <main className="min-w-0">{children}</main>
     </div>
   )
 }

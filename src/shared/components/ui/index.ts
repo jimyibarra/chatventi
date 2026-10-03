@@ -5,7 +5,7 @@ export { Button, ButtonLink, buttonClass, type ButtonSize, type ButtonVariant } 
 export { Card, CARD_SHADOW, Inset, Section, SubHeading } from './card'
 export { ChannelChip, channelIcon, channelLabel } from './channel'
 export { EmptyState } from './empty-state'
-export { CHECKBOX, CONTROL, CONTROL_H, Field, FIELD_LABEL, Input, Select, Switch, Textarea } from './field'
+export { CHECKBOX, CONTROL, CONTROL_H, Field, FIELD_LABEL, FieldError, Input, Select, Switch, Textarea } from './field'
 export { Icon, type IconName } from './icon'
 export { KpiCell } from './kpi-cell'
 export { Notice, type NoticeTone } from './notice'

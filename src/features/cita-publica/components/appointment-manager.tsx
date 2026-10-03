@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { formatTime, ymdInTz } from '@/features/agenda/datetime'
-import { STATUS_META, type AppointmentStatus } from '@/features/agenda/types'
+import { apptChip } from '@/features/lineas/status'
+import { Button } from '@/shared/components/ui/button'
+import { Card, Inset, SubHeading } from '@/shared/components/ui/card'
+import { CONTROL, CONTROL_H, FIELD_LABEL } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
+import { StatusChip } from '@/shared/components/ui/status-chip'
 
 type Slot = { slot_start: string; slot_end: string; resource_id: string | null }
 
@@ -22,17 +28,13 @@ export type PublicAppointment = {
   org: { name: string; branding?: { logo_url?: string | null } | null }
 }
 
-function fmtDateTime(iso: string, tz: string): string {
-  return new Intl.DateTimeFormat('es-MX', {
-    timeZone: tz,
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(iso))
+/** "lunes, 6 de octubre" en la zona del negocio. */
+function fmtDay(iso: string, tz: string): string {
+  return new Intl.DateTimeFormat('es-MX', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(iso))
 }
+
+const SLOT =
+  'min-h-[44px] rounded-[12px] border-2 px-2 text-center text-[15px] font-semibold tabular-nums transition-colors duration-150 motion-reduce:transition-none'
 
 export function AppointmentManager({ token, data }: { token: string; data: PublicAppointment }) {
   const router = useRouter()
@@ -91,76 +93,77 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
     router.refresh()
   }
 
-  const meta = STATUS_META[appointment.status as AppointmentStatus] ?? {
-    label: appointment.status,
-    badge: 'bg-line-soft text-ink-muted border-line',
-  }
+  // Mismos nombres y formas que en la agenda del negocio (aro = sin confirmar,
+  // punto = confirmada, palomita = atendida, equis = no asistió).
+  const chip = apptChip(appointment.status)
   const isConfirmed = appointment.status === 'confirmed'
+  const what = services.map((s) => s.name).join(' + ') || 'Servicio'
+  const minutes = services.reduce((sum, s) => sum + (s.duration_minutes ?? 0), 0)
 
   return (
-    <div className="space-y-4 rounded-card border border-line bg-white p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          {org.branding?.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={org.branding.logo_url}
-              alt={org.name}
-              className="h-12 w-12 shrink-0 rounded-xl object-cover"
-            />
-          )}
-          <div>
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Tu cita en</p>
-            <h1 className="text-lg font-bold text-ink">{org.name}</h1>
-            <p className="text-sm text-ink-soft">{branch.name}</p>
-          </div>
+    <Card padded={false} className="p-5 sm:p-6">
+      <header className="flex items-center gap-3">
+        {org.branding?.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={org.branding.logo_url} alt="" className="h-12 w-12 flex-none rounded-[14px] object-cover" />
+        ) : (
+          <span className="grid h-12 w-12 flex-none place-items-center rounded-[14px] bg-brand-500 text-[20px] font-bold text-white" aria-hidden>
+            {org.name.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <h1 className="text-[1.2rem] font-bold leading-tight text-ink [overflow-wrap:anywhere]">Tu cita en {org.name}</h1>
+          <p className="truncate text-[14px] text-ink-muted">{branch.name}</p>
         </div>
-        <span
-          className={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${meta.badge}`}
-          data-testid="cita-status"
-        >
-          {meta.label}
-        </span>
-      </div>
+      </header>
 
-      <div className="rounded-xl bg-surface p-3">
-        <p className="text-sm font-semibold text-ink" data-testid="cita-when">
-          📅 {fmtDateTime(appointment.starts_at, tz)}
+      {/* La hora es lo que el cliente viene a ver: va en grande, como en «Próxima estación». */}
+      <Inset className="mt-4">
+        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+          <div data-testid="cita-when" className="min-w-0">
+            <p className="text-[15px] font-semibold text-ink-muted first-letter:uppercase">{fmtDay(appointment.starts_at, tz)}</p>
+            <p className="text-[2.75rem] font-bold leading-[1.05] tracking-tight tabular-nums text-ink">
+              {formatTime(appointment.starts_at, tz)}
+            </p>
+          </div>
+          <StatusChip tone={chip.tone} size="md" testId="cita-status">
+            {chip.label}
+          </StatusChip>
+        </div>
+        <p className="mt-2.5 flex items-start gap-2 border-t border-line pt-2.5 text-[15px] text-ink">
+          <Icon name="tag" className="mt-0.5 h-[18px] w-[18px] text-brand-500" />
+          <span className="min-w-0">
+            {what}
+            {minutes > 0 && <span className="text-ink-muted"> · {minutes} min</span>}
+          </span>
         </p>
-        <p className="mt-1 text-sm text-ink-muted">
-          🔹 {services.map((s) => s.name).join(' + ') || 'Servicio'}
-        </p>
-      </div>
+      </Inset>
 
       {error && (
-        <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" data-testid="cita-error">
+        <Notice tone="danger" size="sm" className="mt-4" testId="cita-error">
           {error}
-        </p>
+        </Notice>
       )}
 
       {appointment.can_manage && !rescheduling && (
-        <div className="flex flex-wrap gap-2">
+        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
           {!isConfirmed && (
-            <button
-              onClick={() =>
-                run(() => supabase.rpc('confirm_appointment_by_token', { p_token: token }))
-              }
+            <Button
+              onClick={() => run(() => supabase.rpc('confirm_appointment_by_token', { p_token: token }))}
               disabled={busy}
               data-testid="cita-confirmar"
-              className="rounded-lg bg-success px-4 py-2 text-sm font-medium text-white hover:bg-success/90 disabled:opacity-50"
+              className="sm:col-span-2"
             >
-              ✅ Confirmar asistencia
-            </button>
+              <Icon name="check" className="h-[18px] w-[18px]" strokeWidth={2.6} />
+              Confirmar asistencia
+            </Button>
           )}
-          <button
-            onClick={() => setRescheduling(true)}
-            disabled={busy}
-            data-testid="cita-reagendar"
-            className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface"
-          >
-            📅 Cambiar fecha u hora
-          </button>
-          <button
+          <Button variant="secondary" onClick={() => setRescheduling(true)} disabled={busy} data-testid="cita-reagendar">
+            <Icon name="calendar" className="h-[18px] w-[18px]" />
+            Cambiar fecha u hora
+          </Button>
+          <Button
+            variant="danger"
             onClick={() => {
               if (window.confirm('¿Seguro que quieres cancelar tu cita?')) {
                 run(() => supabase.rpc('cancel_appointment_by_token', { p_token: token }))
@@ -168,50 +171,58 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
             }}
             disabled={busy}
             data-testid="cita-cancelar"
-            className="rounded-lg border border-rose-200 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-50"
           >
             Cancelar cita
-          </button>
+          </Button>
         </div>
       )}
 
       {appointment.can_manage && rescheduling && (
-        <div className="space-y-3 rounded-xl border border-line p-3">
-          <p className="text-sm font-semibold text-ink">Elige nueva fecha y hora</p>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            data-testid="cita-fecha"
-            className="rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400 focus:outline-none"
-          />
+        <Inset className="mt-5 space-y-3.5">
+          <SubHeading className="">Elige nueva fecha y hora</SubHeading>
+          <label className="block w-full max-w-[15rem]">
+            <span className={FIELD_LABEL}>Día</span>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              data-testid="cita-fecha"
+              className={`${CONTROL} ${CONTROL_H} w-full`}
+            />
+          </label>
           {loadingSlots ? (
-            <p className="text-sm text-ink-soft">Buscando disponibilidad…</p>
+            <p className="text-[14.5px] text-ink-muted" aria-live="polite">
+              Buscando horarios libres…
+            </p>
           ) : slots.length === 0 ? (
-            <p className="text-sm text-ink-soft" data-testid="cita-no-slots">
-              Sin horarios disponibles ese día.
+            <p className="text-[14.5px] text-ink-muted" data-testid="cita-no-slots">
+              Sin horarios disponibles ese día. Prueba con otro.
             </p>
           ) : (
-            <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
-              {slots.map((slot) => (
-                <button
-                  key={slot.slot_start}
-                  type="button"
-                  onClick={() => setPickedSlot(slot.slot_start)}
-                  data-testid="cita-slot"
-                  className={`rounded-lg border px-2.5 py-1 text-sm ${
-                    selectedSlot === slot.slot_start
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-line text-ink-muted hover:bg-surface'
-                  }`}
-                >
-                  {formatTime(slot.slot_start, tz)}
-                </button>
-              ))}
+            <div
+              className="grid max-h-56 grid-cols-[repeat(auto-fill,minmax(5rem,1fr))] gap-2 overflow-y-auto p-0.5"
+              role="group"
+              aria-label="Horarios libres"
+            >
+              {slots.map((slot) => {
+                const on = selectedSlot === slot.slot_start
+                return (
+                  <button
+                    key={slot.slot_start}
+                    type="button"
+                    onClick={() => setPickedSlot(slot.slot_start)}
+                    data-testid="cita-slot"
+                    aria-pressed={on}
+                    className={`${SLOT} ${on ? 'border-brand-500 bg-brand-500 text-white' : 'border-[#d6dbec] bg-white text-ink hover:border-brand-500'}`}
+                  >
+                    {formatTime(slot.slot_start, tz)}
+                  </button>
+                )
+              })}
             </div>
           )}
-          <div className="flex gap-2">
-            <button
+          <div className="flex flex-wrap gap-2.5 pt-1">
+            <Button
               onClick={() =>
                 run(() =>
                   supabase.rpc('reschedule_appointment_by_token', {
@@ -222,27 +233,23 @@ export function AppointmentManager({ token, data }: { token: string; data: Publi
               }
               disabled={busy || !selectedSlot}
               data-testid="cita-reagendar-confirmar"
-              className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
+              className="flex-1"
             >
               {busy ? 'Guardando…' : 'Confirmar cambio'}
-            </button>
-            <button
-              onClick={() => setRescheduling(false)}
-              disabled={busy}
-              className="rounded-lg border border-line px-4 py-2 text-sm text-ink-muted hover:bg-surface"
-            >
+            </Button>
+            <Button variant="ghost" onClick={() => setRescheduling(false)} disabled={busy}>
               Volver
-            </button>
+            </Button>
           </div>
-        </div>
+        </Inset>
       )}
 
       {!appointment.can_manage && (
-        <p className="text-sm text-ink-soft" data-testid="cita-no-gestionable">
-          Esta cita ya no se puede modificar desde aquí. Si necesitas ayuda, escríbenos por el
-          chat donde la agendaste.
-        </p>
+        <Notice tone="info" size="sm" className="mt-4" testId="cita-no-gestionable">
+          Esta cita ya no se puede modificar desde aquí. Si necesitas ayuda, escríbenos por el chat donde la
+          agendaste.
+        </Notice>
       )}
-    </div>
+    </Card>
   )
 }

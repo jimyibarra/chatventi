@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { LEGAL } from '@/shared/constants/legal'
 
 export const metadata: Metadata = {
-  title: `Términos y Condiciones · ${LEGAL.brand}`,
+  title: 'Términos y Condiciones',
   description: `Términos y condiciones de uso de ${LEGAL.brand}.`,
 }
 

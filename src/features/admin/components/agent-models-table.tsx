@@ -2,6 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { setOrgAgentModel } from '../agent-actions'
+import { AdminTable, STICKY, TD, TH, TR } from './admin-table'
+import { Button } from '@/shared/components/ui/button'
+import { EmptyState } from '@/shared/components/ui/empty-state'
+import { Select } from '@/shared/components/ui/field'
+import { StatusChip } from '@/shared/components/ui/status-chip'
 
 export type AgentModelRow = {
   org_id: string
@@ -24,6 +29,7 @@ function Row({ row }: { row: AgentModelRow }) {
   const [pending, startTransition] = useTransition()
   const [model, setModel] = useState(row.model)
   const [saved, setSaved] = useState<'ok' | 'err' | null>(null)
+  const [errorText, setErrorText] = useState('')
 
   const options = MODEL_OPTIONS.includes(model) ? MODEL_OPTIONS : [model, ...MODEL_OPTIONS]
   const dirty = model !== row.model
@@ -33,67 +39,78 @@ function Row({ row }: { row: AgentModelRow }) {
     startTransition(async () => {
       const res = await setOrgAgentModel(row.org_id, model)
       setSaved(res.ok ? 'ok' : 'err')
+      setErrorText(res.ok ? '' : res.error)
     })
   }
 
   return (
-    <tr className="border-b border-slate-800/60 last:border-0 hover:bg-slate-900/60">
-      <td className="px-4 py-3">
-        <p className="font-semibold text-white">{row.org_name}</p>
-        <p className="text-xs text-slate-400">{row.enabled ? 'Agente activo' : 'Agente inactivo'}</p>
-      </td>
-      <td className="px-4 py-3">
-        <select
+    <tr className={TR}>
+      <th scope="row" className={`${TD} ${STICKY} max-w-[16rem] text-left font-normal`}>
+        <p className="truncate font-semibold">{row.org_name}</p>
+        <StatusChip tone={row.enabled ? 'ok' : 'off'} className="mt-1">
+          {row.enabled ? 'Agente activo' : 'Agente inactivo'}
+        </StatusChip>
+      </th>
+      <td className={TD}>
+        <Select
           value={model}
           onChange={(e) => setModel(e.target.value)}
-          className="w-full min-w-[220px] rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-100"
+          aria-label={`Modelo del agente de ${row.org_name}`}
+          wrapperClassName="min-w-[15rem] max-w-[22rem]"
         >
           {options.map((m) => (
             <option key={m} value={m}>
               {m}
             </option>
           ))}
-        </select>
+        </Select>
       </td>
-      <td className="px-4 py-3 text-right">
-        <button
-          onClick={save}
-          disabled={pending || !dirty}
-          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-40"
-        >
-          {pending ? 'Guardando…' : 'Guardar'}
-        </button>
-        {saved === 'ok' && <span className="ml-2 text-xs text-emerald-400">✓</span>}
-        {saved === 'err' && <span className="ml-2 text-xs text-rose-400">error</span>}
+      <td className={`${TD} text-right`}>
+        <div className="flex items-center justify-end gap-2.5">
+          {saved === 'ok' && !dirty && <StatusChip tone="ok">Guardado</StatusChip>}
+          {saved === 'err' && (
+            <StatusChip tone="noshow" title={errorText}>
+              {errorText || 'No se guardó'}
+            </StatusChip>
+          )}
+          {/* Sin cambios, el botón se apaga a «ghost»: ocho botones violeta inactivos hacen ruido. */}
+          <Button size="sm" variant={dirty || pending ? 'primary' : 'ghost'} onClick={save} disabled={pending || !dirty}>
+            {pending ? 'Guardando…' : 'Guardar'}
+          </Button>
+        </div>
       </td>
     </tr>
   )
 }
 
 export function AgentModelsTable({ rows }: { rows: AgentModelRow[] }) {
+  if (rows.length === 0) {
+    return (
+      <EmptyState icon="robot" title="No hay organizaciones">
+        Cada negocio que se registre tendrá aquí su agente, con el modelo que se le asigna por defecto.
+      </EmptyState>
+    )
+  }
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-800">
-      <table className="w-full min-w-[640px] text-sm">
-        <thead>
-          <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-400">
-            <th className="px-4 py-3 font-medium">Negocio</th>
-            <th className="px-4 py-3 font-medium">Modelo del agente</th>
-            <th className="px-4 py-3 text-right font-medium">Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <Row key={r.org_id} row={r} />
-          ))}
-          {rows.length === 0 && (
-            <tr>
-              <td colSpan={3} className="px-4 py-10 text-center text-slate-400">
-                No hay organizaciones.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+    <AdminTable label="Modelo del agente por organización" minWidth={680}>
+      <thead>
+        <tr>
+          <th scope="col" className={`${TH} ${STICKY}`}>
+            Negocio
+          </th>
+          <th scope="col" className={TH}>
+            Modelo del agente
+          </th>
+          <th scope="col" className={`${TH} text-right`}>
+            <span className="sr-only">Acción</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <Row key={r.org_id} row={r} />
+        ))}
+      </tbody>
+    </AdminTable>
   )
 }
