@@ -25,19 +25,19 @@ export const DEPOSIT_LABEL: Record<DepositStatus, string> = {
 }
 
 /**
- * Tono del chip (mismos estados que `.ln-chip`): amarillo = te toca hacer algo,
+ * Tono del chip (StatusChip y `.ln-chip`): amarillo = te toca hacer algo,
  * verde = resuelto a favor, tinta = retenido, gris = cerrado sin dinero.
  */
-export const DEPOSIT_TONE: Record<DepositStatus, 'wait' | 'ok' | 'now' | 'noshow' | undefined> = {
+export const DEPOSIT_TONE: Record<DepositStatus, 'wait' | 'ok' | 'now' | 'done'> = {
   pending: 'wait',
   proof_received: 'wait',
   paid: 'ok',
   retained: 'now',
   refund_due: 'wait',
   refunded: 'ok',
-  expired: undefined,
-  void: undefined,
-  waived: undefined,
+  expired: 'done',
+  void: 'done',
+  waived: 'done',
 }
 
 /** Lo que el negocio puede hacer a mano desde cada estado. */

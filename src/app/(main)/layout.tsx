@@ -5,6 +5,7 @@ import { LogoutButton } from '@/features/auth/components/logout-button'
 import { DashboardNav } from '@/shared/components/dashboard-nav'
 import { PushNotificationPrompt } from '@/features/notifications/components/push-notification-prompt'
 import { dayRangeUtc, ymdInTz } from '@/features/agenda/datetime'
+import '@/shared/components/ui/panel.css'
 
 // Tipografía del diseño «Líneas». Solo se carga dentro del panel.
 const rubik = Rubik({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-rubik' })
@@ -61,7 +62,7 @@ export default async function MainLayout({
   ])
 
   return (
-    <div className={`${rubik.variable} min-h-screen bg-surface font-sans text-ink`}>
+    <div className={`${rubik.variable} cv-panel min-h-screen bg-surface font-sans text-ink`}>
       <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0 }} />
       {/* El riel ocupa 84px a la izquierda (≥md) y la barra 72px abajo (<md). */}
       <div className="pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[84px]">

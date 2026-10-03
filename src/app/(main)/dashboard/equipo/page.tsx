@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { TeamManager } from '@/features/equipo/components/team-manager'
 import { getMembers, getPendingInvitations, getSeats } from '@/features/equipo/services'
 import { getResources } from '@/features/profesionales/services'
+import { Page, PageHeader } from '@/shared/components/ui/page-header'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,13 +27,8 @@ export default async function EquipoPage() {
   ])
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 p-6">
-      <div>
-        <h1 className="text-xl font-bold text-ink">Equipo</h1>
-        <p className="text-sm text-ink-soft">
-          Invita a quien te ayuda a operar y decide qué puede ver cada quien.
-        </p>
-      </div>
+    <Page>
+      <PageHeader title="Equipo" subtitle="Invita a quien te ayuda a operar y decide qué puede ver cada quien." />
 
       <TeamManager
         members={members}
@@ -41,6 +37,6 @@ export default async function EquipoPage() {
         resources={resources.filter((r) => r.active).map((r) => ({ id: r.id, name: r.name }))}
         myId={user.id}
       />
-    </div>
+    </Page>
   )
 }

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveBusinessHour } from '../../actions'
 import { WEEKDAYS, type BusinessHour } from '../../types'
+import { CARD_SHADOW, buttonClass, CHECKBOX, CONTROL, CONTROL_H } from '@/shared/components/ui'
 
 export function HoursManager({
   branchId,
@@ -34,10 +35,10 @@ export function HoursManager({
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-5">
-      <h2 className="mb-3 text-base font-semibold text-ink">Horario de la sucursal</h2>
-      {error && <p className="mb-2 text-sm text-rose-700">{error}</p>}
-      <div className="space-y-1">
+    <section className={`rounded-card bg-white p-4 md:p-5 ${CARD_SHADOW}`}>
+      <h2 className="mb-3 text-[1.15rem] font-bold leading-tight text-ink">Horario de la sucursal</h2>
+      {error && <p className="mb-2 text-sm text-[#a51b18]">{error}</p>}
+      <div className="divide-y divide-line">
         {WEEKDAYS.map((label, weekday) => {
           const h = byDay.get(weekday)
           return (
@@ -80,31 +81,36 @@ function HourRow({
   const [isClosed, setIsClosed] = useState(closed)
 
   return (
-    <div className="flex flex-wrap items-center gap-2 py-1 text-sm" data-testid={`hour-row-${weekday}`}>
-      <span className="w-24 text-ink-muted">{label}</span>
-      <label className="flex items-center gap-1 text-xs text-ink-soft">
-        <input type="checkbox" checked={isClosed} onChange={(e) => setIsClosed(e.target.checked)} />
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-2 py-2.5 text-[15px] first:pt-0 last:pb-0" data-testid={`hour-row-${weekday}`}>
+      <span className={`w-24 font-semibold ${isClosed ? 'text-ink-muted' : 'text-ink'}`}>{label}</span>
+      <label className="flex min-h-[44px] cursor-pointer items-center gap-1.5 text-[13.5px] text-ink-muted md:min-h-[40px]">
+        <input type="checkbox" checked={isClosed} onChange={(e) => setIsClosed(e.target.checked)} className={CHECKBOX} />
         Cerrado
       </label>
-      <input
-        type="time"
-        value={o}
-        disabled={isClosed}
-        onChange={(e) => setO(e.target.value)}
-        className="rounded-lg border border-line px-2 py-1 text-sm disabled:bg-line-soft"
-      />
-      <span className="text-ink-faint">–</span>
-      <input
-        type="time"
-        value={c}
-        disabled={isClosed}
-        onChange={(e) => setC(e.target.value)}
-        className="rounded-lg border border-line px-2 py-1 text-sm disabled:bg-line-soft"
-      />
+      {/* Celular: las horas bajan a su propia fila; día, «Cerrado» y Guardar quedan arriba. */}
+      <span className="order-last flex w-full items-center gap-2 sm:order-none sm:w-auto">
+        <input
+          type="time"
+          value={o}
+          disabled={isClosed}
+          onChange={(e) => setO(e.target.value)}
+          aria-label={`${label}: abre`}
+          className={`${CONTROL} ${CONTROL_H} w-[9.25rem] tabular-nums sm:w-[10rem]`}
+        />
+        <span className="text-ink-muted" aria-hidden>–</span>
+        <input
+          type="time"
+          value={c}
+          disabled={isClosed}
+          onChange={(e) => setC(e.target.value)}
+          aria-label={`${label}: cierra`}
+          className={`${CONTROL} ${CONTROL_H} w-[9.25rem] tabular-nums sm:w-[10rem]`}
+        />
+      </span>
       <button
         onClick={() => onSave(weekday, o, c, isClosed)}
         disabled={disabled}
-        className="rounded-lg border border-line px-3 py-1 text-xs font-medium text-ink-muted hover:bg-surface"
+        className={`${buttonClass('secondary', 'sm')} ml-auto`}
       >
         Guardar
       </button>

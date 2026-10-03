@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { runQuickSetup } from '../quick-setup'
+import { Button } from '@/shared/components/ui/button'
+import { Icon } from '@/shared/components/ui/icon'
 
 /** "Déjamelo listo": crea lo que falte con valores típicos del giro. */
 export function QuickSetupButton() {
@@ -24,22 +26,21 @@ export function QuickSetupButton() {
   }
 
   return (
-    <div className="mb-4 rounded-[14px] bg-brand-50 p-3.5">
-      <p className="text-sm text-brand-900">
+    <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-[16px] bg-brand-50 p-4">
+      <p className="min-w-0 flex-1 basis-[18rem] text-[14.5px] leading-snug text-brand-900">
         <b>¿Prefieres no empezar de cero?</b> Creamos por ti servicios típicos de tu giro, un horario
         de lunes a sábado, tu agenda como profesional y dejamos encendida a tu recepcionista. Todo se
         puede editar después.
       </p>
-      <button
-        type="button"
-        onClick={run}
-        disabled={pending}
-        data-testid="quick-setup"
-        className="mt-2.5 inline-flex min-h-[40px] items-center rounded-[13px] bg-brand-500 px-4 text-[15px] font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-      >
+      <Button onClick={run} disabled={pending} data-testid="quick-setup">
+        <Icon name="sparkle" />
         {pending ? 'Preparando…' : 'Déjamelo listo'}
-      </button>
-      {msg && <p className={`mt-2 text-sm ${msg.ok ? 'text-success' : 'text-red-600'}`}>{msg.text}</p>}
+      </Button>
+      {msg && (
+        <p className={`w-full text-sm font-semibold ${msg.ok ? 'text-[#0b5d36]' : 'text-[#a51b18]'}`} role={msg.ok ? 'status' : 'alert'}>
+          {msg.text}
+        </p>
+      )}
     </div>
   )
 }

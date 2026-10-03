@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Icon } from '@/shared/components/ui/icon'
 
 const GRAPH_VERSION = 'v25.0'
 
 // Lo que devuelve /api/meta/connect-pages, dicho como lo entiende un dueño.
 const SERVER_ERRORS: Record<string, string> = {
-  plan_required: 'Instagram y Messenger están incluidos desde el plan Profesional. Cambia de plan en Facturación.',
+  plan_required: 'Tu plan actual no incluye Instagram ni Messenger. Revisa los planes en Facturación.',
   no_pages: 'No autorizaste ninguna página. Vuelve a intentarlo y marca la página de tu negocio.',
   no_page_token: 'Meta no nos dio acceso a esa página. Debes ser administrador de la página para conectarla.',
   page_in_use: 'Esa página ya está conectada a otra cuenta de ChatVenti.',
@@ -96,18 +97,30 @@ export function ConnectPagesButton({ appId, configId }: { appId: string; configI
   }, [configId, router])
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
+      {/* Azul de Facebook oscurecido para que el texto blanco se lea (≥ 4.5:1). */}
       <button
         type="button"
         onClick={connect}
         disabled={!appId || !configId || state.kind === 'loading'}
         data-testid="connect-pages"
-        className="inline-flex min-h-[40px] items-center gap-2 rounded-[13px] bg-[#1877f2] px-4 text-[15px] font-semibold text-white hover:bg-[#1468d6] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-[13px] bg-[#1468d6] px-4 text-[15px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#1159b8] active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-50 md:min-h-[40px]"
       >
+        <Icon name="messenger" />
         {state.kind === 'loading' ? 'Conectando…' : 'Conectar Facebook e Instagram'}
       </button>
-      {state.kind === 'ok' && <p className="text-sm text-success">✓ {state.detail}</p>}
-      {state.kind === 'error' && <p className="text-sm text-red-600">✗ {state.detail}</p>}
+      {state.kind === 'ok' && (
+        <p className="flex items-start gap-1.5 text-sm font-semibold text-[#0b5d36]" role="status">
+          <Icon name="check" className="mt-px h-4 w-4" strokeWidth={2.6} />
+          {state.detail}
+        </p>
+      )}
+      {state.kind === 'error' && (
+        <p className="flex items-start gap-1.5 text-sm text-[#a51b18]" role="alert">
+          <Icon name="alert" className="mt-px h-4 w-4" />
+          {state.detail}
+        </p>
+      )}
     </div>
   )
 }

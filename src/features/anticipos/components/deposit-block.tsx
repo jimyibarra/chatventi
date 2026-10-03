@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { setDepositStatus } from '../actions'
 import { DEPOSIT_LABEL, DEPOSIT_NEXT, DEPOSIT_TONE, isDepositStatus, money } from '../labels'
-import '@/features/lineas/lineas.css'
+import { Button, Inset, StatusChip } from '@/shared/components/ui'
 
 /** Anticipo de una cita dentro del detalle: estado y lo que se puede hacer. */
 export function DepositBlock({
@@ -42,31 +42,33 @@ export function DepositBlock({
   }
 
   return (
-    <div className="ln rounded-[14px] bg-surface p-3" data-testid="deposit-block">
-      <p className="flex flex-wrap items-center gap-2 text-sm">
-        <span className="font-semibold text-ink">Anticipo {money(amount)}</span>
-        <span className="ln-chip" data-st={DEPOSIT_TONE[status]}>
-          {DEPOSIT_LABEL[status]}
-        </span>
-      </p>
-      {until && <p className="mt-1 text-xs text-ink-muted">Si no llega el comprobante antes de las {until}, el horario se libera.</p>}
-      {DEPOSIT_NEXT[status].length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {DEPOSIT_NEXT[status].map((t) => (
-            <button
-              key={t.to}
-              type="button"
-              onClick={() => move(t.to)}
-              disabled={pending}
-              data-testid={`deposit-${t.to}`}
-              className="rounded-[10px] border-2 border-ink bg-white px-3 py-1.5 text-sm font-semibold text-ink hover:bg-brand-50 disabled:opacity-60"
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
-      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
+    <div data-testid="deposit-block">
+      <Inset className="space-y-2">
+        <p className="flex flex-wrap items-center gap-2 text-[15px]">
+          <span className="font-semibold tabular-nums text-ink">Anticipo {money(amount)}</span>
+          <StatusChip tone={DEPOSIT_TONE[status]}>{DEPOSIT_LABEL[status]}</StatusChip>
+        </p>
+        {until && (
+          <p className="text-[13px] text-ink-muted">Si no llega el comprobante antes de las {until}, el horario se libera.</p>
+        )}
+        {DEPOSIT_NEXT[status].length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {DEPOSIT_NEXT[status].map((t) => (
+              <Button
+                key={t.to}
+                variant="secondary"
+                size="sm"
+                onClick={() => move(t.to)}
+                disabled={pending}
+                data-testid={`deposit-${t.to}`}
+              >
+                {t.label}
+              </Button>
+            ))}
+          </div>
+        )}
+        {error && <p className="text-[13px] text-[#a51b18]">{error}</p>}
+      </Inset>
     </div>
   )
 }

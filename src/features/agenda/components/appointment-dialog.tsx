@@ -6,6 +6,9 @@ import { Modal } from './modal'
 import { formatTime } from '../datetime'
 import { fetchSlots, createAppointment, rescheduleAppointment } from '../actions'
 import type { Slot } from '../types'
+import { Button } from '@/shared/components/ui/button'
+import { Field, FIELD_LABEL, Input, Select, Textarea } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
 
 type ServiceOpt = { id: string; name: string; duration_minutes: number }
 type ResourceOpt = { id: string; name: string }
@@ -136,155 +139,119 @@ export function AppointmentDialog({
       <div className="space-y-4">
         {mode === 'create' && (
           <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">Servicios</label>
+            <p className={FIELD_LABEL}>Servicios</p>
             {services.length === 0 ? (
-              <p className="text-sm text-warn">
+              <p className="rounded-[14px] bg-surface p-3 text-[14.5px] text-ink-muted">
                 No hay servicios activos. Créalos en Configuración.
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {services.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => toggleService(s.id)}
-                    data-testid="service-chip"
-                    className={`rounded-full border px-3 py-1 text-sm ${
-                      serviceIds.includes(s.id)
-                        ? 'border-brand-500 bg-brand-50 text-brand-700'
-                        : 'border-line text-ink-muted hover:bg-surface'
-                    }`}
-                  >
-                    {s.name} · {s.duration_minutes}m
-                  </button>
-                ))}
+                {services.map((s) => {
+                  const on = serviceIds.includes(s.id)
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => toggleService(s.id)}
+                      data-testid="service-chip"
+                      aria-pressed={on}
+                      className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition-colors duration-150 md:min-h-[38px] ${
+                        on ? 'bg-ink text-white' : 'bg-white text-ink shadow-[inset_0_0_0_2px_#d6dbec] hover:bg-brand-50'
+                      }`}
+                    >
+                      {on && <Icon name="check" className="h-3.5 w-3.5" strokeWidth={3} />}
+                      {s.name}
+                      <span className={`tabular-nums ${on ? 'text-white/75' : 'text-ink-muted'}`}>· {s.duration_minutes} min</span>
+                    </button>
+                  )
+                })}
               </div>
             )}
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">Fecha</label>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              data-testid="date-input"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">
-              {resourceLabel}
-            </label>
-            <select
-              value={resourceId}
-              onChange={(e) => setResourceId(e.target.value)}
-              data-testid="resource-select"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-            >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Fecha">
+            <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} data-testid="date-input" />
+          </Field>
+          <Field label={resourceLabel}>
+            <Select value={resourceId} onChange={(e) => setResourceId(e.target.value)} data-testid="resource-select">
               <option value="">El que sea</option>
               {resources.map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.name}
                 </option>
               ))}
-            </select>
-          </div>
+            </Select>
+          </Field>
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">
-            Horarios disponibles
-          </label>
+          <p className={FIELD_LABEL}>Horarios disponibles</p>
           {loadingSlots ? (
-            <p className="text-sm text-ink-soft">Buscando disponibilidad…</p>
+            <p className="flex items-center gap-2 rounded-[14px] bg-surface p-3 text-[14.5px] text-ink-muted" role="status">
+              <Icon name="clock" className="h-4 w-4" />
+              Buscando disponibilidad…
+            </p>
           ) : serviceIds.length === 0 ? (
-            <p className="text-sm text-ink-soft">Selecciona un servicio para ver horarios.</p>
+            <p className="rounded-[14px] bg-surface p-3 text-[14.5px] text-ink-muted">Selecciona un servicio para ver horarios.</p>
           ) : slots.length === 0 ? (
-            <p className="text-sm text-ink-soft" data-testid="no-slots">
+            <p className="rounded-[14px] bg-surface p-3 text-[14.5px] text-ink-muted" data-testid="no-slots">
               Sin horarios disponibles ese día.
             </p>
           ) : (
-            <div className="flex max-h-40 flex-wrap gap-2 overflow-y-auto">
-              {slots.map((slot) => (
-                <button
-                  key={`${slot.slot_start}-${slot.resource_id ?? 'any'}`}
-                  type="button"
-                  onClick={() => setPickedSlot(slot.slot_start)}
-                  data-testid="slot-option"
-                  className={`rounded-lg border px-2.5 py-1 text-sm ${
-                    selectedSlot === slot.slot_start
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-line text-ink-muted hover:bg-surface'
-                  }`}
-                >
-                  {formatTime(slot.slot_start, tz)}
-                </button>
-              ))}
+            <div className="grid max-h-44 grid-cols-4 gap-2 overflow-y-auto p-0.5 sm:grid-cols-5">
+              {slots.map((slot) => {
+                const on = selectedSlot === slot.slot_start
+                return (
+                  <button
+                    key={`${slot.slot_start}-${slot.resource_id ?? 'any'}`}
+                    type="button"
+                    onClick={() => setPickedSlot(slot.slot_start)}
+                    data-testid="slot-option"
+                    aria-pressed={on}
+                    className={`min-h-[44px] rounded-[12px] text-[15px] font-semibold tabular-nums transition-colors duration-150 md:min-h-[40px] ${
+                      on ? 'bg-brand-500 text-white shadow-btn' : 'bg-surface text-ink hover:bg-brand-50'
+                    }`}
+                  >
+                    {formatTime(slot.slot_start, tz)}
+                  </button>
+                )
+              })}
             </div>
           )}
         </div>
 
         {mode === 'create' && (
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ink-muted">
-                Cliente (nombre)
-              </label>
-              <input
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                data-testid="client-name"
-                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-ink-muted">Teléfono</label>
-              <input
-                value={clientPhone}
-                onChange={(e) => setClientPhone(e.target.value)}
-                data-testid="client-phone"
-                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-              />
-            </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Cliente (nombre)">
+              <Input value={clientName} onChange={(e) => setClientName(e.target.value)} data-testid="client-name" />
+            </Field>
+            <Field label="Teléfono">
+              <Input value={clientPhone} onChange={(e) => setClientPhone(e.target.value)} data-testid="client-phone" inputMode="tel" className="tabular-nums" />
+            </Field>
           </div>
         )}
 
         {mode === 'create' && (
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">Notas</label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={2}
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-            />
-          </div>
+          <Field label="Notas">
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} />
+          </Field>
         )}
 
         {error && (
-          <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" data-testid="dialog-error">
+          <p className="rounded-[12px] bg-[#fde3e1] px-3 py-2 text-sm text-[#8f1714]" role="alert" data-testid="dialog-error">
             {error}
           </p>
         )}
 
-        <div className="flex justify-end gap-2 pt-2">
-          <button
-            onClick={onClose}
-            className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface"
-          >
+        <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+          <Button variant="secondary" onClick={onClose}>
             Cancelar
-          </button>
-          <button
-            onClick={onSubmit}
-            disabled={pending || !selectedSlot}
-            data-testid="submit-appointment"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-          >
+          </Button>
+          <Button onClick={onSubmit} disabled={pending || !selectedSlot} data-testid="submit-appointment">
             {pending ? 'Guardando…' : mode === 'create' ? 'Agendar' : 'Reagendar'}
-          </button>
+          </Button>
         </div>
       </div>
     </Modal>

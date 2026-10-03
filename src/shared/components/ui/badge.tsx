@@ -1,10 +1,13 @@
-const VARIANTS = {
-  success: 'bg-success-bg text-success',
-  warn: 'bg-warn-bg text-warn',
-  neutral: 'bg-surface text-ink-muted',
-  brand: 'bg-brand-50 text-brand-700',
-  danger: 'bg-red-50 text-red-700',
-} as const
+import { StatusChip, type ChipTone } from './status-chip'
+
+// Alias histórico: las variantes del Bento Grid se traducen a los chips «Líneas».
+const VARIANTS: Record<'success' | 'warn' | 'neutral' | 'brand' | 'danger', ChipTone> = {
+  success: 'ok',
+  warn: 'wait',
+  neutral: 'neutral',
+  brand: 'brand',
+  danger: 'noshow',
+}
 
 type BadgeProps = {
   children: React.ReactNode
@@ -14,10 +17,8 @@ type BadgeProps = {
 
 export function Badge({ children, variant = 'neutral', className = '' }: BadgeProps) {
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${VARIANTS[variant]} ${className}`}
-    >
+    <StatusChip tone={VARIANTS[variant]} className={className}>
       {children}
-    </span>
+    </StatusChip>
   )
 }

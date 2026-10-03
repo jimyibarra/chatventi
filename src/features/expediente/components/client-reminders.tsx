@@ -8,6 +8,12 @@ import {
   setClientReminderActive,
 } from '../actions'
 import { REMINDER_PRESETS, type ClientReminder } from '../types'
+import { Inset, Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input, Textarea } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
+import { StatusChip } from '@/shared/components/ui/status-chip'
 
 function dateLabel(iso: string): string {
   return new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date(iso))
@@ -84,123 +90,107 @@ export function ClientReminders({
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-5">
-      <div className="mb-1 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-ink">Recordatorios recurrentes</h2>
-        <button
-          type="button"
+    <Section
+      title="Recordatorios recurrentes"
+      description="Invita al cliente a volver cada cierto tiempo. Se envía solo, por el chat donde te escribe."
+      actions={
+        <Button
+          variant={open ? 'ghost' : 'secondary'}
+          size="sm"
           onClick={() => setOpen((v) => !v)}
           data-testid="reminder-toggle"
-          className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface"
+          aria-expanded={open}
         >
-          {open ? 'Cerrar' : '+ Agregar'}
-        </button>
-      </div>
-      <p className="mb-3 text-sm text-ink-faint">
-        Invita al cliente a volver cada cierto tiempo. Se envía solo, por el chat donde te escribe.
-      </p>
-
+          {open ? 'Cerrar' : (
+            <>
+              <Icon name="plus" className="h-4 w-4" strokeWidth={2.6} />
+              Agregar
+            </>
+          )}
+        </Button>
+      }
+    >
       {!canReach && (
-        <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Este cliente todavía no tiene una conversación por WhatsApp o Telegram, así que no hay
-          por dónde enviarle el recordatorio. Se guardará y saldrá en cuanto te escriba.
-        </p>
+        <Notice tone="info" size="sm" className="mb-4">
+          Este cliente todavía no tiene una conversación por WhatsApp o Telegram, así que no hay por
+          dónde enviarle el recordatorio. Se guardará y saldrá en cuanto te escriba.
+        </Notice>
       )}
 
       {open && (
-        <div className="mb-4 space-y-2 rounded-xl border border-line bg-surface p-3">
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={2}
-            placeholder="Hola, ya va siendo hora de tu corte. ¿Te agendo esta semana?"
-            data-testid="reminder-message"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-          />
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-muted">Cada cuánto</label>
-            <div className="flex flex-wrap gap-1.5">
+        <Inset className="mb-4 space-y-3">
+          <Field label="Mensaje">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={2}
+              placeholder="Hola, ya va siendo hora de tu corte. ¿Te agendo esta semana?"
+              data-testid="reminder-message"
+            />
+          </Field>
+          <Field label="Cada cuánto" as="div">
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Cada cuánto">
               {REMINDER_PRESETS.map((p) => (
                 <button
                   key={p.days}
                   type="button"
                   onClick={() => pickPreset(p.days)}
-                  className={`rounded-full border px-3 py-1 text-xs font-medium ${
-                    days === p.days
-                      ? 'border-brand-500 bg-brand-50 text-brand-700'
-                      : 'border-line text-ink-muted hover:bg-white'
+                  aria-pressed={days === p.days}
+                  className={`min-h-[44px] rounded-full px-3.5 text-[13.5px] font-semibold transition-colors duration-150 md:min-h-[36px] ${
+                    days === p.days ? 'bg-ink text-white' : 'bg-white text-ink shadow-[inset_0_0_0_2px_#d6dbec] hover:bg-brand-50'
                   }`}
                 >
                   {p.label}
                 </button>
               ))}
             </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-xs font-medium text-ink-muted">
-              Primer envío
-            </label>
-            <input
-              type="date"
-              value={firstDate}
-              onChange={(e) => setFirstDate(e.target.value)}
-              data-testid="reminder-first"
-              className="rounded-lg border border-line px-3 py-2 text-sm"
-            />
-          </div>
-          <button
-            type="button"
-            onClick={add}
-            disabled={pending || !message.trim()}
-            data-testid="reminder-save"
-            className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-          >
-            {pending ? 'Guardando…' : 'Guardar'}
-          </button>
-        </div>
+          </Field>
+          <Field label="Primer envío" className="max-w-[14rem]">
+            <Input type="date" value={firstDate} onChange={(e) => setFirstDate(e.target.value)} data-testid="reminder-first" />
+          </Field>
+          <Button onClick={add} disabled={pending || !message.trim()} data-testid="reminder-save">
+            {pending ? 'Guardando…' : 'Guardar recordatorio'}
+          </Button>
+        </Inset>
       )}
 
-      {error && <p className="mb-2 text-sm text-rose-600">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#a51b18]" role="alert">{error}</p>}
 
       {reminders.length === 0 ? (
-        <p className="text-sm text-ink-faint">Sin recordatorios.</p>
+        <p className="text-[14.5px] text-ink-muted">Sin recordatorios.</p>
       ) : (
-        <ul className="divide-y divide-line-row">
+        <ul className="divide-y divide-line">
           {reminders.map((r) => (
-            <li key={r.id} className="flex items-start justify-between gap-3 py-2 text-sm">
-              <div className="min-w-0">
-                <p className={`text-ink ${r.active ? '' : 'line-through opacity-60'}`}>
-                  {r.message}
-                </p>
-                <p className="text-xs text-ink-faint">
-                  Cada {r.interval_days} días · Próximo: {dateLabel(r.next_due_at)}
-                  {r.last_sent_at ? ` · Último: ${dateLabel(r.last_sent_at)}` : ''}
-                  {r.active ? '' : ' · Pausado'}
+            <li key={r.id} className="flex flex-wrap items-start gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0">
+              <div className="min-w-0 flex-1 basis-[14rem]">
+                <p className={`text-[15px] leading-snug ${r.active ? 'text-ink' : 'text-ink-muted line-through'}`}>{r.message}</p>
+                <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
+                  <StatusChip tone={r.active ? 'ok' : 'off'}>{r.active ? 'Activo' : 'Pausado'}</StatusChip>
+                  <span>Cada {r.interval_days} días</span>
+                  <span>· Próximo: {dateLabel(r.next_due_at)}</span>
+                  {r.last_sent_at && <span>· Último: {dateLabel(r.last_sent_at)}</span>}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
+              <div className="ml-auto flex gap-1.5">
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => toggle(r.id, !r.active)}
                   disabled={pending}
                   data-testid="reminder-toggle-active"
-                  className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-ink-muted hover:bg-surface disabled:opacity-50"
                 >
+                  <Icon name={r.active ? 'pause' : 'play'} className="h-4 w-4" />
                   {r.active ? 'Pausar' : 'Reanudar'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(r.id)}
-                  disabled={pending}
-                  className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-rose-600 hover:bg-surface disabled:opacity-50"
-                >
-                  Eliminar
-                </button>
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => remove(r.id)} disabled={pending} aria-label="Eliminar recordatorio">
+                  <Icon name="trash" className="h-4 w-4" />
+                  <span className="hidden sm:inline">Eliminar</span>
+                </Button>
               </div>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   )
 }

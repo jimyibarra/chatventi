@@ -3,6 +3,10 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { updateClient, tagClient, untagClient } from '../actions'
+import { Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input, Textarea } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
 
 type Tag = { id: string; name: string; color: string }
 
@@ -50,43 +54,30 @@ export function ClientDetail({
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-5">
+    <Section title="Ficha" description="Lo que tu equipo debe saber antes de atenderle.">
       <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">Nombre</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            data-testid="client-name-input"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">Teléfono / handle</label>
-          <input
-            value={client.phone ?? ''}
-            disabled
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-soft"
-          />
-        </div>
+        <Field label="Nombre">
+          <Input value={name} onChange={(e) => setName(e.target.value)} data-testid="client-name-input" />
+        </Field>
+        <Field label="Teléfono o usuario">
+          <Input value={client.phone ?? ''} disabled className="tabular-nums" />
+        </Field>
       </div>
 
-      <div className="mt-3">
-        <label className="mb-1 block text-sm font-medium text-ink-muted">Notas</label>
-        <textarea
+      <Field label="Notas" className="mt-3">
+        <Textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={3}
           data-testid="client-notes"
-          className="w-full rounded-lg border border-line px-3 py-2 text-sm"
           placeholder="Preferencias, alergias, observaciones…"
         />
-      </div>
+      </Field>
 
       <div className="mt-4">
-        <label className="mb-2 block text-sm font-medium text-ink-muted">Etiquetas</label>
+        <p className="mb-1.5 text-[13.5px] font-semibold text-ink">Etiquetas</p>
         {allTags.length === 0 ? (
-          <p className="text-xs text-ink-faint">Crea etiquetas en la lista de clientes.</p>
+          <p className="text-[13.5px] text-ink-muted">Crea etiquetas en la lista de clientes y aquí podrás asignarlas.</p>
         ) : (
           <div className="flex flex-wrap gap-2">
             {allTags.map((t) => {
@@ -94,17 +85,19 @@ export function ClientDetail({
               return (
                 <button
                   key={t.id}
+                  type="button"
                   onClick={() => toggleTag(t.id)}
                   disabled={pending}
                   data-testid="tag-toggle"
-                  className="rounded-full border px-2.5 py-0.5 text-xs font-medium"
-                  style={
-                    on
-                      ? { background: t.color, color: '#fff', borderColor: t.color }
-                      : { borderColor: '#d1d5db', color: '#6b7280' }
-                  }
+                  aria-pressed={on}
+                  className="inline-flex min-h-[44px] items-center md:min-h-[36px] gap-1.5 rounded-full border-2 px-3 text-[13.5px] font-semibold transition-colors duration-150 disabled:opacity-60"
+                  style={on ? { background: t.color, color: '#fff', borderColor: t.color } : { borderColor: t.color, color: '#2a1a5e', background: '#fff' }}
                 >
-                  {on ? '✓ ' : ''}
+                  {on ? (
+                    <Icon name="check" className="h-3.5 w-3.5" strokeWidth={3} />
+                  ) : (
+                    <i className="h-2.5 w-2.5 rounded-full" style={{ background: t.color }} aria-hidden />
+                  )}
                   {t.name}
                 </button>
               )
@@ -113,17 +106,17 @@ export function ClientDetail({
         )}
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <button
-          onClick={save}
-          disabled={pending}
-          data-testid="save-client"
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-        >
-          {pending ? 'Guardando…' : 'Guardar'}
-        </button>
-        {saved && <span className="text-sm text-success">Guardado ✓</span>}
+      <div className="mt-5 flex flex-wrap items-center gap-3">
+        <Button onClick={save} disabled={pending} data-testid="save-client">
+          {pending ? 'Guardando…' : 'Guardar ficha'}
+        </Button>
+        {saved && (
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0b5d36]" role="status">
+            <Icon name="check" className="h-4 w-4" strokeWidth={2.6} />
+            Guardado
+          </span>
+        )}
       </div>
-    </section>
+    </Section>
   )
 }

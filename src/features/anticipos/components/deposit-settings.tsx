@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveDepositSettings } from '../actions'
+import { Button, Field, Section, Select, Textarea } from '@/shared/components/ui'
 
 const HOLD = [
   [30, '30 minutos'],
@@ -16,9 +17,6 @@ const CANCEL = [
   [24, '24 horas antes'],
   [48, '48 horas antes'],
 ] as const
-
-const FIELD =
-  'w-full rounded-[12px] border border-line bg-white px-3 py-2 text-[15px] text-ink focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200'
 
 /** Cómo y a dónde paga el cliente el anticipo, y qué pasa si cancela o falta. */
 export function DepositSettings({
@@ -48,67 +46,51 @@ export function DepositSettings({
   }
 
   return (
-    <section className="rounded-card bg-white p-5 shadow-[0_1px_0_#dde2f0]" data-testid="deposit-settings">
-      <h2 className="text-[1.15rem] font-bold text-ink">Anticipo para apartar la cita</h2>
-      <p className="mt-1 text-[15px] text-ink-muted">
-        Cuando un servicio pide anticipo, tu recepcionista le da al cliente estos datos y aparta la
-        cita mientras llega el comprobante. El dinero va directo a tu cuenta: ChatVenti no lo toca.
-      </p>
+    <Section
+      data-testid="deposit-settings"
+      title="Anticipo para apartar la cita"
+      description="Cuando un servicio pide anticipo, tu recepcionista le da al cliente estos datos y aparta la cita mientras llega el comprobante. El dinero va directo a tu cuenta: ChatVenti no lo toca."
+    >
+      <div className="space-y-4">
+        <Field label="A dónde depositan" hint="Sin estos datos no se pide anticipo, aunque el servicio lo tenga.">
+          <Textarea
+            id="dep-bank"
+            rows={3}
+            value={bank}
+            onChange={(e) => setBank(e.target.value)}
+            placeholder={'Banco: BBVA\nCLABE: 012 180 0000 0000 0000\nA nombre de: Estética Lumen'}
+            data-testid="dep-bank"
+          />
+        </Field>
 
-      <label htmlFor="dep-bank" className="mt-4 block text-sm font-semibold text-ink">
-        A dónde depositan
-      </label>
-      <textarea
-        id="dep-bank"
-        rows={3}
-        value={bank}
-        onChange={(e) => setBank(e.target.value)}
-        placeholder={'Banco: BBVA\nCLABE: 012 180 0000 0000 0000\nA nombre de: Estética Lumen'}
-        className={`${FIELD} mt-1.5`}
-        data-testid="dep-bank"
-      />
-      <p className="mt-1 text-xs text-ink-muted">Sin estos datos no se pide anticipo, aunque el servicio lo tenga.</p>
-
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="dep-hold" className="block text-sm font-semibold text-ink">
-            Tiempo para mandar el comprobante
-          </label>
-          <select id="dep-hold" value={hold} onChange={(e) => setHold(e.target.value)} className={`${FIELD} mt-1.5`}>
-            {HOLD.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-ink-muted">Si no llega, el horario se libera solo.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Tiempo para mandar el comprobante" hint="Si no llega, el horario se libera solo.">
+            <Select id="dep-hold" value={hold} onChange={(e) => setHold(e.target.value)}>
+              {HOLD.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Se devuelve si el cliente cancela" hint="Si cancela después, o no llega, el anticipo se queda contigo.">
+            <Select id="dep-cancel" value={cancel} onChange={(e) => setCancel(e.target.value)}>
+              {CANCEL.map(([v, l]) => (
+                <option key={v} value={v}>
+                  {l}
+                </option>
+              ))}
+            </Select>
+          </Field>
         </div>
-        <div>
-          <label htmlFor="dep-cancel" className="block text-sm font-semibold text-ink">
-            Se devuelve si el cliente cancela
-          </label>
-          <select id="dep-cancel" value={cancel} onChange={(e) => setCancel(e.target.value)} className={`${FIELD} mt-1.5`}>
-            {CANCEL.map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-ink-muted">Si cancela después, o no llega, el anticipo se queda contigo.</p>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={save} disabled={pending}>
+            {pending ? 'Guardando…' : 'Guardar'}
+          </Button>
+          {msg && <p className={`text-sm ${msg.ok ? 'text-success' : 'text-[#a51b18]'}`}>{msg.text}</p>}
         </div>
       </div>
-
-      <div className="mt-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending}
-          className="inline-flex min-h-[40px] items-center rounded-[13px] bg-brand-500 px-4 text-[15px] font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-        >
-          {pending ? 'Guardando…' : 'Guardar'}
-        </button>
-        {msg && <p className={`text-sm ${msg.ok ? 'text-success' : 'text-red-600'}`}>{msg.text}</p>}
-      </div>
-    </section>
+    </Section>
   )
 }

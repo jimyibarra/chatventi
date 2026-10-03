@@ -3,6 +3,10 @@
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { setAiEnabled, pauseAi, resumeAi, setConversationStatus } from '../actions'
+import { Button } from '@/shared/components/ui/button'
+import { Icon } from '@/shared/components/ui/icon'
+import { StatusChip } from '@/shared/components/ui/status-chip'
+import { fmtTime } from '@/shared/lib/format'
 
 export function ConversationControls({
   conversationId,
@@ -26,58 +30,72 @@ export function ConversationControls({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1 sm:gap-1.5" aria-busy={pending}>
+      {/* Interruptor de la IA en esta conversación: verde y punto lleno si atiende. */}
       <button
+        type="button"
         onClick={() => run(() => setAiEnabled(conversationId, !aiEnabled))}
         disabled={pending}
         data-testid="toggle-ai"
-        className={`rounded-lg border px-2.5 py-1 text-xs font-medium ${
-          aiEnabled
-            ? 'border-success-bg bg-success-bg text-success'
-            : 'border-line bg-surface text-ink-soft'
+        aria-pressed={aiEnabled}
+        title={aiEnabled ? 'La recepcionista contesta este chat. Toca para apagarla aquí.' : 'Toca para que la recepcionista vuelva a contestar este chat.'}
+        className={`inline-flex min-h-[44px] items-center gap-2 rounded-[13px] px-3 text-sm font-semibold transition-colors duration-150 disabled:opacity-60 md:min-h-[36px] ${
+          aiEnabled ? 'bg-[#d6f5e3] text-[#0b5d36] hover:bg-[#c3efd6]' : 'bg-[#e7e6f0] text-ink-muted hover:bg-[#dcdbe8]'
         }`}
       >
+        <span
+          className={`relative h-[14px] w-6 flex-none rounded-full transition-colors ${aiEnabled ? 'bg-[#0d9463]' : 'bg-[#a9a5bf]'}`}
+          aria-hidden
+        >
+          <span
+            className={`absolute left-[2px] top-[2px] h-[10px] w-[10px] rounded-full bg-white transition-transform duration-150 motion-reduce:transition-none ${
+              aiEnabled ? 'translate-x-[10px]' : 'translate-x-0'
+            }`}
+          />
+        </span>
         IA {aiEnabled ? 'activa' : 'apagada'}
       </button>
+
       {aiEnabled && !paused && (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => run(() => pauseAi(conversationId, 60))}
           disabled={pending}
           data-testid="pause-ai"
-          className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface"
         >
+          <Icon name="pause" className="hidden h-4 w-4 sm:block" />
           Pausar 1 h
-        </button>
+        </Button>
       )}
       {aiEnabled && paused && (
-        <span
-          className="rounded-lg border border-warn-bg bg-warn-bg px-2.5 py-1 text-xs font-medium text-warn"
-          data-testid="ai-paused-badge"
-        >
-          IA pausada hasta{' '}
-          {new Date(aiPausedUntil!).toLocaleTimeString('es-MX', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+        <span data-testid="ai-paused-badge" className="inline-flex">
+          <StatusChip tone="off">
+            IA pausada hasta {fmtTime(aiPausedUntil!)}
+          </StatusChip>
         </span>
       )}
       {aiEnabled && paused && (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => run(() => resumeAi(conversationId))}
           disabled={pending}
           data-testid="resume-ai"
-          className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface"
         >
+          <Icon name="play" className="hidden h-4 w-4 sm:block" />
           Reanudar
-        </button>
+        </Button>
       )}
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => run(() => setConversationStatus(conversationId, 'closed'))}
         disabled={pending}
-        className="rounded-lg border border-line px-2.5 py-1 text-xs text-ink-muted hover:bg-surface"
       >
+        <Icon name="check" className="hidden h-4 w-4 sm:block" />
         Cerrar
-      </button>
+      </Button>
     </div>
   )
 }

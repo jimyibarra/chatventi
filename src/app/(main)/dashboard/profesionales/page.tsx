@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { ResourceManager } from '@/features/profesionales/components/resource-manager'
 import { getResources, getResourceLabel } from '@/features/profesionales/services'
 import { getBranches, getServices } from '@/features/agenda/services'
+import { Page, PageHeader } from '@/shared/components/ui/page-header'
+import { EmptyState } from '@/shared/components/ui/empty-state'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,11 +13,11 @@ export default async function ProfesionalesPage() {
 
   if (branches.length === 0) {
     return (
-      <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
-          Aún no tienes una sucursal.
-        </div>
-      </div>
+      <Page width="narrow">
+        <EmptyState icon="badge" title="Aún no tienes una sucursal">
+          Se crea automáticamente al registrar tu negocio.
+        </EmptyState>
+      </Page>
     )
   }
 
@@ -28,13 +30,11 @@ export default async function ProfesionalesPage() {
   ])
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 p-6">
-      <div>
-        <h1 className="text-xl font-bold text-ink">{label}</h1>
-        <p className="text-sm text-ink-soft">
-          Sucursal: {branch.name} · El horario de cada uno se cruza con el de la sucursal.
-        </p>
-      </div>
+    <Page>
+      <PageHeader
+        title={label}
+        subtitle={`Quién presta tus servicios en ${branch.name}. Cada uno es una línea de color en tu agenda; su horario se cruza con el de la sucursal.`}
+      />
 
       <ResourceManager
         orgId={orgId ?? ''}
@@ -43,6 +43,6 @@ export default async function ProfesionalesPage() {
         branchId={branch.id}
         label={label}
       />
-    </div>
+    </Page>
   )
 }

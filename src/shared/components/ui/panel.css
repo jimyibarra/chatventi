@@ -1,0 +1,56 @@
+/* =====================================================================
+   Diseño «Líneas» — superficies del navegador dentro del panel: selección,
+   cursor de texto, casillas, barras de desplazamiento y foco visible. Todo
+   va bajo .cv-panel (el layout del panel), así la web pública no cambia.
+   Los selectores usan :where() para no ganarle a una clase de Tailwind.
+   ===================================================================== */
+
+.cv-panel {
+  caret-color: #5b4fe0;
+  accent-color: #5b4fe0;
+  scrollbar-color: #c4bff5 transparent;
+}
+
+.cv-panel ::selection {
+  background: #e0ddfa;
+  color: #2a1a5e;
+}
+
+/* Foco de teclado: aro de marca en enlaces, botones y resúmenes. Los
+   campos de texto llevan su propio anillo (ver ui/field.tsx). */
+:where(.cv-panel) :is(a, button, summary, [role='button']):focus-visible {
+  outline: 3px solid #5b4fe0;
+  outline-offset: 2px;
+}
+
+/* Tres puntos «escribiendo…» del chat de prueba. */
+.cv-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5b4fe0;
+  animation: cv-dot 1.2s ease-in-out infinite;
+}
+.cv-dot:nth-child(2) { animation-delay: 0.15s; }
+.cv-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes cv-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.35; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
+
+/* Entrada de un mensaje nuevo del chat de prueba. */
+.cv-pop { animation: cv-pop 0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes cv-pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Flecha de los <details> propios: gira al abrir. */
+.cv-panel details > summary { list-style: none; }
+.cv-panel details > summary::-webkit-details-marker { display: none; }
+.cv-panel details[open] > summary .cv-chevron { transform: rotate(180deg); }
+.cv-chevron { transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-dot, .cv-pop { animation: none; }
+  .cv-dot { opacity: 0.7; }
+  .cv-chevron { transition: none; }
+}

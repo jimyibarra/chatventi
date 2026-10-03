@@ -13,6 +13,10 @@ import {
   type VoiceProfile,
 } from '../voice'
 import { analyzeVoiceUrl, clearVoice, saveVoice } from '../actions'
+import { Inset, Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input, Select } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
 
 /** Resumen legible del retrato, para que el dueño vea qué se dedujo. */
 function describeProfile(p: VoiceProfile): string {
@@ -25,9 +29,6 @@ function describeProfile(p: VoiceProfile): string {
   if (p.quirks.length) parts.push(`dice ${p.quirks.map((q) => `"${q}"`).join(', ')}`)
   return parts.join(', ')
 }
-
-const SELECT =
-  'mt-1 w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400'
 
 const TREATMENT_LABEL: Record<VoiceProfile['treatment'], string> = { tu: 'De tú', usted: 'De usted' }
 const ENERGY_LABEL: Record<VoiceProfile['energy'], string> = { baja: 'Tranquila', media: 'Cordial', alta: 'Enérgica' }
@@ -100,173 +101,151 @@ export function VoiceForm({ initialPreset, initialProfile }: Props) {
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-6">
-      <h2 className="text-lg font-semibold text-ink">Voz de marca</h2>
-      <p className="mt-1 text-sm text-ink-muted">
-        Cambia <strong>cómo suena</strong> tu recepcionista. No cambia lo que puede hacer: siga el
-        tono que siga, nunca inventará precios ni horarios y seguirá escalando a una persona cuando
-        toque.
-      </p>
-
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        {(Object.keys(PRESET_LABELS) as (keyof typeof PRESET_LABELS)[]).map((key) => (
-          <button
-            key={key}
-            type="button"
-            disabled={saving}
-            onClick={() => onSave(key)}
-            className={`rounded-lg border p-4 text-left transition-colors disabled:opacity-50 ${
-              preset === key
-                ? 'border-brand-400 bg-brand-50'
-                : 'border-line bg-surface hover:border-brand-200'
-            }`}
-          >
-            <span className="block text-sm font-semibold text-ink">{PRESET_LABELS[key].label}</span>
-            <span className="mt-1 block text-xs text-ink-muted">{PRESET_LABELS[key].hint}</span>
-          </button>
-        ))}
+    <Section
+      title="Voz de marca"
+      description={
+        <>
+          Cambia <strong className="text-ink">cómo suena</strong> tu recepcionista. No cambia lo que puede hacer: siga el
+          tono que siga, nunca inventará precios ni horarios y seguirá escalando a una persona cuando toque.
+        </>
+      }
+    >
+      <div className="grid gap-2.5 sm:grid-cols-3" role="group" aria-label="Tonos listos">
+        {(Object.keys(PRESET_LABELS) as (keyof typeof PRESET_LABELS)[]).map((key) => {
+          const on = preset === key
+          return (
+            <button
+              key={key}
+              type="button"
+              disabled={saving}
+              onClick={() => onSave(key)}
+              aria-pressed={on}
+              className={`relative rounded-[16px] p-4 text-left transition-[background-color,box-shadow] duration-150 disabled:opacity-60 ${
+                on ? 'bg-brand-50 shadow-[inset_0_0_0_2px_#2a1a5e]' : 'bg-surface hover:shadow-[inset_0_0_0_2px_#c4bff5]'
+              }`}
+            >
+              {on && (
+                <span className="absolute right-3 top-3 grid h-5 w-5 place-items-center rounded-full bg-ink text-white" aria-hidden>
+                  <Icon name="check" className="h-3 w-3" strokeWidth={3.2} />
+                </span>
+              )}
+              <span className="block pr-6 text-[15px] font-bold text-ink">{PRESET_LABELS[key].label}</span>
+              <span className="mt-1 block text-[13px] leading-snug text-ink-muted">{PRESET_LABELS[key].hint}</span>
+            </button>
+          )
+        })}
       </div>
 
-      <div className="mt-5 rounded-lg border border-line bg-surface p-4">
-        <label className="block text-sm font-medium text-ink">
-          O haz que suene como tu negocio
-        </label>
-        <p className="mt-1 text-xs text-ink-muted">
-          Pega la dirección de tu sitio web y deducimos tu forma de escribir. Podrás revisarla
-          antes de activarla.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <input
-            type="url"
-            inputMode="url"
-            placeholder="https://minegocio.com"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="min-w-[220px] flex-1 rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
-          />
-          <button
-            type="button"
-            disabled={analyzing || saving || !url.trim()}
-            onClick={onAnalyze}
-            className="rounded-lg border border-brand-300 bg-white px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 disabled:opacity-50"
-          >
-            {analyzing ? 'Analizando…' : 'Analizar mi sitio'}
-          </button>
-        </div>
+      <Inset className="mt-4">
+        <Field
+          as="div"
+          label="O haz que suene como tu negocio"
+          hint="Pega la dirección de tu sitio web y deducimos tu forma de escribir. Podrás revisarla antes de activarla."
+        >
+          <div className="flex flex-wrap gap-2">
+            <Input
+              type="url"
+              inputMode="url"
+              aria-label="Dirección de tu sitio web"
+              placeholder="https://minegocio.com"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="min-w-[min(100%,14rem)] flex-1"
+            />
+            <Button variant="secondary" disabled={analyzing || saving || !url.trim()} onClick={onAnalyze}>
+              <Icon name="search" />
+              {analyzing ? 'Analizando…' : 'Analizar mi sitio'}
+            </Button>
+          </div>
+        </Field>
         {analyzed && (
-          <p className="mt-3 rounded-lg bg-brand-50 px-3 py-2 text-sm text-brand-900">
+          <p className="mt-3 rounded-[12px] bg-white px-3.5 py-2.5 text-[14px] leading-snug text-ink">
             Esto es lo que deducimos: <strong>{describeProfile(profile)}</strong>. Revísalo abajo,
             ajústalo si quieres y guárdalo.
           </p>
         )}
-      </div>
+      </Inset>
 
-      <details className="mt-5 rounded-lg border border-line bg-surface p-4" open={preset === 'custom' || analyzed}>
-        <summary className="cursor-pointer text-sm font-medium text-ink">
+      <details className="group mt-4 rounded-[16px] bg-surface" open={preset === 'custom' || analyzed}>
+        <summary className="flex min-h-[48px] cursor-pointer items-center gap-2 rounded-[16px] px-4 text-[15px] font-semibold text-ink">
+          <Icon name="settings" className="h-[18px] w-[18px] text-ink-muted" />
           Ajustar a mano
+          <Icon name="chevronDown" className="cv-chevron ml-auto h-4 w-4 text-ink-muted" />
         </summary>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-ink-muted">Trato</label>
-            <select
-              className={SELECT}
-              value={profile.treatment}
-              onChange={(e) => set('treatment', e.target.value as VoiceProfile['treatment'])}
-            >
-              {VOICE_TREATMENTS.map((v) => (
-                <option key={v} value={v}>{TREATMENT_LABEL[v]}</option>
-              ))}
-            </select>
+        <div className="px-4 pb-4">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Trato">
+              <Select value={profile.treatment} onChange={(e) => set('treatment', e.target.value as VoiceProfile['treatment'])}>
+                {VOICE_TREATMENTS.map((v) => (
+                  <option key={v} value={v}>{TREATMENT_LABEL[v]}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Energía">
+              <Select value={profile.energy} onChange={(e) => set('energy', e.target.value as VoiceProfile['energy'])}>
+                {VOICE_ENERGIES.map((v) => (
+                  <option key={v} value={v}>{ENERGY_LABEL[v]}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Emojis">
+              <Select value={profile.emoji} onChange={(e) => set('emoji', e.target.value as VoiceProfile['emoji'])}>
+                {VOICE_EMOJI.map((v) => (
+                  <option key={v} value={v}>{EMOJI_LABEL[v]}</option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Frases">
+              <Select value={profile.sentence} onChange={(e) => set('sentence', e.target.value as VoiceProfile['sentence'])}>
+                {VOICE_SENTENCES.map((v) => (
+                  <option key={v} value={v}>{SENTENCE_LABEL[v]}</option>
+                ))}
+              </Select>
+            </Field>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-muted">Energía</label>
-            <select
-              className={SELECT}
-              value={profile.energy}
-              onChange={(e) => set('energy', e.target.value as VoiceProfile['energy'])}
-            >
-              {VOICE_ENERGIES.map((v) => (
-                <option key={v} value={v}>{ENERGY_LABEL[v]}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-muted">Emojis</label>
-            <select
-              className={SELECT}
-              value={profile.emoji}
-              onChange={(e) => set('emoji', e.target.value as VoiceProfile['emoji'])}
-            >
-              {VOICE_EMOJI.map((v) => (
-                <option key={v} value={v}>{EMOJI_LABEL[v]}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-ink-muted">Frases</label>
-            <select
-              className={SELECT}
-              value={profile.sentence}
-              onChange={(e) => set('sentence', e.target.value as VoiceProfile['sentence'])}
-            >
-              {VOICE_SENTENCES.map((v) => (
-                <option key={v} value={v}>{SENTENCE_LABEL[v]}</option>
-              ))}
-            </select>
-          </div>
-        </div>
 
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-ink-muted">
-            Palabras propias de tu negocio
-          </label>
-          <input
-            type="text"
-            className={SELECT}
-            placeholder="peluditos, consentirte"
-            defaultValue={profile.quirks.join(', ')}
-            onBlur={(e) =>
-              set(
-                'quirks',
-                e.target.value
-                  .split(',')
-                  .map((s) => s.trim())
-                  .filter(Boolean)
-                  .slice(0, QUIRK_MAX_COUNT)
-              )
-            }
-          />
-          <p className="mt-1 text-xs text-ink-faint">
-            Separadas por comas, máximo {QUIRK_MAX_COUNT}. Se usan como vocabulario, no como
-            instrucciones.
-          </p>
-        </div>
+          <Field
+            className="mt-3"
+            label="Palabras propias de tu negocio"
+            hint={`Separadas por comas, máximo ${QUIRK_MAX_COUNT}. Se usan como vocabulario, no como instrucciones.`}
+          >
+            <Input
+              // La key lo remonta cuando «Analizar mi sitio» trae palabras nuevas.
+              key={profile.quirks.join(',')}
+              type="text"
+              placeholder="peluditos, consentirte"
+              defaultValue={profile.quirks.join(', ')}
+              onBlur={(e) =>
+                set(
+                  'quirks',
+                  e.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .slice(0, QUIRK_MAX_COUNT)
+                )
+              }
+            />
+          </Field>
 
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => onSave('custom')}
-          className="mt-4 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-        >
-          {saving ? 'Guardando…' : 'Guardar mi voz'}
-        </button>
+          <Button disabled={saving} onClick={() => onSave('custom')} className="mt-4">
+            {saving ? 'Guardando…' : 'Guardar mi voz'}
+          </Button>
+        </div>
       </details>
 
       {msg && (
-        <p className={`mt-4 text-sm ${msg.ok ? 'text-success' : 'text-red-600'}`}>{msg.text}</p>
+        <p className={`mt-4 text-sm ${msg.ok ? 'text-[#0b5d36]' : 'text-[#a51b18]'}`} role={msg.ok ? 'status' : 'alert'}>
+          {msg.text}
+        </p>
       )}
 
       {preset && (
-        <button
-          type="button"
-          disabled={saving}
-          onClick={() => onSave('')}
-          className="mt-4 text-sm text-ink-muted underline hover:text-ink disabled:opacity-50"
-        >
+        <Button variant="ghost" size="sm" disabled={saving} onClick={() => onSave('')} className="-ml-2 mt-3">
           Quitar la voz y volver al tono por defecto
-        </button>
+        </Button>
       )}
-    </section>
+    </Section>
   )
 }

@@ -1,50 +1,42 @@
-import { Card } from './card'
+import type { ReactNode } from 'react'
 
-type KpiCellProps = {
+const TONES = {
+  plain: 'bg-white text-ink',
+  /** Algo salió mal y conviene revisarlo. */
+  danger: 'bg-[#fde3e1] text-[#8f1714]',
+} as const
+
+/**
+ * Cifra de contexto, como las cuatro del pie del Panel: etiqueta, número
+ * tabular y una pista. Contexto, no tarea: nunca va arriba de lo que pide acción.
+ */
+export function KpiCell({
+  label,
+  value,
+  unit,
+  hint,
+  tone = 'plain',
+  testId,
+  className = '',
+}: {
   label: string
-  value: string | number
-  /** Texto del delta, p. ej. "▲ 3 vs ayer". */
-  delta?: string
-  deltaTone?: 'success' | 'warn'
-  /** Alturas relativas 0–1 del sparkline; la última barra se resalta. */
-  spark?: number[]
+  value: ReactNode
+  /** Sufijo pequeño junto al número («/ 5»). */
+  unit?: string
+  hint?: ReactNode
+  tone?: keyof typeof TONES
   testId?: string
-}
-
-export function KpiCell({ label, value, delta, deltaTone = 'success', spark, testId }: KpiCellProps) {
+  className?: string
+}) {
+  const muted = tone === 'plain' ? 'text-ink-muted' : 'opacity-90'
   return (
-    <Card hover className="p-[18px]">
-      <p className="text-[10.5px] font-semibold uppercase tracking-[.08em] text-ink-faint">
-        {label}
-      </p>
-      <p
-        className="mt-1.5 text-3xl font-extrabold tracking-tight text-ink tabular-nums"
-        data-testid={testId}
-      >
+    <div className={`rounded-[16px] px-4 py-3 shadow-[0_1px_0_#dde2f0] ${TONES[tone]} ${className}`}>
+      <dt className={`text-[13px] font-semibold ${muted}`}>{label}</dt>
+      <dd className="text-[1.6rem] font-bold leading-tight tabular-nums" data-testid={testId}>
         {value}
-      </p>
-      {delta && (
-        <p
-          className={`mt-0.5 text-[11.5px] font-semibold ${
-            deltaTone === 'success' ? 'text-success' : 'text-warn-strong'
-          }`}
-        >
-          {delta}
-        </p>
-      )}
-      {spark && spark.length > 0 && (
-        <div className="mt-3 flex h-[30px] items-end gap-[3px]">
-          {spark.map((h, i) => (
-            <div
-              key={i}
-              className={`flex-1 rounded-t-[3px] ${
-                i === spark.length - 1 ? 'bg-brand-500' : 'bg-brand-100'
-              }`}
-              style={{ height: `${Math.max(8, Math.min(1, h) * 100)}%` }}
-            />
-          ))}
-        </div>
-      )}
-    </Card>
+        {unit && <span className={`ml-1 text-[15px] font-semibold ${muted}`}>{unit}</span>}
+      </dd>
+      {hint && <dd className={`text-[12.5px] ${muted}`}>{hint}</dd>}
+    </div>
   )
 }

@@ -4,6 +4,11 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { ImageUpload } from '@/shared/components/image-upload'
 import { saveWebConfig, saveLogo } from '../actions'
+import { Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
 
 const BASE = 'https://www.chatventi.com'
 
@@ -59,117 +64,146 @@ export function WebConfigForm({
     })
   }
 
+  // Un color mal escrito no debe romper la vista previa.
+  const swatch = /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#2563eb'
+
   return (
-    <section className="rounded-card border border-line bg-white p-5">
-      <h2 className="mb-3 text-base font-semibold text-ink">Tu página de reservas</h2>
+    <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <Section title="Tu página de reservas" description="Lo que ven tus clientes al reservar: tu enlace, tu color, tu logo y una frase sobre tu negocio.">
+        <div className="space-y-4">
+          <Field label="Enlace" hint="De 3 a 40 caracteres: minúsculas, números y guiones. Es la dirección que compartirás.">
+            <span className="flex min-h-[44px] items-stretch overflow-hidden rounded-[13px] border-2 border-[#d6dbec] bg-white transition-[border-color,box-shadow] duration-150 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/15 hover:border-[#bfc5dd] md:min-h-[40px]">
+              <span className="flex items-center bg-surface px-3 text-[14px] text-ink-muted">chatventi.com/r/</span>
+              <input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                data-testid="web-slug"
+                placeholder="mi-negocio"
+                className="min-w-0 flex-1 bg-transparent px-3 text-[15px] text-ink placeholder:text-ink-faint focus:outline-none"
+              />
+            </span>
+          </Field>
 
-      <div className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">Enlace (slug)</label>
-          <div className="flex items-center gap-1 text-sm">
-            <span className="text-ink-faint">{BASE}/r/</span>
-            <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              data-testid="web-slug"
-              placeholder="mi-negocio"
-              className="flex-1 rounded-lg border border-line px-3 py-2 focus:border-brand-400"
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field as="div" label="Color principal">
+              <div className="flex items-center gap-2">
+                <label className="relative grid h-11 w-11 flex-none cursor-pointer place-items-center overflow-hidden rounded-[13px] shadow-[inset_0_0_0_2px_#d6dbec] md:h-10 md:w-10" title="Elegir color">
+                  <span className="sr-only">Elegir color</span>
+                  <span className="h-6 w-6 rounded-full" style={{ background: swatch }} aria-hidden />
+                  <input type="color" value={swatch} onChange={(e) => setColor(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0" />
+                </label>
+                <span className="w-32">
+                  <Input
+                    aria-label="Color en hexadecimal"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    data-testid="web-color"
+                    className="font-mono uppercase"
+                  />
+                </span>
+              </div>
+            </Field>
+            <Field as="div" label="Logo del negocio">
+              <ImageUpload
+                orgId={orgId}
+                folder="logo"
+                currentUrl={branding?.logo_url ?? null}
+                shape="square"
+                label="Subir logo"
+                hint="PNG o JPG, cuadrado (mín. 200×200 px), fondo claro. Máx 5 MB."
+                onChange={async (url) => (await saveLogo(url)).ok}
+              />
+            </Field>
+          </div>
+
+          <Field label="Descripción corta">
+            <Input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              data-testid="web-description"
+              placeholder="Ej: Barbería clásica en el centro"
             />
+          </Field>
+
+          {msg && (
+            <Notice tone={msg.ok ? 'success' : 'danger'} size="sm" testId="web-msg">
+              {msg.text}
+            </Notice>
+          )}
+
+          <div className="flex justify-end border-t border-line pt-4">
+            <Button onClick={save} disabled={pending} data-testid="save-web">
+              {pending ? 'Guardando…' : 'Guardar'}
+            </Button>
           </div>
         </div>
+      </Section>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">Color principal</label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-9 w-12 rounded border border-line"
-              />
-              <input
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                data-testid="web-color"
-                className="w-28 rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-              />
+      <div className="min-w-0 space-y-4">
+        {/* Vista previa en vivo: lo que el cliente ve arriba de su reserva. */}
+        <Section title="Así se ve">
+          <div className="overflow-hidden rounded-[16px] bg-surface">
+            <div className="h-16" style={{ background: swatch }} aria-hidden />
+            <div className="-mt-8 px-4 pb-4">
+              <span className="grid h-16 w-16 place-items-center overflow-hidden rounded-[16px] bg-white shadow-[0_2px_8px_rgba(42,26,94,.18)]">
+                {branding?.logo_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={branding.logo_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <Icon name="image" className="h-6 w-6 text-ink-faint" />
+                )}
+              </span>
+              <p className="mt-2.5 text-[14.5px] leading-snug text-ink">
+                {description || <span className="text-ink-muted">Aquí va tu descripción corta.</span>}
+              </p>
+              <span
+                className="mt-3 inline-flex min-h-[40px] items-center rounded-[12px] px-4 text-[14px] font-semibold text-white"
+                style={{ background: swatch }}
+              >
+                Reservar cita
+              </span>
             </div>
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-ink-muted">Logo del negocio</label>
-            <ImageUpload
-              orgId={orgId}
-              folder="logo"
-              currentUrl={branding?.logo_url ?? null}
-              shape="square"
-              label="Subir logo"
-              hint="PNG o JPG, cuadrado (mín. 200×200 px), fondo claro. Máx 5 MB."
-              onChange={async (url) => (await saveLogo(url)).ok}
-            />
-          </div>
-        </div>
+        </Section>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">Descripción corta</label>
-          <input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            data-testid="web-description"
-            placeholder="Ej: Barbería clásica en el centro"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-          />
-        </div>
-
-        {msg && (
-          <p
-            className={`rounded-lg px-3 py-2 text-sm ${
-              msg.ok ? 'bg-success-bg text-success' : 'bg-rose-50 text-rose-700'
-            }`}
-            data-testid="web-msg"
-          >
-            {msg.text}
-          </p>
-        )}
-
-        <div className="flex justify-end">
-          <button
-            onClick={save}
-            disabled={pending}
-            data-testid="save-web"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-          >
-            {pending ? 'Guardando…' : 'Guardar'}
-          </button>
-        </div>
-
-        {publicUrl && (
-          <div className="space-y-2 rounded-xl border border-line-soft bg-surface p-3">
-            <div>
-              <p className="text-xs font-medium text-ink-soft">Enlace público</p>
-              <div className="flex items-center gap-2">
-                <a href={publicUrl} target="_blank" rel="noopener" className="truncate text-sm text-brand-600 hover:underline">
-                  {publicUrl}
-                </a>
-                <button onClick={() => copy(publicUrl, 'url')} className="text-xs text-ink-soft hover:text-ink">
-                  {copied === 'url' ? '¡Copiado!' : 'Copiar'}
-                </button>
+        {publicUrl ? (
+          <Section title="Comparte tu página">
+            <div className="space-y-4">
+              <div>
+                <p className="mb-1.5 text-[13.5px] font-semibold text-ink">Enlace público</p>
+                <div className="flex items-center gap-2 rounded-[13px] bg-surface py-1.5 pl-3.5 pr-1.5">
+                  <a
+                    href={publicUrl}
+                    target="_blank"
+                    rel="noopener"
+                    className="min-w-0 flex-1 truncate text-[14px] font-semibold text-brand-700 underline-offset-2 hover:underline"
+                  >
+                    {publicUrl}
+                  </a>
+                  <Button variant="ghost" size="sm" onClick={() => copy(publicUrl, 'url')}>
+                    <Icon name={copied === 'url' ? 'check' : 'copy'} className="h-4 w-4" />
+                    {copied === 'url' ? '¡Copiado!' : 'Copiar'}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <p className="mb-1.5 text-[13.5px] font-semibold text-ink">Widget para tu sitio web</p>
+                <div className="flex items-center gap-2 rounded-[13px] bg-surface py-1.5 pl-3.5 pr-1.5">
+                  <code className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-ink-muted">{widgetSnippet}</code>
+                  <Button variant="ghost" size="sm" onClick={() => copy(widgetSnippet!, 'widget')}>
+                    <Icon name={copied === 'widget' ? 'check' : 'copy'} className="h-4 w-4" />
+                    {copied === 'widget' ? '¡Copiado!' : 'Copiar'}
+                  </Button>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-xs font-medium text-ink-soft">Widget para tu sitio web</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 truncate rounded bg-white px-2 py-1 text-xs text-ink-muted">
-                  {widgetSnippet}
-                </code>
-                <button onClick={() => copy(widgetSnippet!, 'widget')} className="text-xs text-ink-soft hover:text-ink">
-                  {copied === 'widget' ? '¡Copiado!' : 'Copiar'}
-                </button>
-              </div>
-            </div>
-          </div>
+          </Section>
+        ) : (
+          <Notice tone="info" title="Aún no está publicada">
+            Elige tu enlace y guarda: aquí aparecerán la dirección para compartir y el código del widget.
+          </Notice>
         )}
       </div>
-    </section>
+    </div>
   )
 }

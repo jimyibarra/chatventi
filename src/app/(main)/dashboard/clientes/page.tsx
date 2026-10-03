@@ -8,11 +8,26 @@ import {
   type CrmStats,
   type Segment,
 } from '@/features/crm/segments'
+import { Page, PageHeader } from '@/shared/components/ui/page-header'
+import { Card } from '@/shared/components/ui/card'
+import { buttonClass } from '@/shared/components/ui/button'
+import { EmptyState } from '@/shared/components/ui/empty-state'
+import { Notice } from '@/shared/components/ui/notice'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Icon } from '@/shared/components/ui/icon'
+import { CONTROL, CONTROL_H } from '@/shared/components/ui/field'
+import { SEGMENT_SCROLL, SegmentLink } from '@/shared/components/ui/segmented'
+import { StatusChip, type ChipTone } from '@/shared/components/ui/status-chip'
+import { fmtInt, fmtMoney } from '@/shared/lib/format'
 
 export const dynamic = 'force-dynamic'
 
 type Tag = { id: string; name: string; color: string }
 type Filter = Segment | 'inactive' | null
+
+// Segmento → chip. VIP en violeta de marca; el resto, neutro: un segmento no
+// pide acción (el amarillo queda para lo que sí la pide).
+const SEGMENT_TONE: Record<Segment, ChipTone> = { vip: 'brand', regular: 'neutral', nuevo: 'neutral' }
 
 function lastVisitLabel(iso: string | null): string {
   if (!iso) return 'Sin visitas'
@@ -22,33 +37,6 @@ function lastVisitLabel(iso: string | null): string {
   if (days < 30) return `Hace ${days} días`
   if (days < 60) return `Hace ${Math.floor(days / 7)} sem`
   return `Hace ${Math.floor(days / 30)} meses`
-}
-
-// Tarjeta-contador que además filtra el listado (clic → ?seg=...).
-function StatCard({
-  label,
-  value,
-  href,
-  active,
-  accent,
-}: {
-  label: string
-  value: number
-  href: string
-  active: boolean
-  accent?: string
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-card border bg-white px-4 py-3 text-center transition hover:border-brand-300 ${
-        active ? 'border-brand-400 ring-1 ring-brand-200' : 'border-line'
-      }`}
-    >
-      <p className={`text-2xl font-bold ${accent ?? 'text-ink'}`}>{value}</p>
-      <p className="text-xs text-ink-muted">{label}</p>
-    </Link>
-  )
 }
 
 export default async function ClientesPage({
@@ -95,136 +83,145 @@ export default async function ClientesPage({
   const exportHref = `/dashboard/clientes/export${filter ? `?seg=${filter}` : ''}`
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-bold text-ink">Clientes (CRM)</h1>
-        <div className="flex gap-2">
-          <a
-            href={exportHref}
-            data-testid="crm-export"
-            className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface"
-          >
-            ⬇ Exportar CSV
-          </a>
-          <ClientImport />
-        </div>
-      </div>
+    <Page width="wide">
+      <PageHeader
+        title="Clientes"
+        subtitle={
+          stats.total > 0
+            ? `${fmtInt(stats.total)} en tu CRM. Se suman solos cuando te escriben, reservan o agendas una cita.`
+            : 'Tu CRM se llena solo: cada cliente que te escribe o reserva queda aquí.'
+        }
+        actions={
+          <>
+            <a href={exportHref} data-testid="crm-export" className={buttonClass('secondary')}>
+              <Icon name="download" />
+              Exportar CSV
+            </a>
+            <ClientImport />
+          </>
+        }
+      />
 
-      {/* Panel de segmentación: cada tarjeta filtra el listado */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-        <StatCard label="Todos" value={stats.total} href={segHref(null)} active={filter === null} />
-        <StatCard
-          label="Nuevos"
-          value={stats.nuevo}
-          href={segHref('nuevo')}
-          active={filter === 'nuevo'}
-        />
-        <StatCard
-          label="Regulares"
-          value={stats.regular}
-          href={segHref('regular')}
-          active={filter === 'regular'}
-        />
-        <StatCard
-          label="VIP"
-          value={stats.vip}
-          href={segHref('vip')}
-          active={filter === 'vip'}
-          accent="text-amber-600"
-        />
-        <StatCard
-          label="Inactivos"
-          value={stats.inactive}
-          href={segHref('inactive')}
-          active={filter === 'inactive'}
-          accent="text-rose-600"
-        />
-      </div>
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-4">
+          {/* Filtros: el segmento va en la URL, así el enlace se puede compartir. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <nav className={SEGMENT_SCROLL} aria-label="Filtrar clientes por segmento">
+              <SegmentLink href={segHref(null)} active={filter === null} count={stats.total}>
+                Todos
+              </SegmentLink>
+              <SegmentLink href={segHref('nuevo')} active={filter === 'nuevo'} count={stats.nuevo}>
+                Nuevos
+              </SegmentLink>
+              <SegmentLink href={segHref('regular')} active={filter === 'regular'} count={stats.regular}>
+                Regulares
+              </SegmentLink>
+              <SegmentLink href={segHref('vip')} active={filter === 'vip'} count={stats.vip}>
+                VIP
+              </SegmentLink>
+              <SegmentLink href={segHref('inactive')} active={filter === 'inactive'} count={stats.inactive}>
+                Inactivos
+              </SegmentLink>
+            </nav>
 
-      <TagManager tags={(tags as Tag[] | null) ?? []} />
+            <form className="flex min-w-[min(100%,18rem)] flex-1 gap-2" action="/dashboard/clientes" method="get" role="search">
+              {filter && <input type="hidden" name="seg" value={filter} />}
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Buscar por nombre o teléfono</span>
+                <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-ink-muted" />
+                <input
+                  name="q"
+                  type="search"
+                  defaultValue={q ?? ''}
+                  data-testid="client-search"
+                  placeholder="Buscar por nombre o teléfono…"
+                  className={`${CONTROL} ${CONTROL_H} w-full pl-10`}
+                />
+              </label>
+              <button type="submit" className={buttonClass('secondary')}>
+                Buscar
+              </button>
+            </form>
+          </div>
 
-      <form className="flex gap-2" action="/dashboard/clientes" method="get">
-        {filter && <input type="hidden" name="seg" value={filter} />}
-        <input
-          name="q"
-          defaultValue={q ?? ''}
-          data-testid="client-search"
-          placeholder="Buscar por nombre o teléfono…"
-          className="flex-1 rounded-lg border border-line px-3 py-2 text-sm"
-        />
-        <button className="rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface">
-          Buscar
-        </button>
-      </form>
+          {filter === 'inactive' && rows.length > 0 && (
+            <Notice tone="info" title="Llevan más de 60 días sin venir">
+              Buen momento para escribirles y reactivarlos.
+            </Notice>
+          )}
 
-      {filter === 'inactive' && rows.length > 0 && (
-        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-          Estos clientes no vienen hace más de 60 días. Buen momento para escribirles y reactivarlos.
-        </p>
-      )}
-
-      {rows.length === 0 ? (
-        <div className="rounded-card border border-dashed border-line bg-white p-6 text-sm text-ink-soft">
-          {q || filter ? (
-            'Sin resultados con este filtro.'
-          ) : (
-            <>
-              <p className="font-medium text-ink-muted">Tu CRM se llena solo 👥</p>
-              <p className="mt-1">
+          {rows.length === 0 ? (
+            q || filter ? (
+              <EmptyState
+                icon="search"
+                title="Nadie coincide con este filtro"
+                action={
+                  <Link href="/dashboard/clientes" className={buttonClass('secondary')}>
+                    Ver todos los clientes
+                  </Link>
+                }
+              >
+                Prueba con otra parte del nombre o con los últimos dígitos del teléfono.
+              </EmptyState>
+            ) : (
+              <EmptyState icon="users" title="Tu CRM se llena solo">
                 Cada cliente que escriba por chat, reserve en tu página web o agende una cita queda
-                registrado aquí, con su segmento, historial y expediente.
-              </p>
-            </>
+                registrado aquí, con su segmento, historial y expediente. Si ya tienes una lista,
+                impórtala en CSV.
+              </EmptyState>
+            )
+          ) : (
+            <Card padded={false} className="px-4 py-1 md:px-5">
+              <ul className="divide-y divide-line">
+                {rows.map((c) => {
+                  const meta = SEGMENT_META[c.segment]
+                  const name = c.name || c.phone || 'Cliente sin nombre'
+                  return (
+                    <li key={c.id} className="group relative flex items-center gap-3 py-3.5">
+                      <Avatar name={name} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <Link
+                            href={`/dashboard/clientes/${c.id}`}
+                            className="min-w-0 rounded-[6px] text-[15px] font-semibold text-ink [overflow-wrap:anywhere] after:absolute after:inset-0 after:content-[''] group-hover:underline"
+                            data-testid="client-link"
+                          >
+                            {name}
+                          </Link>
+                          <StatusChip tone={SEGMENT_TONE[c.segment]}>{meta.label}</StatusChip>
+                          {c.inactive && <StatusChip tone="off">Inactivo</StatusChip>}
+                        </div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[13px] text-ink-muted">
+                          {c.name && c.phone && <span className="tabular-nums">{c.phone}</span>}
+                          <span>
+                            {fmtInt(c.appt_count)} {c.appt_count === 1 ? 'cita' : 'citas'}
+                          </span>
+                          <span>{lastVisitLabel(c.last_visit)}</span>
+                          {c.spent > 0 && <span className="tabular-nums">{fmtMoney(c.spent)} registrado</span>}
+                          {(c.tags ?? []).map((t) => (
+                            <span
+                              key={t.id}
+                              className="inline-flex h-[21px] items-center rounded-full px-2 text-[11.5px] font-semibold text-white"
+                              style={{ background: t.color }}
+                            >
+                              {t.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <Icon name="chevronRight" className="h-5 w-5 text-ink-muted transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+                    </li>
+                  )
+                })}
+              </ul>
+            </Card>
           )}
         </div>
-      ) : (
-        <ul className="space-y-2">
-          {rows.map((c) => {
-            const meta = SEGMENT_META[c.segment]
-            return (
-              <li key={c.id} className="rounded-card border border-line bg-white p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/dashboard/clientes/${c.id}`}
-                      className="font-medium text-ink hover:underline"
-                      data-testid="client-link"
-                    >
-                      {c.name || c.phone || 'Cliente sin nombre'}
-                    </Link>
-                    <span className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${meta.badge}`}>
-                      {meta.label}
-                    </span>
-                    {c.inactive && (
-                      <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-600">
-                        Inactivo
-                      </span>
-                    )}
-                  </div>
-                  {c.name && <span className="text-xs text-ink-faint">{c.phone}</span>}
-                </div>
 
-                <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
-                  <span>
-                    {c.appt_count} {c.appt_count === 1 ? 'cita' : 'citas'}
-                  </span>
-                  <span>· {lastVisitLabel(c.last_visit)}</span>
-                  {c.spent > 0 && <span>· ${c.spent} registrado</span>}
-                  {(c.tags ?? []).map((t) => (
-                    <span
-                      key={t.id}
-                      className="rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
-                      style={{ background: t.color }}
-                    >
-                      {t.name}
-                    </span>
-                  ))}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-    </div>
+        <aside className="min-w-0">
+          <TagManager tags={(tags as Tag[] | null) ?? []} />
+        </aside>
+      </div>
+    </Page>
   )
 }

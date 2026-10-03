@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveServiceDeposit } from '../actions'
 import { money } from '../labels'
+import { Button, CONTROL, Select } from '@/shared/components/ui'
 
 type Kind = 'none' | 'fixed' | 'percent'
 
@@ -45,20 +46,21 @@ export function ServiceDepositControl({
   }
 
   return (
-    <span className="flex flex-wrap items-center gap-2" data-testid="service-deposit">
+    <span className="flex flex-wrap items-center gap-2 font-normal" data-testid="service-deposit">
       <label className="sr-only" htmlFor={`dep-kind-${serviceId}`}>
         Anticipo
       </label>
-      <select
+      <Select
         id={`dep-kind-${serviceId}`}
         value={kind}
         onChange={(e) => setKind(e.target.value as Kind)}
-        className="rounded-[10px] border border-line bg-white px-2 py-1.5 text-sm text-ink"
+        className="text-sm"
+        wrapperClassName="w-[11.5rem]"
       >
         <option value="none">Sin anticipo</option>
         <option value="fixed">Anticipo fijo</option>
         <option value="percent">Anticipo en %</option>
-      </select>
+      </Select>
       {kind !== 'none' && (
         <input
           type="number"
@@ -68,22 +70,17 @@ export function ServiceDepositControl({
           onChange={(e) => setAmount(e.target.value)}
           aria-label={kind === 'percent' ? 'Porcentaje del precio' : 'Monto del anticipo'}
           placeholder={kind === 'percent' ? '%' : '$'}
-          className="w-20 rounded-[10px] border border-line bg-white px-2 py-1.5 text-sm text-ink"
+          className={`${CONTROL} min-h-[44px] w-20 text-sm tabular-nums md:min-h-[36px]`}
         />
       )}
-      {preview && <span className="text-xs text-ink-muted">= {preview}</span>}
-      {kind === 'percent' && price == null && <span className="text-xs text-warn">Ponle precio al servicio</span>}
+      {preview && <span className="text-[13px] tabular-nums text-ink-muted">= {preview}</span>}
+      {kind === 'percent' && price == null && <span className="text-[13px] text-[#8a5a00]">Ponle precio al servicio</span>}
       {dirty && (
-        <button
-          type="button"
-          onClick={save}
-          disabled={pending}
-          className="rounded-[10px] bg-brand-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-60"
-        >
-          {pending ? '…' : 'Guardar'}
-        </button>
+        <Button size="sm" onClick={save} disabled={pending}>
+          {pending ? 'Guardando…' : 'Guardar'}
+        </Button>
       )}
-      {error && <span className="w-full text-xs text-red-600">{error}</span>}
+      {error && <span className="w-full text-[13px] text-[#a51b18]">{error}</span>}
     </span>
   )
 }
