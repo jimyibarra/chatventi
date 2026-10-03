@@ -27,12 +27,10 @@ export default async function CitaPublicaPage({
   if (!ctx?.appointment) notFound()
 
   return (
-    <div className="min-h-screen bg-surface">
-      <div className="mx-auto max-w-md px-4 py-10">
+    <div className="cv-panel min-h-screen bg-surface text-ink">
+      <div className="mx-auto max-w-[520px] px-4 pb-10 pt-6 sm:pt-12">
         <AppointmentManager token={parsed.data} data={ctx} />
-        <p className="mt-6 text-center text-xs text-ink-faint">
-          Citas con tecnología de ChatVenti
-        </p>
+        <p className="mt-8 text-center text-[13px] text-ink-muted">Citas con tecnología de ChatVenti</p>
       </div>
     </div>
   )
