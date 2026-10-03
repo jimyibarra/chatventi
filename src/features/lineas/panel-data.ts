@@ -16,6 +16,14 @@ export type NextStop = {
 
 export type Notice = { id: string; time: string; client: string; detail: string; line: Pick<Line, 'n' | 'color'> }
 export type PassedChat = { id: string; conversationId: string; client: string; draft: string }
+export type DepositNotice = {
+  id: string
+  client: string
+  amount: number
+  status: 'proof_received' | 'refund_due'
+  when: string
+  conversationId: string | null
+}
 export type FeedItem = { at: string; time: string; kind: 'booked' | 'passed' | 'confirmed'; title: string; detail: string }
 
 export type PanelLineas = {
@@ -24,6 +32,7 @@ export type PanelLineas = {
   next: NextStop[]
   unconfirmed: Notice[]
   chats: PassedChat[]
+  deposits: DepositNotice[]
   feed: FeedItem[]
   /** Chats que la recepcionista pasó a una persona hoy. */
   passedToday: number
@@ -48,7 +57,7 @@ export async function getPanelLineas(supabase: Supabase): Promise<PanelLineas | 
   const today = ymdInTz(now, tz)
   const range = dayRangeUtc(today, tz)
 
-  const [appointments, resources, approvals, aiBooked, confirmed] = await Promise.all([
+  const [appointments, resources, approvals, aiBooked, confirmed, depositRows] = await Promise.all([
     getAppointmentsRange(supabase, branch.id, range.from, range.to),
     getResources(supabase),
     supabase
@@ -72,6 +81,14 @@ export async function getPanelLineas(supabase: Supabase): Promise<PanelLineas | 
       .lt('confirmed_by_client_at', range.to)
       .order('confirmed_by_client_at', { ascending: false })
       .limit(10),
+    // Anticipos que piden una acción del negocio: revisar un comprobante o
+    // devolver dinero. Sin filtro de fecha: no se pueden perder de vista.
+    supabase
+      .from('appointments')
+      .select('id, starts_at, deposit_amount, deposit_status, client:clients(name, phone), proof:messages!appointments_deposit_proof_message_id_fkey(conversation_id)')
+      .in('deposit_status', ['proof_received', 'refund_due'])
+      .order('starts_at')
+      .limit(6),
   ])
 
   const day = buildDay({
@@ -164,5 +181,22 @@ export async function getPanelLineas(supabase: Supabase): Promise<PanelLineas | 
     .slice(0, 7)
     .map((f) => ({ ...f, time: formatTime(f.at, tz) }))
 
-  return { tz, day, next, unconfirmed, chats, feed, passedToday: passedTodayRows.length }
+  type DepositRow = {
+    id: string
+    starts_at: string
+    deposit_amount: number | string | null
+    deposit_status: 'proof_received' | 'refund_due'
+    client: { name: string | null; phone: string | null } | null
+    proof: { conversation_id: string } | null
+  }
+  const deposits: DepositNotice[] = ((depositRows.data ?? []) as unknown as DepositRow[]).map((d) => ({
+    id: d.id,
+    client: who(d.client),
+    amount: Number(d.deposit_amount ?? 0),
+    status: d.deposit_status,
+    when: `${dayLabel(d.starts_at)} ${formatTime(d.starts_at, tz)}`,
+    conversationId: d.proof?.conversation_id ?? null,
+  }))
+
+  return { tz, day, next, unconfirmed, chats, deposits, feed, passedToday: passedTodayRows.length }
 }

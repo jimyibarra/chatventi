@@ -76,3 +76,6 @@ dev-server.log
 # Artefactos de pruebas E2E (Playwright)
 .playwright-mcp/
 e2e-*.png
+
+# Copias de trabajo aisladas de agentes (git worktree)
+.claude/worktrees/

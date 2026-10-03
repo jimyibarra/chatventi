@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveService, deleteService } from '../../actions'
 import type { ServiceCatalog } from '../../types'
+import { ServiceDepositControl } from '@/features/anticipos/components/service-deposit-control'
 
 export function ServiceManager({ services }: { services: ServiceCatalog[] }) {
   const router = useRouter()
@@ -94,12 +95,15 @@ export function ServiceManager({ services }: { services: ServiceCatalog[] }) {
           <li className="py-2 text-sm text-ink-faint">Aún no hay servicios.</li>
         )}
         {services.map((s) => (
-          <li key={s.id} className="flex items-center justify-between py-2 text-sm">
+          <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm">
             <span className={s.active ? 'text-ink-muted' : 'text-ink-faint line-through'}>
               {s.name} · {s.duration_minutes}m
               {s.price != null ? ` · $${s.price}` : ''}
               {!s.active && ' (inactivo)'}
             </span>
+            {s.active && (
+              <ServiceDepositControl serviceId={s.id} type={s.deposit_type} value={s.deposit_value} price={s.price} />
+            )}
             {s.active && (
               <button
                 onClick={() => remove(s.id)}

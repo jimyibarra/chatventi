@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 import { notifyOrgOwners } from '@/features/notifications/send'
+import { createServiceClient } from '@/lib/supabase/service'
 import { uploadInboundMedia } from '@/features/storage/inbound'
 import { runAgent } from './agent'
 import { readImage } from './vision'
@@ -104,6 +105,22 @@ async function readMedia(params: {
  *   3. Si no se pudo leer, vuelve el comportamiento de siempre: aviso
  *      amable + escalamiento a una persona.
  */
+/** Registra el comprobante si el cliente tiene un anticipo pendiente. Nunca lanza. */
+async function registerDepositProof(
+  messageId: string
+): Promise<{ amount: number; startsAt: string; tz: string; orgName: string } | null> {
+  try {
+    const admin = createServiceClient()
+    const { data } = await admin.rpc('register_deposit_proof', { p_message_id: messageId })
+    const d = data as { amount?: number | string; starts_at?: string; tz?: string; org_name?: string } | null
+    if (!d?.starts_at) return null
+    return { amount: Number(d.amount ?? 0), startsAt: d.starts_at, tz: d.tz ?? 'America/Mexico_City', orgName: d.org_name ?? 'el negocio' }
+  } catch (err) {
+    console.error('[media] anticipo: no se pudo registrar el comprobante', err)
+    return null
+  }
+}
+
 export async function handleIncomingMedia(params: {
   channelType: 'whatsapp' | 'telegram'
   externalId: string
@@ -128,6 +145,41 @@ export async function handleIncomingMedia(params: {
   const fetched = media
     ? await ingestMedia({ supabase, orgId: ctx.org_id, conversationId: convId, source: media })
     : null
+
+  // ¿Es el comprobante de un anticipo pendiente? Va ANTES de la guarda de la
+  // IA: aunque la recepcionista esté en pausa, el comprobante se registra y
+  // el cliente recibe acuse. Respuesta fija, sin modelo.
+  if (media) {
+    const proof = await registerDepositProof(media.messageId)
+    if (proof) {
+      const when = new Intl.DateTimeFormat('es-MX', {
+        timeZone: proof.tz,
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        hour: 'numeric',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).format(new Date(proof.startsAt))
+      const reply = `¡Gracias! Recibimos tu comprobante del anticipo de $${proof.amount.toLocaleString('es-MX', {
+        maximumFractionDigits: 2,
+      })} para tu cita del ${when}. En cuanto ${proof.orgName} lo confirme, tu lugar queda asegurado.`
+      const extId = await senders.sendToCustomer(reply)
+      await supabase.rpc('log_outbound_message', {
+        p_conversation_id: convId,
+        p_body: reply,
+        p_sender: 'system',
+        p_external_id: extId ?? undefined,
+      })
+      await notifyOrgOwners(ctx.org_id, {
+        title: 'Llegó un comprobante de anticipo 💳',
+        body: `Revisa que el depósito de $${proof.amount.toLocaleString('es-MX')} esté en tu cuenta y confírmalo.`,
+        tag: 'deposit',
+        data: { url: `/dashboard/conversaciones/${convId}` },
+      })
+      return
+    }
+  }
 
   if (!ctx.conversation?.should_respond) return
 

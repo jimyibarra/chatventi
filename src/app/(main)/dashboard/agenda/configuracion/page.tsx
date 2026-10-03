@@ -4,6 +4,7 @@ import { ServiceManager } from '@/features/agenda/components/config/service-mana
 import { HoursManager } from '@/features/agenda/components/config/hours-manager'
 import { getBranches, getServices, getBusinessHours } from '@/features/agenda/services'
 import { getResourceLabel } from '@/features/profesionales/services'
+import { DepositSettings } from '@/features/anticipos/components/deposit-settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,10 +23,15 @@ export default async function AgendaConfigPage() {
   }
 
   const branch = branches[0]
-  const [services, hours, resourceLabel] = await Promise.all([
+  const [services, hours, resourceLabel, { data: depositCfg }] = await Promise.all([
     getServices(supabase),
     getBusinessHours(supabase, branch.id),
     getResourceLabel(supabase),
+    supabase
+      .from('organizations')
+      .select('deposit_bank_details, deposit_hold_minutes, deposit_cancel_hours')
+      .eq('id', branch.organization_id)
+      .maybeSingle(),
   ])
 
   return (
@@ -40,6 +46,11 @@ export default async function AgendaConfigPage() {
 
         <ServiceManager services={services} />
         <HoursManager branchId={branch.id} hours={hours} />
+        <DepositSettings
+          bankDetails={depositCfg?.deposit_bank_details ?? null}
+          holdMinutes={depositCfg?.deposit_hold_minutes ?? 120}
+          cancelHours={depositCfg?.deposit_cancel_hours ?? 24}
+        />
 
         {/* La disponibilidad dejo de configurarse por usuario: ahora es de cada
             profesional/recurso, que puede no tener cuenta. Ver /dashboard/profesionales. */}

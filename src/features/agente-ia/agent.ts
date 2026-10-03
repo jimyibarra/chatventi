@@ -117,6 +117,7 @@ function buildSystemPrompt(ctx: AgentContext): string {
     // Un turno de "¿qué día te viene bien?" son dos mensajes que se ahorran
     // consultando disponibilidad de una vez y ofreciendo huecos concretos.
     '- AHORRA TURNOS: si ya sabes qué servicio quiere (o el negocio tiene uno solo) y el cliente no dijo fecha, NO preguntes "¿qué día te viene bien?". Llama check_availability para hoy o mañana y ofrece esos horarios de una vez, cerrando con "¿o prefieres otro día?". Resuelve en el menor número de mensajes posible.',
+    '- Algunos servicios piden ANTICIPO para apartar la cita. Si book_appointment devuelve `deposit`, la cita queda APARTADA (no confirmada) hasta que llegue el comprobante: dilo así ("te la aparto"), y NO escribas montos, cuentas ni CLABE; el sistema añade los datos de pago y el plazo debajo de tu mensaje. Si el cliente manda una foto del comprobante, el sistema la registra solo.',
     '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
     '- 🔴 Si TÚ ofreciste una hora y el cliente acepta sin repetirla ("sí", "va", "perfecto"), eligió ESA hora, la de tu mensaje anterior. NO tomes otra de la lista de disponibilidad (ni la primera): reservar a una hora distinta de la pactada hace que el cliente se presente cuando no le toca.',
     '- En book_appointment y reschedule_appointment, `hora_ofrecida` es la hora que le dijiste al cliente, copiada tal cual de tu mensaje (ej. "16:30" o "4:30 pm"). Es la que manda: si no coincide con el instante que pasas, el sistema reserva la que prometiste.',
@@ -298,6 +299,8 @@ type ChatAction =
       startsAt: string
       manageUrl?: string | null
       resourceName?: string | null
+      /** Anticipo para apartar la cita, si el servicio lo pide. */
+      deposit?: { amount: number; holdUntil: string; bankDetails: string } | null
     }
   | {
       kind: 'rescheduled'
@@ -320,11 +323,38 @@ function buildConfirmation(action: ChatAction, tz: string, branchName: string): 
     action.kind !== 'cancelled' && action.resourceName ? `\n👤 Con ${action.resourceName}` : ''
   switch (action.kind) {
     case 'booked':
+      if (action.deposit) {
+        // Con anticipo la cita queda APARTADA, no confirmada, hasta el comprobante.
+        const amount = `$${action.deposit.amount.toLocaleString('es-MX', { maximumFractionDigits: 2 })}`
+        return (
+          `📌 *Cita apartada*\n📅 ${when}\n🔹 ${action.services}${who}\n📍 ${branchName}` +
+          `\n\n💳 Para confirmarla, deposita un anticipo de *${amount}* a:\n${action.deposit.bankDetails}` +
+          `\n\nMándanos por aquí la foto de tu comprobante antes de las ${fmtTime(action.deposit.holdUntil, tz)}. ` +
+          `Si no llega a tiempo, el horario se libera para alguien más.${link}`
+        )
+      }
       return `✅ *Cita confirmada*\n📅 ${when}\n🔹 ${action.services}${who}\n📍 ${branchName}${link}`
     case 'rescheduled':
       return `🔄 *Cita reagendada*\n📅 Nueva fecha: ${when}\n🔹 ${action.services}${who}\n📍 ${branchName}${link}`
     case 'cancelled':
       return `❌ *Cita cancelada*\n📅 Era: ${when}\n🔹 ${action.services}`
+  }
+}
+
+// Anticipo de una cita recién agendada (o null si no aplica). Service client:
+// la RPC es solo de servidor. Nunca rompe la reserva: si falla, no se pide.
+async function applyDeposit(
+  appointmentId: string
+): Promise<{ amount: number; holdUntil: string; bankDetails: string } | null> {
+  try {
+    const admin = createServiceClient()
+    const { data } = await admin.rpc('apply_deposit_requirement', { p_appointment_id: appointmentId })
+    const d = data as { amount?: number | string; hold_until?: string; bank_details?: string } | null
+    if (!d?.amount || !d.hold_until || !d.bank_details) return null
+    return { amount: Number(d.amount), holdUntil: d.hold_until, bankDetails: d.bank_details }
+  } catch (err) {
+    console.error('[agent] anticipo: no se pudo calcular', err)
+    return null
   }
 }
 
@@ -731,18 +761,28 @@ export async function runAgent(params: {
         // El motor pudo asignar a alguien aunque no se pidiera ("el que sea"):
         // se relee para que la confirmación diga con quién es la cita.
         const resourceName = data ? await fetchResourceName(String(data)) : null
+        // ¿Este servicio pide anticipo? Lo decide la base (reglas del negocio)
+        // y los datos de pago los pone el CÓDIGO en la confirmación: el modelo
+        // nunca escribe una cuenta bancaria.
+        const deposit = data ? await applyDeposit(String(data)) : null
         actions.push({
           kind: 'booked',
           services: serviceNames(service_ids),
           startsAt: startsAtUtc,
           manageUrl,
           resourceName,
+          deposit,
         })
         return {
           ok: true,
           appointment_id: data,
           confirmed_at: fmtTime(startsAtUtc, tz),
           with: resourceName,
+          // Con anticipo la cita queda APARTADA, no confirmada: el modelo debe
+          // decir eso, sin repetir montos ni datos bancarios (los pone el código).
+          ...(deposit
+            ? { status: 'apartada_esperando_anticipo', deposit: { required: true, deadline: fmtTime(deposit.holdUntil, tz) } }
+            : {}),
         }
       },
     }),

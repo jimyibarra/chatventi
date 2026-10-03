@@ -124,7 +124,7 @@ export default async function DashboardPage() {
               <h2 id="h-next" className={`${H2} mb-2.5`}>Próxima estación</h2>
               <NextStations items={panel.next} nowMin={panel.day.nowMin ?? 0} agendaHref={agendaHref} />
             </section>
-            <NoticesCard unconfirmed={panel.unconfirmed} chats={panel.chats} />
+            <NoticesCard unconfirmed={panel.unconfirmed} chats={panel.chats} deposits={panel.deposits} />
           </div>
 
           <section className={`${CARD} mb-4`} aria-labelledby="h-day">

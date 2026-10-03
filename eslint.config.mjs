@@ -9,6 +9,8 @@ const eslintConfig = [
       'out/**',
       'public/**',
       'next-env.d.ts',
+      // Copias de trabajo aisladas de agentes (git worktree dentro del repo).
+      '.claude/worktrees/**',
     ],
   },
   ...nextCoreWebVitals,

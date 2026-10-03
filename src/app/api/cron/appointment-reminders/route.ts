@@ -337,7 +337,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }
   }
 
-  if (frequent) return NextResponse.json({ ok: true, scope: 'reminders', summary })
+  // Apartados con anticipo cuyo plazo venció sin comprobante: se libera el
+  // horario y se avisa al cliente. Corre en ambas corridas (es puntual).
+  const deposits = await runDepositExpiry(service)
+
+  if (frequent) return NextResponse.json({ ok: true, scope: 'reminders', summary, deposits })
 
   // Recordatorios recurrentes del expediente ("vuelve a cortarte", "limpieza
   // dental cada 6 meses"). Independientes de las citas.
@@ -379,6 +383,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     cold,
     dailyReport,
     scoring,
+    deposits,
     usage,
     emails: emailsStatus,
   })
@@ -660,4 +665,60 @@ async function cleanupDemoOrg(service: ReturnType<typeof createServiceClient>): 
   } catch (err) {
     console.error('[cron-reminders] limpieza demo error', err)
   }
+}
+
+type ExpiredDeposit = {
+  appointment_id: string
+  organization_id: string
+  starts_at: string
+  tz: string
+  org_name: string
+  conversation_id: string | null
+  channel_type: string | null
+  channel_external_id: string | null
+  send_to: string | null
+}
+
+/**
+ * Libera las citas apartadas cuyo anticipo no llegó a tiempo (la RPC las
+ * cancela en la misma sentencia, así que nunca se procesan dos veces) y le
+ * avisa al cliente por su canal. El aviso va como texto: el cliente acaba de
+ * escribir para agendar, así que la ventana de 24 h sigue abierta.
+ */
+async function runDepositExpiry(
+  service: ReturnType<typeof createServiceClient>
+): Promise<{ released: number; notified: number }> {
+  const out = { released: 0, notified: 0 }
+  const { data, error } = await service.rpc('expire_deposit_holds')
+  if (error) {
+    console.error('[cron-anticipos] expire_deposit_holds', error.message)
+    return out
+  }
+  for (const item of (data as unknown as ExpiredDeposit[]) ?? []) {
+    out.released++
+    if (!item.conversation_id || !item.channel_type || !item.channel_external_id || !item.send_to) continue
+    const text = `Hola, liberamos el horario del ${whenLabel(item.starts_at, item.tz)} en ${item.org_name} porque no nos llegó el comprobante del anticipo. Si todavía quieres tu cita, escríbenos y te buscamos otro lugar.`
+    try {
+      const extId = await sendToCustomerByChannel(
+        service,
+        item.channel_type,
+        item.channel_external_id,
+        item.send_to,
+        text
+      )
+      if (!extId && REAL_TRANSPORT.has(item.channel_type)) continue
+      await service.from('messages').insert({
+        conversation_id: item.conversation_id,
+        organization_id: item.organization_id,
+        direction: 'outbound',
+        sender: 'system',
+        body: text,
+        external_id: extId,
+      })
+      out.notified++
+    } catch (err) {
+      console.error('[cron-anticipos] aviso', err)
+    }
+  }
+  return out
 }

@@ -175,6 +175,11 @@ export type Database = {
           client_id: string | null
           confirmed_by_client_at: string | null
           created_at: string
+          deposit_amount: number | null
+          deposit_hold_until: string | null
+          deposit_proof_message_id: string | null
+          deposit_status: string | null
+          deposit_updated_at: string | null
           ends_at: string
           followup_sent_at: string | null
           id: string
@@ -193,6 +198,11 @@ export type Database = {
           client_id?: string | null
           confirmed_by_client_at?: string | null
           created_at?: string
+          deposit_amount?: number | null
+          deposit_hold_until?: string | null
+          deposit_proof_message_id?: string | null
+          deposit_status?: string | null
+          deposit_updated_at?: string | null
           ends_at: string
           followup_sent_at?: string | null
           id?: string
@@ -211,6 +221,11 @@ export type Database = {
           client_id?: string | null
           confirmed_by_client_at?: string | null
           created_at?: string
+          deposit_amount?: number | null
+          deposit_hold_until?: string | null
+          deposit_proof_message_id?: string | null
+          deposit_status?: string | null
+          deposit_updated_at?: string | null
           ends_at?: string
           followup_sent_at?: string | null
           id?: string
@@ -237,6 +252,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_deposit_proof_message_id_fkey"
+            columns: ["deposit_proof_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
@@ -919,6 +941,9 @@ export type Database = {
           data_deleted_at: string | null
           delete_scheduled_at: string | null
           deletion_warning_email_sent_at: string | null
+          deposit_bank_details: string | null
+          deposit_cancel_hours: number
+          deposit_hold_minutes: number
           google_place_id: string | null
           google_review_url: string | null
           id: string
@@ -950,6 +975,9 @@ export type Database = {
           data_deleted_at?: string | null
           delete_scheduled_at?: string | null
           deletion_warning_email_sent_at?: string | null
+          deposit_bank_details?: string | null
+          deposit_cancel_hours?: number
+          deposit_hold_minutes?: number
           google_place_id?: string | null
           google_review_url?: string | null
           id?: string
@@ -981,6 +1009,9 @@ export type Database = {
           data_deleted_at?: string | null
           delete_scheduled_at?: string | null
           deletion_warning_email_sent_at?: string | null
+          deposit_bank_details?: string | null
+          deposit_cancel_hours?: number
+          deposit_hold_minutes?: number
           google_place_id?: string | null
           google_review_url?: string | null
           id?: string
@@ -1363,6 +1394,8 @@ export type Database = {
         Row: {
           active: boolean
           created_at: string
+          deposit_type: string
+          deposit_value: number | null
           description: string | null
           duration_minutes: number
           id: string
@@ -1373,6 +1406,8 @@ export type Database = {
         Insert: {
           active?: boolean
           created_at?: string
+          deposit_type?: string
+          deposit_value?: number | null
           description?: string | null
           duration_minutes?: number
           id?: string
@@ -1383,6 +1418,8 @@ export type Database = {
         Update: {
           active?: boolean
           created_at?: string
+          deposit_type?: string
+          deposit_value?: number | null
           description?: string | null
           duration_minutes?: number
           id?: string
@@ -1761,6 +1798,10 @@ export type Database = {
         Args: { p_id: string; p_status: string }
         Returns: undefined
       }
+      apply_deposit_requirement: {
+        Args: { p_appointment_id: string }
+        Returns: Json
+      }
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
       attach_message_media: {
         Args: {
@@ -1912,6 +1953,7 @@ export type Database = {
         Returns: Json
       }
       email_canonical_exists: { Args: { p_email: string }; Returns: boolean }
+      expire_deposit_holds: { Args: never; Returns: Json }
       get_agent_context: {
         Args: {
           p_channel_type: string
@@ -2030,6 +2072,7 @@ export type Database = {
         }
         Returns: Json
       }
+      register_deposit_proof: { Args: { p_message_id: string }; Returns: Json }
       reschedule_appointment_by_token: {
         Args: { p_new_starts_at: string; p_token: string }
         Returns: undefined

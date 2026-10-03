@@ -6,6 +6,7 @@ import { Modal } from './modal'
 import { formatTime } from '../datetime'
 import { setAppointmentStatus } from '../actions'
 import { STATUS_META, type AppointmentStatus, type AppointmentView } from '../types'
+import { DepositBlock } from '@/features/anticipos/components/deposit-block'
 
 const TRANSITIONS: { status: AppointmentStatus; label: string; testId: string }[] = [
   { status: 'confirmed', label: 'Confirmar', testId: 'status-confirmed' },
@@ -73,6 +74,14 @@ export function AppointmentActions({
             </p>
           )}
         </div>
+
+        <DepositBlock
+          appointmentId={appointment.id}
+          status={appointment.deposit_status}
+          amount={appointment.deposit_amount}
+          holdUntil={appointment.deposit_hold_until}
+          tz={tz}
+        />
 
         {error && (
           <p className="rounded-lg bg-rose-50 px-3 py-2 text-rose-700" data-testid="actions-error">

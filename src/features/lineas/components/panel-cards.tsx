@@ -5,8 +5,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { setAppointmentStatus } from '@/features/agenda/actions'
 import { setAgentEnabled } from '@/features/agente-ia/actions'
+import { setDepositStatus } from '@/features/anticipos/actions'
 import { hhmm } from '../model'
-import type { FeedItem, NextStop, Notice, PassedChat } from '../panel-data'
+import type { DepositNotice, FeedItem, NextStop, Notice, PassedChat } from '../panel-data'
 import '../lineas.css'
 
 type Vars = CSSProperties & Record<`--${string}`, string | number>
@@ -123,9 +124,29 @@ export function NextStations({ items, nowMin, agendaHref }: { items: NextStop[];
 // ---------------------------------------------------------------------
 // Avisos: lo único del Panel que pide una acción tuya
 // ---------------------------------------------------------------------
-export function NoticesCard({ unconfirmed, chats }: { unconfirmed: Notice[]; chats: PassedChat[] }) {
+export function NoticesCard({
+  unconfirmed,
+  chats,
+  deposits = [],
+}: {
+  unconfirmed: Notice[]
+  chats: PassedChat[]
+  deposits?: DepositNotice[]
+}) {
   const { run, error, busy } = useStatus()
-  const total = unconfirmed.length + chats.length
+  const router = useRouter()
+  const [depBusy, startDep] = useTransition()
+  const [depError, setDepError] = useState('')
+  const total = unconfirmed.length + chats.length + deposits.length
+
+  function moveDeposit(appointmentId: string, to: 'paid' | 'refunded') {
+    setDepError('')
+    startDep(async () => {
+      const res = await setDepositStatus({ appointmentId, to })
+      if (!res.ok) setDepError(res.error)
+      else router.refresh()
+    })
+  }
 
   return (
     <section className="rounded-[20px] bg-[#ffcd2e] p-4 text-ink md:p-5" aria-labelledby="avisos-h" data-testid="avisos">
@@ -138,6 +159,41 @@ export function NoticesCard({ unconfirmed, chats }: { unconfirmed: Notice[]; cha
         <p className="mt-3 rounded-[14px] bg-white/70 p-3.5 text-[15px]">
           Todo al día: no hay citas por confirmar ni chats esperándote.
         </p>
+      )}
+
+      {deposits.length > 0 && (
+        <>
+          <h3 className="mb-1.5 mt-3 text-[13.5px] font-semibold">Anticipos</h3>
+          <ul className="space-y-1.5" data-testid="avisos-anticipos">
+            {deposits.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-2.5 rounded-[14px] bg-white p-2.5">
+                <span className="min-w-0 flex-1">
+                  <b className="block truncate text-[15px] font-semibold">
+                    {d.client} · ${d.amount.toLocaleString('es-MX', { maximumFractionDigits: 2 })}
+                  </b>
+                  <span className="block truncate text-[13px] text-ink-muted">
+                    {d.status === 'proof_received' ? 'Mandó su comprobante' : 'Hay que devolverle el anticipo'} · cita {d.when}
+                  </span>
+                </span>
+                {d.status === 'proof_received' && d.conversationId && (
+                  <Link href={`/dashboard/conversaciones/${d.conversationId}`} className={`${BTN} border-2 border-ink bg-white text-ink hover:bg-brand-50`}>
+                    Ver
+                  </Link>
+                )}
+                <button
+                  type="button"
+                  onClick={() => moveDeposit(d.id, d.status === 'proof_received' ? 'paid' : 'refunded')}
+                  disabled={depBusy}
+                  className={`${BTN} bg-brand-500 text-white hover:bg-brand-600`}
+                  data-testid="anticipo-accion"
+                >
+                  {d.status === 'proof_received' ? 'Sí llegó' : 'Ya lo devolví'}
+                </button>
+              </li>
+            ))}
+          </ul>
+          {depError && <p className="mt-1 text-sm font-semibold text-red-800">{depError}</p>}
+        </>
       )}
 
       {unconfirmed.length > 0 && (
