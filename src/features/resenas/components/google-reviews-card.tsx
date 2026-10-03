@@ -4,6 +4,12 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { importHoursFromGoogle, saveReviewLink, searchMyBusiness } from '../actions'
 import type { PlaceHit } from '../places'
+import { Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
+import { StatusChip } from '@/shared/components/ui/status-chip'
 
 export function GoogleReviewsCard({
   reviewUrl,
@@ -66,55 +72,59 @@ export function GoogleReviewsCard({
     })
 
   return (
-    <section className="rounded-card border border-line bg-white p-5" data-testid="google-reviews">
-      <h2 className="text-base font-semibold text-ink">Reseñas en Google</h2>
-      <p className="mt-1 text-sm text-ink-muted">
-        Después de cada visita, quien responde la encuesta recibe el enlace para dejarte una reseña.
-        Se le envía a todos por igual: Google no permite pedir reseñas solo a los clientes contentos.
-      </p>
-
+    <Section
+      data-testid="google-reviews"
+      title="Reseñas en Google"
+      badge={
+        reviewUrl ? (
+          <StatusChip tone="ok" size="md">Activo</StatusChip>
+        ) : (
+          <StatusChip tone="off" size="md">Sin enlace</StatusChip>
+        )
+      }
+      description="Después de cada visita, quien responde la encuesta recibe el enlace para dejarte una reseña. Se le envía a todos por igual: Google no permite pedir reseñas solo a los clientes contentos."
+      actions={
+        reviewUrl ? (
+          <a
+            href={reviewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex min-h-[40px] items-center gap-1.5 rounded-[11px] px-2.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-50"
+          >
+            Probar el enlace
+            <Icon name="external" className="h-4 w-4" />
+          </a>
+        ) : undefined
+      }
+    >
       {!csatOn && (
-        <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
-          Enciende el superpoder “Pregunta qué tal fue” (arriba) para que el enlace empiece a enviarse.
-        </p>
+        <Notice tone="action" size="sm" className="mb-4">
+          Enciende el superpoder «Pregunta qué tal fue» (arriba) para que el enlace empiece a enviarse.
+        </Notice>
+      )}
+      {!reviewUrl && (
+        <p className="mb-4 text-[14px] text-ink-muted">Sin enlace no se piden reseñas.</p>
       )}
 
-      <p className="mt-4 text-sm">
-        {reviewUrl ? (
-          <span className="font-medium text-success">● Activo</span>
-        ) : (
-          <span className="font-medium text-ink-faint">○ Sin enlace: no se piden reseñas</span>
-        )}
-        {reviewUrl && (
-          <a href={reviewUrl} target="_blank" rel="noreferrer" className="ml-2 text-brand-600 underline">
-            Probar el enlace
-          </a>
-        )}
-      </p>
-
       {searchAvailable && (
-        <div className="mt-4">
-          <label className="text-sm font-medium text-ink" htmlFor="gr-q">
-            Busca tu negocio en Google
-          </label>
-          <div className="mt-1.5 flex gap-2">
-            <input
-              id="gr-q"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && query.trim().length >= 3 && search()}
-              placeholder="Estética Lumen, Guadalajara"
-              className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2 text-sm"
-            />
-            <button
-              type="button"
-              onClick={search}
-              disabled={pending || query.trim().length < 3}
-              className="shrink-0 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-            >
-              Buscar
-            </button>
-          </div>
+        <div className="mb-4">
+          <Field as="div" label="Busca tu negocio en Google">
+            <div className="flex gap-2">
+              <Input
+                id="gr-q"
+                aria-label="Busca tu negocio en Google"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && query.trim().length >= 3 && search()}
+                placeholder="Estética Lumen, Guadalajara"
+                className="min-w-0 flex-1"
+              />
+              <Button onClick={search} disabled={pending || query.trim().length < 3}>
+                <Icon name="search" />
+                Buscar
+              </Button>
+            </div>
+          </Field>
           {hits.length > 0 && (
             <ul className="mt-2 space-y-1.5">
               {hits.map((h) => (
@@ -123,10 +133,14 @@ export function GoogleReviewsCard({
                     type="button"
                     onClick={() => pick(h)}
                     disabled={pending}
-                    className="w-full rounded-lg border border-line px-3 py-2 text-left text-sm hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
+                    className="flex w-full items-center gap-3 rounded-[13px] bg-surface px-3.5 py-2.5 text-left transition-colors duration-150 hover:bg-brand-50 disabled:opacity-50"
                   >
-                    <span className="block font-medium text-ink">{h.name}</span>
-                    <span className="text-xs text-ink-muted">{h.address}</span>
+                    <Icon name="globe" className="h-5 w-5 text-brand-600" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[15px] font-semibold text-ink">{h.name}</span>
+                      <span className="block text-[13px] text-ink-muted">{h.address}</span>
+                    </span>
+                    <Icon name="chevronRight" className="h-4 w-4 text-ink-muted" />
                   </button>
                 </li>
               ))}
@@ -135,44 +149,43 @@ export function GoogleReviewsCard({
         </div>
       )}
 
-      <div className="mt-4">
-        <label className="text-sm font-medium text-ink" htmlFor="gr-url">
-          {searchAvailable ? 'O pega tu enlace de reseñas' : 'Pega tu enlace de reseñas'}
-        </label>
-        <p className="mt-0.5 text-xs text-ink-faint">
-          En tu Perfil de Negocio de Google: “Pedir opiniones” → copia el enlace.
-        </p>
-        <div className="mt-1.5 flex gap-2">
-          <input
+      <Field
+        as="div"
+        label={searchAvailable ? 'O pega tu enlace de reseñas' : 'Pega tu enlace de reseñas'}
+        hint="En tu Perfil de Negocio de Google: «Pedir opiniones» → copia el enlace."
+      >
+        <div className="flex gap-2">
+          <Input
             id="gr-url"
+            aria-label="Enlace de reseñas"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://g.page/r/…/review"
-            className="min-w-0 flex-1 rounded-xl border border-line px-3 py-2 text-sm"
+            className="min-w-0 flex-1"
           />
-          <button
-            type="button"
-            onClick={saveManual}
-            disabled={pending || url === (reviewUrl ?? '')}
-            className="shrink-0 rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink hover:bg-surface disabled:opacity-50"
-          >
+          <Button variant="secondary" onClick={saveManual} disabled={pending || url === (reviewUrl ?? '')}>
             Guardar
-          </button>
+          </Button>
         </div>
-      </div>
+      </Field>
 
       {searchAvailable && hasPlace && (
-        <button
-          type="button"
-          onClick={importHours}
-          disabled={pending}
-          className="mt-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100 disabled:opacity-50"
-        >
-          Copiar a mi agenda el horario que tengo en Google
-        </button>
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[16px] bg-surface p-3.5">
+          <p className="min-w-0 flex-1 basis-[12rem] text-[14px] leading-snug text-ink">
+            Copia a tu agenda el horario que tienes en Google.
+          </p>
+          <Button variant="secondary" size="sm" onClick={importHours} disabled={pending}>
+            <Icon name="clock" className="h-4 w-4" />
+            Copiar horario
+          </Button>
+        </div>
       )}
 
-      {msg && <p className={`mt-3 text-sm ${msg.ok ? 'text-success' : 'text-red-600'}`}>{msg.text}</p>}
-    </section>
+      {msg && (
+        <p className={`mt-3 text-sm ${msg.ok ? 'text-[#0b5d36]' : 'text-[#a51b18]'}`} role={msg.ok ? 'status' : 'alert'}>
+          {msg.text}
+        </p>
+      )}
+    </Section>
   )
 }

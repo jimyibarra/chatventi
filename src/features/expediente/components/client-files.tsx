@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { addClientFile, deleteClientFile, getClientFileUrl } from '../actions'
 import type { ClientFile } from '../types'
+import { Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Input } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
 
 const RECORDS_BUCKET = 'records'
 const MAX_BYTES = 10 * 1024 * 1024 // 10 MB (coincide con el tope del bucket)
@@ -107,21 +111,20 @@ export function ClientFiles({
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-5">
-      <h2 className="text-base font-semibold text-ink">Archivos del cliente</h2>
-      <p className="mb-3 mt-1 text-sm text-ink-faint">
-        Radiografías, consentimientos, recetas, fotos de antes y después. Solo tu equipo puede
-        verlos: los enlaces son temporales.
-      </p>
-
-      <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto]">
-        <input
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Descripción (opcional): radiografía panorámica, consentimiento…"
-          data-testid="file-note"
-          className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-        />
+    <Section
+      title="Archivos del cliente"
+      description="Radiografías, consentimientos, recetas, fotos de antes y después. Solo tu equipo puede verlos: los enlaces son temporales."
+    >
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+        <label className="min-w-0">
+          <span className="sr-only">Descripción del archivo</span>
+          <Input
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Descripción (opcional): radiografía panorámica…"
+            data-testid="file-note"
+          />
+        </label>
         <input
           ref={inputRef}
           type="file"
@@ -132,58 +135,47 @@ export function ClientFiles({
             if (f) upload(f)
           }}
         />
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          data-testid="file-upload"
-          className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-        >
+        <Button onClick={() => inputRef.current?.click()} disabled={busy} data-testid="file-upload">
+          <Icon name="upload" />
           {busy ? 'Subiendo…' : 'Subir archivo'}
-        </button>
+        </Button>
       </div>
-      <p className="mb-3 text-xs text-ink-faint">PDF, PNG o JPG. Máximo 10 MB.</p>
+      <p className="mb-4 mt-1.5 text-[13px] text-ink-muted">PDF, PNG o JPG. Máximo 10 MB.</p>
 
-      {error && <p className="mb-2 text-sm text-rose-600">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#a51b18]" role="alert">{error}</p>}
 
       {files.length === 0 ? (
-        <p className="text-sm text-ink-faint">Sin archivos todavía.</p>
+        <p className="text-[14.5px] text-ink-muted">Sin archivos todavía.</p>
       ) : (
-        <ul className="divide-y divide-line-row">
+        <ul className="divide-y divide-line">
           {files.map((f) => (
-            <li key={f.id} className="flex items-center justify-between gap-3 py-2 text-sm">
-              <div className="min-w-0">
-                <p className="truncate font-medium text-ink">
-                  {f.mime_type === 'application/pdf' ? '📄' : '🖼️'} {f.file_name}
-                </p>
-                <p className="text-xs text-ink-faint">
-                  {dateLabel(f.created_at)} · {sizeLabel(f.size_bytes)}
+            <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0">
+              <span className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-brand-50 text-brand-600" aria-hidden>
+                <Icon name={f.mime_type === 'application/pdf' ? 'file' : 'image'} className="h-5 w-5" />
+              </span>
+              <div className="min-w-0 flex-1 basis-[12rem]">
+                <p className="truncate text-[15px] font-semibold text-ink">{f.file_name}</p>
+                <p className="text-[13px] text-ink-muted">
+                  <span className="tabular-nums">
+                    {dateLabel(f.created_at)} · {sizeLabel(f.size_bytes)}
+                  </span>
                   {f.note ? ` · ${f.note}` : ''}
                 </p>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={() => open(f.id)}
-                  disabled={pending}
-                  data-testid="file-open"
-                  className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-ink-muted hover:bg-surface disabled:opacity-50"
-                >
+              <div className="ml-auto flex gap-1.5">
+                <Button variant="secondary" size="sm" onClick={() => open(f.id)} disabled={pending} data-testid="file-open">
+                  <Icon name="external" className="h-4 w-4" />
                   Abrir
-                </button>
-                <button
-                  type="button"
-                  onClick={() => remove(f.id)}
-                  disabled={pending}
-                  className="rounded-lg border border-line px-2 py-1 text-xs font-medium text-rose-600 hover:bg-surface disabled:opacity-50"
-                >
-                  Eliminar
-                </button>
+                </Button>
+                <Button variant="danger" size="sm" onClick={() => remove(f.id)} disabled={pending} aria-label="Eliminar archivo">
+                  <Icon name="trash" className="h-4 w-4" />
+                  <span className="hidden sm:inline">Eliminar</span>
+                </Button>
               </div>
             </li>
           ))}
         </ul>
       )}
-    </section>
+    </Section>
   )
 }

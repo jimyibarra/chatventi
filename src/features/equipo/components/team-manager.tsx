@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import {
   inviteMember,
   revokeInvitation,
@@ -18,6 +17,13 @@ import {
   type TeamInvitation,
   type TeamRoleKey,
 } from '../types'
+import { Section } from '@/shared/components/ui/card'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Button, ButtonLink } from '@/shared/components/ui/button'
+import { Field, Input, Select } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
+import { StatusChip } from '@/shared/components/ui/status-chip'
 
 type ResourceOpt = { id: string; name: string }
 
@@ -76,57 +82,42 @@ export function TeamManager({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Invitar */}
-      <section className="rounded-card border border-line bg-white p-5">
-        <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-          <div>
-            <h2 className="text-base font-semibold text-ink">Invitar a tu equipo</h2>
-            <p className="text-sm text-ink-soft">
-              Delega la operación sin dar las llaves del negocio.
-            </p>
-          </div>
-          <span
-            className={`rounded-full border px-2.5 py-1 text-xs font-medium ${
-              full ? 'border-warn-bg bg-warn-bg text-warn' : 'border-line text-ink-muted'
-            }`}
-            data-testid="seat-counter"
-          >
+      <Section
+        title="Invitar a tu equipo"
+        description="Delega la operación sin dar las llaves del negocio."
+        actions={
+          <StatusChip tone={full ? 'wait' : 'neutral'} testId="seat-counter" size="md">
             {seats.used} de {seats.allowed} accesos en uso
-          </span>
-        </div>
-
+          </StatusChip>
+        }
+      >
         {full ? (
-          <div className="rounded-lg border border-warn-bg bg-warn-bg p-4 text-sm text-warn">
-            <p className="font-medium">No te quedan accesos disponibles.</p>
-            <p className="mt-1">
-              Cada acceso extra cuesta $19/mes.{' '}
-              <Link href="/dashboard/facturacion" className="underline">
+          <Notice
+            tone="action"
+            title="No te quedan accesos disponibles"
+            action={
+              <ButtonLink href="/dashboard/facturacion" variant="secondary" size="sm">
                 Añadir accesos
-              </Link>
-            </p>
-          </div>
+              </ButtonLink>
+            }
+          >
+            Cada acceso extra cuesta $19/mes.
+          </Notice>
         ) : (
-          <div className="flex flex-wrap items-end gap-2">
-            <div className="min-w-[15rem] flex-1">
-              <label className="mb-1 block text-xs text-ink-soft">Correo</label>
-              <input
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end">
+            <Field label="Correo">
+              <Input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 data-testid="invite-email"
                 placeholder="recepcion@minegocio.com"
-                className="w-full rounded-lg border border-line px-3 py-1.5 text-sm"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-ink-soft">Rol</label>
-              <select
-                value={roleKey}
-                onChange={(e) => setRoleKey(e.target.value as TeamRoleKey)}
-                data-testid="invite-role"
-                className="rounded-lg border border-line px-3 py-1.5 text-sm"
-              >
+            </Field>
+            <Field label="Rol">
+              <Select value={roleKey} onChange={(e) => setRoleKey(e.target.value as TeamRoleKey)} data-testid="invite-role">
                 {(Object.keys(TEAM_ROLES) as TeamRoleKey[])
                   .filter((k) => k !== 'owner')
                   .map((k) => (
@@ -134,162 +125,157 @@ export function TeamManager({
                       {TEAM_ROLES[k].label}
                     </option>
                   ))}
-              </select>
-            </div>
+              </Select>
+            </Field>
             {roleKey === 'profesional' && (
-              <div>
-                <label className="mb-1 block text-xs text-ink-soft">Su ficha</label>
-                <select
-                  value={resourceId}
-                  onChange={(e) => setResourceId(e.target.value)}
-                  className="rounded-lg border border-line px-3 py-1.5 text-sm"
-                >
+              <Field label="Su ficha" className="sm:col-span-2 lg:order-last lg:col-span-1">
+                <Select value={resourceId} onChange={(e) => setResourceId(e.target.value)}>
                   <option value="">Sin vincular</option>
                   {resources.map((r) => (
                     <option key={r.id} value={r.id}>
                       {r.name}
                     </option>
                   ))}
-                </select>
-              </div>
+                </Select>
+              </Field>
             )}
-            <button
-              onClick={invite}
-              disabled={pending || !email.trim()}
-              data-testid="invite-submit"
-              className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-            >
+            <Button onClick={invite} disabled={pending || !email.trim()} data-testid="invite-submit" className="sm:col-span-2 lg:col-span-1">
+              <Icon name="mail" />
               Invitar
-            </button>
+            </Button>
           </div>
         )}
 
-        <p className="mt-2 text-xs text-ink-faint">{TEAM_ROLES[roleKey].description}</p>
+        <p className="mt-2.5 flex items-start gap-2 text-[13.5px] leading-snug text-ink-muted">
+          <Icon name="info" className="mt-px h-4 w-4" />
+          <span>
+            <b className="font-semibold text-ink">{TEAM_ROLES[roleKey].label}:</b> {TEAM_ROLES[roleKey].description}
+          </span>
+        </p>
 
-        {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
-        {notice && <p className="mt-2 text-sm text-success">{notice}</p>}
+        {error && <p className="mt-3 text-sm text-[#a51b18]" role="alert">{error}</p>}
+        {notice && (
+          <Notice tone="success" size="sm" className="mt-3">
+            {notice}
+          </Notice>
+        )}
         {manualLink && (
-          <div className="mt-3 rounded-lg border border-warn-bg bg-warn-bg p-3 text-sm text-warn">
-            <p className="font-medium">La invitación se creó, pero el correo no salió.</p>
-            <p className="mt-1">Copia este enlace y mándaselo tú:</p>
-            <code className="mt-2 block break-all rounded bg-white/60 p-2 text-xs" data-testid="invite-link">
+          <Notice tone="action" className="mt-3" title="La invitación se creó, pero el correo no salió">
+            Copia este enlace y mándaselo tú:
+            <code className="mt-2 block select-all break-all rounded-[10px] bg-white/70 p-2.5 font-mono text-[12.5px]" data-testid="invite-link">
               {manualLink}
             </code>
-          </div>
+          </Notice>
         )}
-      </section>
+      </Section>
 
       {/* Pendientes */}
       {invitations.length > 0 && (
-        <section className="rounded-card border border-line bg-white p-5">
-          <h2 className="mb-3 text-base font-semibold text-ink">Invitaciones pendientes</h2>
-          <ul className="divide-y divide-line-row">
+        <Section title="Invitaciones pendientes" badge={<StatusChip tone="neutral">{invitations.length}</StatusChip>}>
+          <ul className="divide-y divide-line">
             {invitations.map((i) => (
-              <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <div>
-                  <p className="text-sm text-ink">{i.email}</p>
-                  <p className="text-xs text-ink-soft">
-                    {TEAM_ROLES[roleKeyOf(i.role, i.resource_scope)].label} · caduca el{' '}
-                    {new Date(i.expires_at).toLocaleDateString('es-MX')}
+              <li key={i.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-3 first:pt-0 last:pb-0">
+                <span className="grid h-10 w-10 flex-none place-items-center rounded-full bg-surface text-ink-muted" aria-hidden>
+                  <Icon name="mail" />
+                </span>
+                <div className="min-w-0 flex-1 basis-[12rem]">
+                  <p className="text-[15px] font-semibold text-ink [overflow-wrap:anywhere]">{i.email}</p>
+                  <p className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted">
+                    <StatusChip tone="neutral">{TEAM_ROLES[roleKeyOf(i.role, i.resource_scope)].label}</StatusChip>
+                    caduca el {new Date(i.expires_at).toLocaleDateString('es-MX')}
                   </p>
                 </div>
-                <div className="flex gap-3">
-                  <button
+                <div className="ml-auto flex gap-1.5">
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => run(() => resendInvitation(i.email, roleKeyOf(i.role, i.resource_scope)))}
                     disabled={pending}
-                    className="text-xs text-brand-600 hover:underline"
                   >
+                    <Icon name="refresh" className="h-4 w-4" />
                     Reenviar
-                  </button>
-                  <button
-                    onClick={() => run(() => revokeInvitation(i.id))}
-                    disabled={pending}
-                    className="text-xs text-rose-600 hover:underline"
-                  >
+                  </Button>
+                  <Button variant="danger" size="sm" onClick={() => run(() => revokeInvitation(i.id))} disabled={pending}>
                     Cancelar
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       )}
 
       {/* Miembros */}
-      <section className="rounded-card border border-line bg-white p-5">
-        <h2 className="mb-3 text-base font-semibold text-ink">Miembros</h2>
-        <ul className="divide-y divide-line-row">
+      <Section title="Miembros" badge={<StatusChip tone="neutral">{members.length}</StatusChip>}>
+        <ul className="divide-y divide-line">
           {members.map((m) => {
             const key = roleKeyOf(m.role, m.resource_scope)
             const meta = TEAM_ROLES[key]
             const isMe = m.id === myId
+            const display = m.full_name || m.email || 'Sin nombre'
             return (
-              <li key={m.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                <div className="min-w-0">
-                  <p className={`text-sm ${m.is_active ? 'text-ink' : 'text-ink-faint line-through'}`}>
-                    {m.full_name || m.email || 'Sin nombre'}
-                    {isMe && <span className="ml-1 text-xs text-ink-faint">(tú)</span>}
-                    {!m.is_active && <span className="ml-1 text-xs">(desactivado)</span>}
+              <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-2.5 py-3 first:pt-0 last:pb-0">
+                <Avatar name={display} className={m.is_active ? '' : 'opacity-50'} />
+                <div className="min-w-0 flex-1 basis-[12rem]">
+                  <p className={`flex flex-wrap items-center gap-2 text-[15px] font-semibold ${m.is_active ? 'text-ink' : 'text-ink-muted line-through'}`}>
+                    <span className="min-w-0 [overflow-wrap:anywhere]">{display}</span>
+                    {isMe && <StatusChip tone="brand">Tú</StatusChip>}
+                    {!m.is_active && <StatusChip tone="off">Desactivado</StatusChip>}
                   </p>
-                  <p className="text-xs text-ink-soft">
+                  <p className="mt-0.5 text-[13px] text-ink-muted [overflow-wrap:anywhere]">
                     {m.email}
                     {m.resourceName && ` · ficha: ${m.resourceName}`}
                   </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="ml-auto flex flex-wrap items-center gap-1.5">
                   {isMe ? (
-                    <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${meta.badge}`}>
+                    <StatusChip tone={key === 'owner' ? 'brand' : 'neutral'} size="md">
                       {meta.label}
-                    </span>
+                    </StatusChip>
                   ) : (
-                    <select
-                      value={key}
-                      onChange={(e) =>
-                        run(() =>
-                          changeMemberRole({
-                            profileId: m.id,
-                            roleKey: e.target.value as TeamRoleKey,
-                            resourceId: m.resourceId,
-                          })
-                        )
-                      }
-                      disabled={pending}
-                      data-testid={`role-select-${m.id}`}
-                      className="rounded-lg border border-line px-2.5 py-1 text-xs"
-                    >
-                      {(Object.keys(TEAM_ROLES) as TeamRoleKey[]).map((k) => (
-                        <option key={k} value={k}>
-                          {TEAM_ROLES[k].label}
-                        </option>
-                      ))}
-                    </select>
+                    <label>
+                      <span className="sr-only">Rol de {display}</span>
+                      <Select
+                        value={key}
+                        onChange={(e) =>
+                          run(() =>
+                            changeMemberRole({
+                              profileId: m.id,
+                              roleKey: e.target.value as TeamRoleKey,
+                              resourceId: m.resourceId,
+                            })
+                          )
+                        }
+                        disabled={pending}
+                        data-testid={`role-select-${m.id}`}
+                        wrapperClassName="w-[11.5rem]"
+                      >
+                        {(Object.keys(TEAM_ROLES) as TeamRoleKey[]).map((k) => (
+                          <option key={k} value={k}>
+                            {TEAM_ROLES[k].label}
+                          </option>
+                        ))}
+                      </Select>
+                    </label>
                   )}
 
                   {!isMe &&
                     (m.is_active ? (
-                      <button
-                        onClick={() => run(() => setMemberActive(m.id, false))}
-                        disabled={pending}
-                        className="text-xs text-rose-600 hover:underline"
-                      >
+                      <Button variant="danger" size="sm" onClick={() => run(() => setMemberActive(m.id, false))} disabled={pending}>
                         Desactivar
-                      </button>
+                      </Button>
                     ) : (
-                      <button
-                        onClick={() => run(() => setMemberActive(m.id, true))}
-                        disabled={pending}
-                        className="text-xs text-brand-600 hover:underline"
-                      >
+                      <Button variant="secondary" size="sm" onClick={() => run(() => setMemberActive(m.id, true))} disabled={pending}>
                         Reactivar
-                      </button>
+                      </Button>
                     ))}
                 </div>
               </li>
             )
           })}
         </ul>
-      </section>
+      </Section>
     </div>
   )
 }

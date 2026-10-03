@@ -3,6 +3,10 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { createTag, deleteTag } from '../actions'
+import { Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Icon } from '@/shared/components/ui/icon'
+import { Input } from '@/shared/components/ui/field'
 
 type Tag = { id: string; name: string; color: string }
 
@@ -34,53 +38,57 @@ export function TagManager({ tags }: { tags: Tag[] }) {
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-4">
-      <h2 className="mb-2 text-sm font-semibold text-ink">Etiquetas</h2>
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {tags.length === 0 && <span className="text-xs text-ink-faint">Sin etiquetas aún.</span>}
+    <Section
+      title="Etiquetas"
+      description="Agrupa a tus clientes a tu manera: «Prefiere la tarde», «Paga en efectivo»…"
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {tags.length === 0 && <span className="text-[13.5px] text-ink-muted">Todavía no creas ninguna.</span>}
         {tags.map((t) => (
           <span
             key={t.id}
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+            className="inline-flex h-8 items-center gap-1 rounded-full pl-3 pr-1 text-[13px] font-semibold text-white"
             style={{ background: t.color }}
             data-testid="tag-chip"
           >
             {t.name}
             <button
+              type="button"
               onClick={() => remove(t.id)}
               disabled={pending}
-              className="ml-0.5 opacity-70 hover:opacity-100"
+              className="grid h-6 w-6 place-items-center rounded-full transition-colors hover:bg-black/20 disabled:opacity-50"
               aria-label={`Eliminar ${t.name}`}
             >
-              ✕
+              <Icon name="x" className="h-3.5 w-3.5" strokeWidth={2.6} />
             </button>
           </span>
         ))}
       </div>
       <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={color}
-          onChange={(e) => setColor(e.target.value)}
-          className="h-8 w-10 rounded border border-line"
-        />
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          data-testid="tag-name"
-          placeholder="Nueva etiqueta (ej. VIP)"
-          className="flex-1 rounded-lg border border-line px-3 py-1.5 text-sm"
-        />
-        <button
-          onClick={add}
-          disabled={pending || !name.trim()}
-          data-testid="add-tag"
-          className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-        >
+        <label className="relative grid h-11 w-11 flex-none cursor-pointer place-items-center overflow-hidden rounded-[13px] shadow-[inset_0_0_0_2px_#d6dbec] md:h-10 md:w-10" title="Color de la etiqueta">
+          <span className="sr-only">Color de la etiqueta</span>
+          <span className="h-6 w-6 rounded-full" style={{ background: color }} aria-hidden />
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          />
+        </label>
+        <label className="min-w-0 flex-1">
+          <span className="sr-only">Nombre de la etiqueta</span>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            data-testid="tag-name"
+            placeholder="Nueva etiqueta (ej. VIP)"
+          />
+        </label>
+        <Button onClick={add} disabled={pending || !name.trim()} data-testid="add-tag">
           Crear
-        </button>
+        </Button>
       </div>
-      {error && <p className="mt-2 text-sm text-rose-700">{error}</p>}
-    </section>
+      {error && <p className="mt-2 text-sm text-[#a51b18]" role="alert">{error}</p>}
+    </Section>
   )
 }

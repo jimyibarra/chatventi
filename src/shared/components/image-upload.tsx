@@ -2,6 +2,8 @@
 
 import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/shared/components/ui/button'
+import { Icon } from '@/shared/components/ui/icon'
 
 const MEDIA_BUCKET = 'media'
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB (coincide con el tope del bucket)
@@ -83,20 +85,18 @@ export function ImageUpload({
     }
   }
 
-  const box = shape === 'round' ? 'rounded-full' : 'rounded-xl'
+  const box = shape === 'round' ? 'rounded-full' : 'rounded-[16px]'
 
   return (
-    <div className="flex items-start gap-3">
+    <div className="flex items-start gap-3.5">
       <div
-        className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden border border-line bg-surface ${box}`}
+        className={`grid h-16 w-16 shrink-0 place-items-center overflow-hidden bg-surface shadow-[inset_0_0_0_2px_#dde2f0] ${box}`}
       >
         {url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={url} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="text-xl text-ink-faint" aria-hidden>
-            🖼️
-          </span>
+          <Icon name="image" className="h-6 w-6 text-ink-faint" />
         )}
       </div>
 
@@ -112,26 +112,18 @@ export function ImageUpload({
           }}
         />
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={busy}
-            className="rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-          >
+          <Button variant="secondary" size="sm" onClick={() => inputRef.current?.click()} disabled={busy}>
+            <Icon name="upload" className="h-4 w-4" />
             {busy ? 'Subiendo…' : url ? 'Cambiar' : label}
-          </button>
+          </Button>
           {url && !busy && (
-            <button
-              type="button"
-              onClick={remove}
-              className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-surface"
-            >
+            <Button variant="danger" size="sm" onClick={remove}>
               Quitar
-            </button>
+            </Button>
           )}
         </div>
-        {hint && <p className="mt-1 text-xs text-ink-faint">{hint}</p>}
-        {error && <p className="mt-1 text-xs text-rose-600">{error}</p>}
+        {hint && <p className="mt-1.5 text-[13px] leading-snug text-ink-muted">{hint}</p>}
+        {error && <p className="mt-1.5 text-[13px] text-[#a51b18]" role="alert">{error}</p>}
       </div>
     </div>
   )

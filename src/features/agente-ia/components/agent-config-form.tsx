@@ -3,6 +3,11 @@
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { saveAgentConfig } from '../actions'
+import { Card } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input, Select, Switch, Textarea } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
 
 type Config = {
   enabled: boolean
@@ -39,96 +44,75 @@ export function AgentConfigForm({ config }: { config: Config }) {
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-base font-semibold text-ink">Recepcionista IA</h2>
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
-            data-testid="agent-enabled"
-          />
-          <span className={enabled ? 'font-medium text-success' : 'text-ink-soft'}>
+    <Card as="section" padded={false} className="overflow-hidden" aria-label="Recepcionista IA">
+      {/* Cabecera de tinta: la misma tarjeta de énfasis que la recepcionista del Panel. */}
+      <div className="flex flex-wrap items-center gap-3 bg-ink px-4 py-4 text-white md:px-5">
+        <span className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-brand-500" aria-hidden>
+          <Icon name="robot" className="h-[22px] w-[22px]" />
+        </span>
+        <div className="mr-auto min-w-0">
+          <h2 className="text-[1.15rem] font-bold leading-tight">Recepcionista IA</h2>
+          <p className="text-[13.5px] text-[#dcd8f7]">
+            {config?.enabled
+              ? 'Atiende a tus clientes por ti.'
+              : 'En pausa: los mensajes esperan a que alguien del equipo conteste.'}
+          </p>
+        </div>
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-[13px] bg-white/10 py-2 pl-3 pr-2.5">
+          <span className={`text-[14px] font-semibold ${enabled ? 'text-[#4ade80]' : 'text-white/80'}`}>
             {enabled ? 'Activo' : 'Inactivo'}
           </span>
+          <Switch checked={enabled} onChange={(e) => setEnabled(e.target.checked)} data-testid="agent-enabled" />
         </label>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">
-            Instrucciones del agente (prompt del sistema)
-          </label>
-          <textarea
+      <div className="space-y-4 p-4 md:p-5">
+        <Field
+          label="Instrucciones del agente (prompt del sistema)"
+          hint="El agente siempre queda acotado a tu negocio (servicios, citas y base de conocimiento)."
+        >
+          <Textarea
             value={systemPrompt}
             onChange={(e) => setSystemPrompt(e.target.value)}
-            rows={5}
+            rows={6}
             data-testid="system-prompt"
             placeholder="Ej: Eres la recepcionista de la Barbería El Corte. Tono cercano y profesional…"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
           />
-          <p className="mt-1 text-xs text-ink-faint">
-            El agente siempre queda acotado a tu negocio (servicios, citas y base de conocimiento).
-          </p>
-        </div>
+        </Field>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">
-            Aprobación humana
-          </label>
-          <select
-            value={approvalMode}
-            onChange={(e) => setApprovalMode(e.target.value)}
-            data-testid="approval-mode"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-          >
-            <option value="off">Nunca (el agente responde solo)</option>
-            <option value="low_confidence">Cuando el agente lo pida (recomendado)</option>
-            <option value="always">Siempre (revisar cada respuesta)</option>
-          </select>
-          <p className="mt-1 text-xs text-ink-faint">
-            Controla cuándo una respuesta espera tu visto bueno antes de enviarse.
-          </p>
-        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Aprobación humana" hint="Cuándo una respuesta espera tu visto bueno antes de enviarse.">
+            <Select value={approvalMode} onChange={(e) => setApprovalMode(e.target.value)} data-testid="approval-mode">
+              <option value="off">Nunca (el agente responde solo)</option>
+              <option value="low_confidence">Cuando el agente lo pida (recomendado)</option>
+              <option value="always">Siempre (revisar cada respuesta)</option>
+            </Select>
+          </Field>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-ink-muted">
-            Chat de Telegram para aprobaciones
-          </label>
-          <input
-            value={chatId}
-            onChange={(e) => setChatId(e.target.value)}
-            data-testid="approval-chat"
-            placeholder="Ej: 123456789 (chat id donde llegan las propuestas)"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm focus:border-brand-400"
-          />
-          <p className="mt-1 text-xs text-ink-faint">
-            Escribe al bot desde ese chat para que pueda enviarte las aprobaciones.
-          </p>
+          <Field label="Chat de Telegram para aprobaciones" hint="Escribe al bot desde ese chat para que pueda enviarte las aprobaciones.">
+            <Input
+              value={chatId}
+              onChange={(e) => setChatId(e.target.value)}
+              data-testid="approval-chat"
+              placeholder="Ej: 123456789"
+              className="tabular-nums"
+            />
+          </Field>
         </div>
 
         {msg && (
-          <p
-            className={`rounded-lg px-3 py-2 text-sm ${
-              msg.ok ? 'bg-success-bg text-success' : 'bg-rose-50 text-rose-700'
-            }`}
-          >
+          <Notice tone={msg.ok ? 'success' : 'danger'} size="sm">
             {msg.text}
-          </p>
+          </Notice>
         )}
 
-        <div className="flex justify-end">
-          <button
-            onClick={save}
-            disabled={pending}
-            data-testid="save-agent"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-          >
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-line pt-4">
+          <p className="mr-auto text-[13px] text-ink-muted">El interruptor de arriba se aplica al guardar.</p>
+          <Button onClick={save} disabled={pending} data-testid="save-agent">
             {pending ? 'Guardando…' : 'Guardar'}
-          </button>
+          </Button>
         </div>
       </div>
-    </section>
+    </Card>
   )
 }

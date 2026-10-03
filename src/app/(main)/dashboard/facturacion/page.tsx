@@ -14,6 +14,9 @@ import { DATA_RETENTION_DAYS, type PlanId } from '@/features/billing/plans'
 import { UsageCard } from '@/features/billing/components/usage-card'
 import { ReferralCard } from '@/features/billing/components/referral-card'
 import { LEGAL } from '@/shared/constants/legal'
+import { Page, PageHeader } from '@/shared/components/ui/page-header'
+import { EmptyState } from '@/shared/components/ui/empty-state'
+import { Notice } from '@/shared/components/ui/notice'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,13 +67,15 @@ export default async function FacturacionPage({
   // directo con ChatVenti (sería saltarse a quien se lo vendió).
   if (org?.partner_id && !active) {
     return (
-      <div className="mx-auto max-w-2xl p-8">
-        <h1 className="text-2xl font-bold text-ink">Tu acceso está en pausa</h1>
-        <p className="mt-3 text-ink-soft" data-testid="partner-paused">
-          Tu cuenta la administra el proveedor con el que contrataste el servicio. Escríbele para
-          reactivarla: tus datos, tu agenda y tus conversaciones siguen guardados.
-        </p>
-      </div>
+      <Page width="narrow">
+        <PageHeader title="Facturación" />
+        <EmptyState icon="lock" title="Tu acceso está en pausa">
+          <span data-testid="partner-paused">
+            Tu cuenta la administra el proveedor con el que contrataste el servicio. Escríbele para
+            reactivarla: tus datos, tu agenda y tus conversaciones siguen guardados.
+          </span>
+        </EmptyState>
+      </Page>
     )
   }
   // Banner de "prueba terminada" si el acceso está bloqueado (sin éxito reciente).
@@ -87,21 +92,18 @@ export default async function FacturacionPage({
     : null
 
   return (
-    <div className="mx-auto max-w-2xl p-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-ink">Facturación</h1>
-        <p className="mt-1 text-ink-muted">
-          Elige el plan del tamaño de tu negocio. Todos incluyen el recepcionista IA por
-          WhatsApp, la agenda, el CRM y las reservas web.
-        </p>
-      </div>
+    <Page width="narrow">
+      <PageHeader
+        title="Facturación"
+        subtitle="Elige el plan del tamaño de tu negocio. Todos incluyen el recepcionista IA por WhatsApp, la agenda, el CRM y las reservas web."
+      />
 
       {blocked && <TrialEndedBanner deleteLabel={deleteLabel} />}
       {success && <PostCheckoutSuccess active={active} />}
       {canceled && !success && (
-        <div className="mb-6 rounded-card border border-warn-bg bg-warn-bg p-4 text-sm text-warn">
+        <Notice tone="info" className="mb-4">
           Cancelaste el proceso de pago. Puedes contratar cuando quieras; no se hizo ningún cargo.
-        </div>
+        </Notice>
       )}
 
       <BillingClient
@@ -136,6 +138,6 @@ export default async function FacturacionPage({
       )}
 
       {!active && <OnboardingHelpCard />}
-    </div>
+    </Page>
   )
 }

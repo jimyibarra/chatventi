@@ -4,6 +4,7 @@ import { getBranches, getServices, getAppointmentsRange } from '@/features/agend
 import { getResources, getResourceLabel } from '@/features/profesionales/services'
 import { dayRangeUtc, weekRangeUtc, ymdInTz } from '@/features/agenda/datetime'
 import { buildDay } from '@/features/lineas/model'
+import { ButtonLink, EmptyState, Notice, Page } from '@/shared/components/ui'
 
 export const dynamic = 'force-dynamic'
 
@@ -18,11 +19,11 @@ export default async function AgendaPage({
   const branches = await getBranches(supabase)
   if (branches.length === 0) {
     return (
-      <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
-          Aún no tienes una sucursal. Se crea automáticamente al registrar tu negocio.
-        </div>
-      </div>
+      <Page width="narrow">
+        <EmptyState icon="calendar" title="Aún no tienes una sucursal">
+          Se crea automáticamente al registrar tu negocio.
+        </EmptyState>
+      </Page>
     )
   }
 
@@ -80,19 +81,18 @@ export default async function AgendaPage({
   return (
     <>
       {missingSetup && (
-        <div className="mx-auto mt-4 max-w-5xl px-4">
-          <div
-            className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-warn-bg bg-warn-bg p-4 text-sm text-warn"
-            data-testid="agenda-setup-warning"
+        <div className="mx-auto max-w-[1280px] px-4 pt-4 md:px-6 md:pt-6">
+          <Notice
+            tone="action"
+            testId="agenda-setup-warning"
+            action={
+              <ButtonLink href={missingSetup.href} variant="secondary" size="sm">
+                Configurar ahora
+              </ButtonLink>
+            }
           >
-            <p>{missingSetup.text}</p>
-            <a
-              href={missingSetup.href}
-              className="rounded-xl bg-warn-strong px-3 py-1.5 text-sm font-medium text-white hover:bg-warn"
-            >
-              Configurar ahora
-            </a>
-          </div>
+            {missingSetup.text}
+          </Notice>
         </div>
       )}
       <AgendaBoard

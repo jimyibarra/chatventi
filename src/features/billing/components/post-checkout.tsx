@@ -3,6 +3,9 @@
 import { useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { Section } from '@/shared/components/ui/card'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
 
 // Pasos recomendados tras contratar: lo que el negocio debe hacer para poner
 // en marcha lo que acaba de comprar.
@@ -43,45 +46,36 @@ export function PostCheckoutSuccess({ active }: { active: boolean }) {
   }, [active, router])
 
   return (
-    <div className="mb-6 space-y-5">
-      <div className="rounded-card border border-success-bg bg-success-bg p-5">
-        <div className="flex items-start gap-3">
-          <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success text-white">
-            ✓
-          </span>
-          <div>
-            <h2 className="text-lg font-bold text-success">¡Listo! Tu plan quedó activo</h2>
-            <p className="mt-1 text-sm text-ink-muted">
-              Empezaste tu prueba gratis. No se te cobrará hasta que termine el periodo, y puedes
-              cancelar cuando quieras desde “Administrar suscripción”.
-              {!active && ' Estamos activando tu plan; si no aparece abajo en unos segundos, actualiza la página.'}
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="mb-4 space-y-4">
+      <Notice tone="success" title="¡Listo! Tu plan quedó activo">
+        Empezaste tu prueba gratis. No se te cobrará hasta que termine el periodo, y puedes
+        cancelar cuando quieras desde «Administrar suscripción».
+        {!active && ' Estamos activando tu plan; si no aparece abajo en unos segundos, actualiza la página.'}
+      </Notice>
 
-      <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-soft">
-          ¿Qué sigue?
-        </h3>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Section title="¿Qué sigue?" description="Cuatro pasos para que tu recepcionista empiece a vender.">
+        {/* Los pasos son estaciones de una misma línea: el orden importa. */}
+        <ol className="relative">
+          <i className="absolute bottom-6 left-[15px] top-6 w-1 rounded bg-brand-200" aria-hidden />
           {NEXT_STEPS.map((s, i) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="group rounded-xl border border-line bg-white p-4 transition-all hover:border-brand-200 hover:shadow-card-hover"
-            >
-              <span className="flex items-center gap-2 font-semibold text-ink">
-                <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-50 text-xs font-bold text-brand-700">
+            <li key={s.href} className="relative">
+              <Link
+                href={s.href}
+                className="group flex items-center gap-3.5 rounded-[14px] py-2.5 pr-2 transition-colors duration-150 hover:bg-brand-50"
+              >
+                <span className="relative z-[1] grid h-[34px] w-[34px] flex-none place-items-center rounded-full border-[3.5px] border-brand-500 bg-white text-[14px] font-bold text-brand-700">
                   {i + 1}
                 </span>
-                {s.title}
-              </span>
-              <span className="mt-1 block text-sm text-ink-soft">{s.body}</span>
-            </Link>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-semibold text-ink">{s.title}</span>
+                  <span className="block text-[13.5px] leading-snug text-ink-muted">{s.body}</span>
+                </span>
+                <Icon name="chevronRight" className="h-5 w-5 text-ink-muted transition-transform duration-150 group-hover:translate-x-0.5 motion-reduce:transition-none" />
+              </Link>
+            </li>
           ))}
-        </div>
-      </div>
+        </ol>
+      </Section>
     </div>
   )
 }

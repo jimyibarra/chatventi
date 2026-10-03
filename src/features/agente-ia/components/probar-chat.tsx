@@ -1,6 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Button } from '@/shared/components/ui/button'
+import { CONTROL, CONTROL_H } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
 
 type Msg = { me: boolean; text: string }
 
@@ -86,51 +90,48 @@ export function ProbarChat({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full min-w-0">
       {!agentEnabled && (
-        <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-          Tu recepcionista está <b>desactivado</b> para clientes reales, pero aquí puedes
-          probarlo con total libertad. Actívalo cuando estés a gusto con sus respuestas.
-        </div>
+        <Notice tone="info" size="sm" className="mx-auto mb-3 max-w-[540px]">
+          Tu recepcionista está <b>desactivada</b> para clientes reales, pero aquí puedes probarla con
+          total libertad. Actívala cuando estés a gusto con sus respuestas.
+        </Notice>
       )}
 
       {/* Marco tipo teléfono */}
-      <div className="mx-auto flex max-w-[420px] flex-col overflow-hidden rounded-[26px] border border-line bg-white shadow-card">
-        {/* Cabecera estilo chat */}
-        <div className="flex items-center gap-3 bg-gradient-to-br from-brand-500 to-brand-700 px-4 py-3 text-white">
-          <span
-            aria-hidden
-            className="grid h-9 w-9 place-items-center rounded-full bg-white/20 text-lg"
-          >
-            🤖
+      <div className="mx-auto flex max-w-[540px] flex-col overflow-hidden rounded-[24px] bg-white shadow-[0_1px_0_#dde2f0,0_18px_40px_-18px_rgba(42,26,94,.35)]">
+        {/* Cabecera: la tinta de la recepcionista, como en el Panel */}
+        <div className="flex items-center gap-3 bg-ink px-4 py-3 text-white">
+          <span aria-hidden className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-brand-500">
+            <Icon name="robot" className="h-[22px] w-[22px]" />
           </span>
           <div className="min-w-0">
-            <p className="truncate text-sm font-bold">{businessName}</p>
-            <p className="text-[12px] text-white/85">Recepcionista IA · modo prueba</p>
+            <p className="truncate text-[15px] font-bold">{businessName}</p>
+            <p className="flex items-center gap-1.5 text-[12.5px] text-[#dcd8f7]">
+              <i className="h-[7px] w-[7px] rounded-full bg-[#4ade80]" aria-hidden />
+              Recepcionista IA · modo prueba
+            </p>
           </div>
-          <button
-            type="button"
-            onClick={reset}
-            disabled={busy}
-            className="ml-auto shrink-0 rounded-lg bg-white/15 px-2.5 py-1.5 text-[12px] font-medium hover:bg-white/25 disabled:opacity-50"
-          >
+          <Button variant="inverse" size="sm" onClick={reset} disabled={busy} className="ml-auto">
+            <Icon name="refresh" className="h-4 w-4" />
             Reiniciar
-          </button>
+          </Button>
         </div>
 
         {/* Hilo */}
         <div
           ref={scrollRef}
           data-testid="probar-chat-messages"
-          className="flex h-[380px] flex-col gap-2.5 overflow-y-auto bg-surface p-4"
+          className="flex h-[min(58vh,460px)] flex-col gap-2.5 overflow-y-auto bg-[#f6f7fc] p-4"
+          aria-live="polite"
         >
           {messages.map((m, i) => (
             <div
               key={i}
-              className={`max-w-[85%] whitespace-pre-wrap px-3.5 py-2.5 text-[14px] leading-relaxed ${
+              className={`cv-pop max-w-[85%] whitespace-pre-wrap px-3.5 py-2.5 text-[15px] leading-relaxed [overflow-wrap:anywhere] ${
                 m.me
-                  ? 'self-end rounded-[16px_16px_4px_16px] bg-brand-100 text-ink'
-                  : 'self-start rounded-[16px_16px_16px_4px] border border-line bg-white text-ink'
+                  ? 'self-end rounded-[18px_18px_6px_18px] bg-brand-500 text-white'
+                  : 'self-start rounded-[18px_18px_18px_6px] bg-white text-ink shadow-[0_1px_0_#dde2f0]'
               }`}
             >
               {m.text}
@@ -138,25 +139,26 @@ export function ProbarChat({
           ))}
           {busy && (
             <div
-              className="inline-flex gap-1 self-start rounded-[16px_16px_16px_4px] border border-line bg-white px-4 py-3"
+              className="inline-flex gap-1.5 self-start rounded-[18px_18px_18px_6px] bg-white px-4 py-3.5 shadow-[0_1px_0_#dde2f0]"
               aria-label="La IA está escribiendo"
+              role="status"
             >
-              <span className="cv-typing-dot" />
-              <span className="cv-typing-dot" style={{ animationDelay: '0.2s' }} />
-              <span className="cv-typing-dot" style={{ animationDelay: '0.4s' }} />
+              <span className="cv-dot" />
+              <span className="cv-dot" />
+              <span className="cv-dot" />
             </div>
           )}
         </div>
 
         {/* Sugerencias (solo al inicio) */}
         {messages.length <= 1 && !busy && (
-          <div className="flex flex-wrap gap-2 bg-surface px-4 pb-2">
+          <div className="flex flex-wrap gap-2 bg-[#f6f7fc] px-4 pb-3">
             {suggestions.map((s) => (
               <button
                 key={s}
                 type="button"
                 onClick={() => send(s)}
-                className="rounded-full border border-brand-200 bg-brand-50 px-3 py-1.5 text-[12.5px] text-brand-700 hover:bg-brand-100"
+                className="min-h-[44px] rounded-full bg-white md:min-h-[40px] px-3.5 text-[13.5px] font-semibold text-brand-700 shadow-[inset_0_0_0_2px_#c4bff5] transition-colors duration-150 hover:bg-brand-50"
               >
                 {s}
               </button>
@@ -167,34 +169,29 @@ export function ProbarChat({
         {/* Entrada */}
         <div className="flex items-center gap-2 border-t border-line bg-white p-3">
           {limited ? (
-            <button
-              type="button"
-              onClick={reset}
-              className="w-full rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600"
-            >
+            <Button onClick={reset} className="w-full">
+              <Icon name="refresh" />
               Reiniciar conversación
-            </button>
+            </Button>
           ) : (
             <>
-              <input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') send(input)
-                }}
-                placeholder="Escribe como un cliente…"
-                data-testid="probar-chat-input"
-                className="flex-1 rounded-xl border border-line px-3.5 py-2.5 text-[14px] outline-none focus:border-brand-400"
-              />
-              <button
-                type="button"
-                onClick={() => send(input)}
-                disabled={busy || !input.trim()}
-                data-testid="probar-chat-send"
-                className="rounded-xl bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-              >
+              <label className="min-w-0 flex-1">
+                <span className="sr-only">Tu mensaje de prueba</span>
+                <input
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') send(input)
+                  }}
+                  placeholder="Escribe como un cliente…"
+                  data-testid="probar-chat-input"
+                  className={`${CONTROL} ${CONTROL_H} w-full`}
+                />
+              </label>
+              <Button onClick={() => send(input)} disabled={busy || !input.trim()} data-testid="probar-chat-send">
+                <Icon name="send" />
                 Enviar
-              </button>
+              </Button>
             </>
           )}
         </div>

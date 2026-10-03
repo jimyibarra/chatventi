@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { Icon } from '@/shared/components/ui/icon'
 
 const GRAPH_VERSION = 'v25.0'
 
@@ -224,23 +225,35 @@ export function EmbeddedSignupButton({
   const disabled = !appId || !configId || state.kind === 'loading'
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2.5">
+      {/* Verde de WhatsApp oscurecido para que el texto blanco se lea (≥ 4.5:1). */}
       <button
         type="button"
         onClick={connect}
         disabled={disabled}
-        className="inline-flex items-center gap-2 rounded-lg bg-[#25D366] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1eb958] disabled:cursor-not-allowed disabled:opacity-50"
+        className="inline-flex min-h-[44px] items-center gap-2 rounded-[13px] bg-[#0b7d47] px-4 text-[15px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#096b3c] active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-50 md:min-h-[40px]"
       >
+        <Icon name="whatsapp" />
         {state.kind === 'loading' ? 'Conectando…' : 'Conectar WhatsApp'}
       </button>
 
       {!configId && (
-        <p className="text-xs text-warn">
-          Falta configurar <code>NEXT_PUBLIC_META_CONFIG_ID</code> (el Embedded Signup de Meta).
+        <p className="text-[13px] text-[#8a5a00]">
+          Falta configurar <code className="font-mono">NEXT_PUBLIC_META_CONFIG_ID</code> (el Embedded Signup de Meta).
         </p>
       )}
-      {state.kind === 'ok' && <p className="text-sm text-success">✓ {state.detail}</p>}
-      {state.kind === 'error' && <p className="text-sm text-red-600">✗ {state.detail}</p>}
+      {state.kind === 'ok' && (
+        <p className="flex items-start gap-1.5 text-sm font-semibold text-[#0b5d36]" role="status">
+          <Icon name="check" className="mt-px h-4 w-4" strokeWidth={2.6} />
+          {state.detail}
+        </p>
+      )}
+      {state.kind === 'error' && (
+        <p className="flex items-start gap-1.5 text-sm text-[#a51b18]" role="alert">
+          <Icon name="alert" className="mt-px h-4 w-4" />
+          {state.detail}
+        </p>
+      )}
     </div>
   )
 }

@@ -73,18 +73,18 @@ export default async function AgentePage() {
 
   return (
     <>
-      <div className="mx-auto max-w-3xl space-y-5 p-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold text-ink">Recepcionista IA</h1>
-            <p className="text-sm text-ink-soft">
+      <div className="mx-auto max-w-[820px] space-y-4 px-4 pb-10 pt-4 md:px-6 md:pt-6">
+        <div className="mb-5 flex flex-wrap items-center gap-3">
+          <div className="min-w-0 flex-1 basis-[16rem]">
+            <h1 className="text-[1.75rem] font-bold leading-tight tracking-tight text-ink">Recepcionista IA</h1>
+            <p className="mt-0.5 max-w-[70ch] text-[15px] leading-snug text-ink-muted">
               Configura el agente que atiende WhatsApp y Telegram: agenda citas, responde dudas y
               escala a un humano cuando hace falta.
             </p>
           </div>
           <Link
             href="/dashboard/agente/probar"
-            className="shrink-0 rounded-xl bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600"
+            className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-[13px] bg-brand-500 px-4 text-[15px] font-semibold text-white shadow-btn transition-colors hover:bg-brand-600 md:min-h-[40px]"
           >
             Probar Chat IA →
           </Link>

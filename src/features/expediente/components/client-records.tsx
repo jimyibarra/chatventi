@@ -4,6 +4,14 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { addClientRecord, deleteClientRecord } from '../actions'
 import { RECORD_KIND_META, type ClientRecord, type RecordKind } from '../types'
+import { Inset, Section } from '@/shared/components/ui/card'
+import { Button } from '@/shared/components/ui/button'
+import { Field, Input, Select, Textarea } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { StatusChip, type ChipTone } from '@/shared/components/ui/status-chip'
+import { fmtMoney } from '@/shared/lib/format'
+
+const KIND_TONE: Record<RecordKind, ChipTone> = { service: 'brand', purchase: 'ok', note: 'neutral' }
 
 function dateTimeLabel(iso: string): string {
   return new Intl.DateTimeFormat('es-MX', { dateStyle: 'medium', timeStyle: 'short' }).format(
@@ -78,124 +86,94 @@ export function ClientRecords({
   }
 
   return (
-    <section className="rounded-card border border-line bg-white p-5">
-      <div className="mb-1 flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-ink">Historial de atención</h2>
-        <button
-          type="button"
+    <Section
+      title="Historial de atención"
+      description="Lo que le hiciste o le vendiste, con su fecha. Queda en su expediente."
+      actions={
+        <Button
+          variant={open ? 'ghost' : 'secondary'}
+          size="sm"
           onClick={() => setOpen((v) => !v)}
           data-testid="record-toggle"
-          className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface"
+          aria-expanded={open}
         >
-          {open ? 'Cerrar' : '+ Agregar'}
-        </button>
-      </div>
-      <p className="mb-3 text-sm text-ink-faint">
-        Lo que le hiciste o le vendiste, con su fecha. Queda en su expediente.
-      </p>
-
+          {open ? 'Cerrar' : (
+            <>
+              <Icon name="plus" className="h-4 w-4" strokeWidth={2.6} />
+              Agregar
+            </>
+          )}
+        </Button>
+      }
+    >
       {open && (
-        <div className="mb-4 space-y-2 rounded-xl border border-line bg-surface p-3">
-          <div className="grid gap-2 sm:grid-cols-[auto_1fr]">
-            <select
-              value={kind}
-              onChange={(e) => setKind(e.target.value as RecordKind)}
-              data-testid="record-kind"
-              className="rounded-lg border border-line bg-white px-3 py-2 text-sm"
-            >
-              <option value="service">Servicio</option>
-              <option value="purchase">Compra</option>
-              <option value="note">Nota</option>
-            </select>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Qué se hizo o se vendió"
-              data-testid="record-title"
-              className="w-full rounded-lg border border-line px-3 py-2 text-sm"
+        <Inset className="mb-4 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-[10rem_minmax(0,1fr)]">
+            <Field label="Tipo">
+              <Select value={kind} onChange={(e) => setKind(e.target.value as RecordKind)} data-testid="record-kind">
+                <option value="service">Servicio</option>
+                <option value="purchase">Compra</option>
+                <option value="note">Nota</option>
+              </Select>
+            </Field>
+            <Field label="Qué se hizo o se vendió">
+              <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Limpieza dental, shampoo…" data-testid="record-title" />
+            </Field>
+          </div>
+          <Field label="Detalle (opcional)">
+            <Textarea
+              value={detail}
+              onChange={(e) => setDetail(e.target.value)}
+              rows={2}
+              placeholder="Observaciones, indicaciones, material usado…"
+              data-testid="record-detail"
             />
+          </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Cuándo">
+              <Input type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} data-testid="record-when" />
+            </Field>
+            <Field label="Importe (opcional)">
+              <Input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="150" data-testid="record-amount" className="tabular-nums" />
+            </Field>
           </div>
-          <textarea
-            value={detail}
-            onChange={(e) => setDetail(e.target.value)}
-            rows={2}
-            placeholder="Detalle (opcional): observaciones, indicaciones, material usado…"
-            data-testid="record-detail"
-            className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-          />
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ink-muted">Cuándo</label>
-              <input
-                type="datetime-local"
-                value={occurredAt}
-                onChange={(e) => setOccurredAt(e.target.value)}
-                data-testid="record-when"
-                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-ink-muted">
-                Importe (opcional)
-              </label>
-              <input
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                inputMode="decimal"
-                placeholder="150"
-                data-testid="record-amount"
-                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={add}
-            disabled={pending || !title.trim()}
-            data-testid="record-save"
-            className="rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-          >
-            {pending ? 'Guardando…' : 'Guardar'}
-          </button>
-        </div>
+          <Button onClick={add} disabled={pending || !title.trim()} data-testid="record-save">
+            {pending ? 'Guardando…' : 'Guardar en el expediente'}
+          </Button>
+        </Inset>
       )}
 
-      {error && <p className="mb-2 text-sm text-rose-600">{error}</p>}
+      {error && <p className="mb-3 text-sm text-[#a51b18]" role="alert">{error}</p>}
 
       {records.length === 0 ? (
-        <p className="text-sm text-ink-faint">Sin registros todavía.</p>
+        <p className="text-[14.5px] text-ink-muted">Sin registros todavía. Agrega el primero después de su próxima visita.</p>
       ) : (
-        <ul className="divide-y divide-line-row">
+        <ul className="divide-y divide-line">
           {records.map((r) => {
             const meta = RECORD_KIND_META[r.kind as RecordKind] ?? RECORD_KIND_META.note
+            const tone = KIND_TONE[r.kind as RecordKind] ?? 'neutral'
             return (
-              <li key={r.id} className="flex items-start justify-between gap-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <p className="font-medium text-ink">
-                    <span className={`mr-2 rounded-full border px-2 py-0.5 text-xs ${meta.badge}`}>
-                      {meta.label}
-                    </span>
-                    {r.title}
+              <li key={r.id} className="flex items-start gap-x-3 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusChip tone={tone}>{meta.label}</StatusChip>
+                    <span className="text-[15px] font-semibold text-ink [overflow-wrap:anywhere]">{r.title}</span>
                     {r.amount !== null ? (
-                      <span className="ml-2 text-ink-muted">${r.amount}</span>
+                      <span className="text-[15px] font-semibold tabular-nums text-ink-muted">{fmtMoney(Number(r.amount))}</span>
                     ) : null}
-                  </p>
-                  <p className="text-xs text-ink-faint">{dateTimeLabel(r.occurred_at)}</p>
-                  {r.detail && <p className="mt-0.5 text-xs text-ink-muted">{r.detail}</p>}
+                  </div>
+                  <p className="mt-1 text-[13px] tabular-nums text-ink-muted">{dateTimeLabel(r.occurred_at)}</p>
+                  {r.detail && <p className="mt-1 max-w-[65ch] text-[14px] leading-snug text-ink-muted">{r.detail}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => remove(r.id)}
-                  disabled={pending}
-                  className="shrink-0 rounded-lg border border-line px-2 py-1 text-xs font-medium text-rose-600 hover:bg-surface disabled:opacity-50"
-                >
-                  Eliminar
-                </button>
+                <Button variant="danger" size="sm" onClick={() => remove(r.id)} disabled={pending} aria-label="Eliminar registro">
+                  <Icon name="trash" className="h-4 w-4" />
+                  <span className="hidden sm:inline">Eliminar</span>
+                </Button>
               </li>
             )
           })}
         </ul>
       )}
-    </section>
+    </Section>
   )
 }

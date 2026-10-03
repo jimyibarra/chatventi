@@ -6,6 +6,8 @@ import { Modal } from './modal'
 import { formatTime } from '../datetime'
 import { setAppointmentStatus } from '../actions'
 import { STATUS_META, type AppointmentStatus, type AppointmentView } from '../types'
+import { apptChip } from '@/features/lineas/status'
+import { buttonClass, StatusChip } from '@/shared/components/ui'
 
 const TRANSITIONS: { status: AppointmentStatus; label: string; testId: string }[] = [
   { status: 'confirmed', label: 'Confirmar', testId: 'status-confirmed' },
@@ -45,49 +47,49 @@ export function AppointmentActions({
 
   return (
     <Modal title="Detalle de la cita" onClose={onClose} testId="appointment-actions">
-      <div className="space-y-3 text-sm">
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-ink">
+      <div className="space-y-4 text-[15px]">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-[16px] bg-surface px-4 py-3">
+          <span className="text-[1.6rem] font-bold leading-none tabular-nums text-ink">
             {formatTime(appointment.starts_at, tz)} – {formatTime(appointment.ends_at, tz)}
           </span>
-          <span className={`rounded-full border px-2 py-0.5 text-xs ${meta.badge}`}>
-            {meta.label}
-          </span>
+          <StatusChip tone={apptChip(appointment.status).tone} size="md" title={meta.label}>
+            {apptChip(appointment.status).label}
+          </StatusChip>
         </div>
-        <div className="space-y-1 text-ink-muted">
+        <div className="space-y-1.5 text-ink">
           <p>
-            <span className="text-ink-faint">Cliente:</span>{' '}
+            <span className="text-ink-muted">Cliente:</span>{' '}
             {appointment.client?.name || appointment.client?.phone || 'Sin cliente'}
           </p>
           <p>
-            <span className="text-ink-faint">Profesional:</span>{' '}
+            <span className="text-ink-muted">Profesional:</span>{' '}
             {appointment.resource?.name || 'Sin asignar'}
           </p>
           <p>
-            <span className="text-ink-faint">Servicios:</span>{' '}
+            <span className="text-ink-muted">Servicios:</span>{' '}
             {appointment.services.map((s) => s.name).join(', ') || '—'}
           </p>
           {appointment.notes && (
             <p>
-              <span className="text-ink-faint">Notas:</span> {appointment.notes}
+              <span className="text-ink-muted">Notas:</span> {appointment.notes}
             </p>
           )}
         </div>
 
         {error && (
-          <p className="rounded-lg bg-rose-50 px-3 py-2 text-rose-700" data-testid="actions-error">
+          <p className="rounded-[12px] bg-[#fde3e1] px-3 py-2 text-sm text-[#8f1714]" role="alert" data-testid="actions-error">
             {error}
           </p>
         )}
 
-        <div className="grid grid-cols-2 gap-2 pt-2">
+        <div className="grid grid-cols-2 gap-2 border-t border-line pt-4">
           {TRANSITIONS.map((t) => (
             <button
               key={t.status}
               onClick={() => changeStatus(t.status)}
               disabled={pending || appointment.status === t.status}
               data-testid={t.testId}
-              className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink-muted hover:bg-surface disabled:opacity-40"
+              className={buttonClass('secondary', 'sm')}
             >
               {t.label}
             </button>
@@ -96,7 +98,7 @@ export function AppointmentActions({
         <button
           onClick={onReschedule}
           data-testid="open-reschedule"
-          className="w-full rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-btn hover:bg-brand-600"
+          className={`${buttonClass('primary')} w-full`}
         >
           Reagendar
         </button>

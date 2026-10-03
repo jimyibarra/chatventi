@@ -3,6 +3,8 @@
 import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { importClients, type ImportResult } from '../import-actions'
+import { Button } from '@/shared/components/ui/button'
+import { Icon } from '@/shared/components/ui/icon'
 
 // Parseo mínimo de CSV: soporta comillas dobles y comas dentro de comillas.
 // Suficiente para un export de contactos (nombre, teléfono). Detecta las
@@ -106,42 +108,50 @@ export function ClientImport() {
           if (inputRef.current) inputRef.current.value = ''
         }}
       />
-      <button
-        type="button"
+      <Button
+        variant="secondary"
         onClick={() => inputRef.current?.click()}
         disabled={pending}
         data-testid="crm-import"
-        className="rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface disabled:opacity-50"
+        title="Archivo CSV con dos columnas: nombre y teléfono"
       >
-        {pending ? 'Importando…' : '⬆ Importar CSV'}
-      </button>
+        <Icon name="upload" />
+        {pending ? 'Importando…' : 'Importar CSV'}
+      </Button>
 
       {result && (
         <div
-          className="absolute right-0 z-10 mt-1 w-64 rounded-lg border border-line bg-white p-3 text-xs shadow-lg"
+          className="absolute right-0 z-20 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-[16px] bg-white p-4 text-sm shadow-[0_1px_0_#dde2f0,0_18px_40px_-16px_rgba(42,26,94,.4)]"
           data-testid="crm-import-result"
+          role="status"
         >
           {result.ok ? (
             <>
-              <p className="font-medium text-ink">Importación lista</p>
-              <p className="mt-1 text-ink-muted">
-                {result.inserted} nuevos · {result.updated} actualizados
-                {result.invalid > 0 ? ` · ${result.invalid} inválidos` : ''}
+              <p className="flex items-center gap-2 font-bold text-ink">
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-[#0d9463] text-white" aria-hidden>
+                  <Icon name="check" className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>
+                Importación lista
+              </p>
+              <p className="mt-1.5 tabular-nums text-ink-muted">
+                {result.inserted.toLocaleString('en-US')} nuevos · {result.updated.toLocaleString('en-US')} actualizados
+                {result.invalid > 0 ? ` · ${result.invalid.toLocaleString('en-US')} inválidos` : ''}
               </p>
             </>
           ) : (
-            <p className="text-rose-600">{result.error}</p>
+            <p className="text-[#a51b18]">{result.error}</p>
           )}
-          <button
-            type="button"
-            onClick={() => setResult(null)}
-            className="mt-2 text-ink-faint hover:text-ink"
-          >
+          <Button variant="ghost" size="sm" onClick={() => setResult(null)} className="-ml-2 mt-2">
             Cerrar
-          </button>
+          </Button>
         </div>
       )}
-      <p className="mt-1 text-[11px] text-ink-faint">CSV: nombre, teléfono</p>
+      {/* Fuera del flujo: no descuadra la fila de acciones de la cabecera. */}
+      {!result && (
+        <p className="absolute inset-x-0 top-full mt-0.5 whitespace-nowrap text-center text-[12px] text-ink-muted">
+          CSV: nombre, teléfono
+        </p>
+      )}
     </div>
   )
 }

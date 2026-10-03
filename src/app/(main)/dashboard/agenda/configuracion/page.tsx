@@ -1,9 +1,13 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { ServiceManager } from '@/features/agenda/components/config/service-manager'
 import { HoursManager } from '@/features/agenda/components/config/hours-manager'
 import { getBranches, getServices, getBusinessHours } from '@/features/agenda/services'
 import { getResourceLabel } from '@/features/profesionales/services'
+import { Page, PageHeader } from '@/shared/components/ui/page-header'
+import { Section } from '@/shared/components/ui/card'
+import { ButtonLink } from '@/shared/components/ui/button'
+import { EmptyState } from '@/shared/components/ui/empty-state'
+import { Icon } from '@/shared/components/ui/icon'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,11 +17,11 @@ export default async function AgendaConfigPage() {
 
   if (branches.length === 0) {
     return (
-      <div className="mx-auto max-w-lg p-8">
-        <div className="rounded-card border border-warn-bg bg-warn-bg p-6 text-sm text-warn">
-          Aún no tienes una sucursal.
-        </div>
-      </div>
+      <Page width="narrow">
+        <EmptyState icon="calendar" title="Aún no tienes una sucursal">
+          Se crea automáticamente al registrar tu negocio.
+        </EmptyState>
+      </Page>
     )
   }
 
@@ -29,33 +33,33 @@ export default async function AgendaConfigPage() {
   ])
 
   return (
-    <>
-      <div className="mx-auto max-w-4xl space-y-5 p-6">
-        <div>
-          <h1 className="text-xl font-bold text-ink">Configuración de la agenda</h1>
-          <p className="text-sm text-ink-soft">
-            Sucursal: {branch.name} · Zona horaria: {branch.timezone}
-          </p>
-        </div>
+    <Page width="wide">
+      <PageHeader
+        back={{ href: '/dashboard/agenda', label: 'Agenda' }}
+        title="Configuración de la agenda"
+        subtitle={`Sucursal: ${branch.name} · Zona horaria: ${branch.timezone}`}
+      />
 
-        <ServiceManager services={services} />
-        <HoursManager branchId={branch.id} hours={hours} />
+      {/* Columna ancha: servicios y horario (cada día cabe en una fila).
+          Columna estrecha: el horario de cada profesional vive en su ficha. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <div className="min-w-0 space-y-4">
+          <ServiceManager services={services} />
+          <HoursManager branchId={branch.id} hours={hours} />
+        </div>
 
         {/* La disponibilidad dejo de configurarse por usuario: ahora es de cada
             profesional/recurso, que puede no tener cuenta. Ver /dashboard/profesionales. */}
-        <section className="rounded-card border border-line bg-white p-5">
-          <h2 className="mb-1 text-base font-semibold text-ink">Horario de {resourceLabel.toLowerCase()}</h2>
-          <p className="mb-3 text-sm text-ink-soft">
-            El horario individual se configura en cada ficha, junto con los servicios que presta.
-          </p>
-          <Link
-            href="/dashboard/profesionales"
-            className="inline-flex rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-ink-muted hover:bg-surface"
-          >
+        <Section
+          title={`Horario de ${resourceLabel.toLowerCase()}`}
+          description="El horario individual se configura en cada ficha, junto con los servicios que presta."
+        >
+          <ButtonLink href="/dashboard/profesionales" variant="secondary">
+            <Icon name="badge" />
             Ir a {resourceLabel}
-          </Link>
-        </section>
+          </ButtonLink>
+        </Section>
       </div>
-    </>
+    </Page>
   )
 }

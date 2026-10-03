@@ -10,19 +10,37 @@ import type {
   ClientRecord,
   ClientReminder,
 } from '@/features/expediente/types'
-import { STATUS_META, type AppointmentStatus } from '@/features/agenda/types'
+import { apptChip } from '@/features/lineas/status'
+import { Page, PageHeader } from '@/shared/components/ui/page-header'
+import { Section } from '@/shared/components/ui/card'
+import { ButtonLink } from '@/shared/components/ui/button'
+import { Avatar } from '@/shared/components/ui/avatar'
+import { Icon } from '@/shared/components/ui/icon'
+import { StatusChip } from '@/shared/components/ui/status-chip'
+import { ChannelChip } from '@/shared/components/ui/channel'
+import { fmtDateTime, fmtInt, fmtTime } from '@/shared/lib/format'
 
 export const dynamic = 'force-dynamic'
 
 type Tag = { id: string; name: string; color: string }
 
-function fmtDateTime(iso: string): string {
-  return new Intl.DateTimeFormat('es-MX', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'America/Mexico_City',
-    hourCycle: 'h23',
-  }).format(new Date(iso))
+const TZ = 'America/Mexico_City'
+
+/** Bloque de fecha de una cita: día grande y mes corto, como una estación. */
+function DateBlock({ iso, upcoming }: { iso: string; upcoming: boolean }) {
+  const d = new Date(iso)
+  const day = new Intl.DateTimeFormat('es-MX', { day: 'numeric', timeZone: TZ }).format(d)
+  const month = new Intl.DateTimeFormat('es-MX', { month: 'short', timeZone: TZ }).format(d).replace('.', '')
+  return (
+    <span
+      className={`grid h-[50px] w-[50px] flex-none content-center justify-items-center rounded-[13px] leading-none ${
+        upcoming ? 'bg-brand-500 text-white' : 'bg-surface text-ink'
+      }`}
+    >
+      <b className="text-[19px] font-bold tabular-nums">{day}</b>
+      <span className={`mt-1 text-[11.5px] font-semibold ${upcoming ? 'text-white/85' : 'text-ink-muted'}`}>{month}</span>
+    </span>
+  )
 }
 
 export default async function ClienteDetallePage({
@@ -102,95 +120,121 @@ export default async function ClienteDetallePage({
 
   const appts = (appointments as ApptRow[] | null) ?? []
   const convs = (conversations as ConvRow[] | null) ?? []
+  const name = client.name || client.phone || 'Cliente'
+  const now = new Date()
+  const isUpcoming = (a: ApptRow) =>
+    new Date(a.starts_at) > now && (a.status === 'scheduled' || a.status === 'confirmed')
 
   return (
-    <>
-      <div className="mx-auto max-w-3xl space-y-5 p-6">
-        <Link
-          href="/dashboard/clientes"
-          className="inline-block text-sm text-ink-soft hover:text-ink"
-        >
-          ← Clientes
-        </Link>
-        <h1 className="text-xl font-bold text-ink">
-          {client.name || client.phone || 'Cliente'}
-        </h1>
+    <Page width="wide">
+      <PageHeader
+        back={{ href: '/dashboard/clientes', label: 'Clientes' }}
+        lead={<Avatar name={name} size="lg" />}
+        title={name}
+        subtitle={
+          <>
+            {client.name && client.phone && <span className="tabular-nums">{client.phone} · </span>}
+            {fmtInt(appts.length)} {appts.length === 1 ? 'cita' : 'citas'} · {fmtInt(convs.length)}{' '}
+            {convs.length === 1 ? 'conversación' : 'conversaciones'}
+          </>
+        }
+        actions={
+          convs[0] ? (
+            <ButtonLink href={`/dashboard/conversaciones/${convs[0].id}`} variant="secondary">
+              <Icon name="chat" />
+              Abrir su chat
+            </ButtonLink>
+          ) : undefined
+        }
+      />
 
-        <ClientDetail
-          client={client}
-          allTags={(allTags as Tag[] | null) ?? []}
-          assignedTagIds={assignedIds}
-        />
-
-        <ClientRecords clientId={id} records={(records as ClientRecord[] | null) ?? []} />
-
-        {orgId && (
-          <ClientFiles
-            clientId={id}
-            orgId={orgId as string}
-            files={(files as ClientFile[] | null) ?? []}
+      {/* Celular: ficha → citas y chats → expediente. Computadora: el
+          expediente a la izquierda y citas y chats en una columna a la derecha. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 [grid-template-areas:'ficha'_'aside'_'main'] lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[auto_1fr] lg:[grid-template-areas:'ficha_aside'_'main_aside']">
+        <div className="min-w-0 [grid-area:ficha]">
+          <ClientDetail
+            client={client}
+            allTags={(allTags as Tag[] | null) ?? []}
+            assignedTagIds={assignedIds}
           />
-        )}
+        </div>
 
-        <ClientReminders
-          clientId={id}
-          reminders={(reminders as ClientReminder[] | null) ?? []}
-          canReach={convs.length > 0}
-        />
+        <div className="min-w-0 space-y-4 [grid-area:aside]">
+          <Section title="Citas" badge={appts.length > 0 ? <StatusChip>{fmtInt(appts.length)}</StatusChip> : undefined}>
+            {appts.length === 0 ? (
+              <p className="text-[14.5px] text-ink-muted">Todavía no ha tenido citas.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {appts.map((a) => {
+                  const chip = apptChip(a.status)
+                  const services = (a.appointment_services ?? [])
+                    .map((s) => s.service?.name)
+                    .filter(Boolean)
+                    .join(', ')
+                  return (
+                    <li key={a.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                      <DateBlock iso={a.starts_at} upcoming={isUpcoming(a)} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[14.5px] text-ink" title={fmtDateTime(a.starts_at)}>
+                          <b className="font-bold tabular-nums">{fmtTime(a.starts_at)}</b> · {services || 'Cita'}
+                        </p>
+                        <StatusChip tone={chip.tone} className="mt-1">
+                          {chip.label}
+                        </StatusChip>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Section>
 
-        <section className="rounded-card border border-line bg-white p-5">
-          <h2 className="mb-3 text-base font-semibold text-ink">Historial de citas</h2>
-          {appts.length === 0 ? (
-            <p className="text-sm text-ink-faint">Sin citas.</p>
-          ) : (
-            <ul className="divide-y divide-line-row">
-              {appts.map((a) => {
-                const meta = STATUS_META[a.status as AppointmentStatus]
-                const services = (a.appointment_services ?? [])
-                  .map((s) => s.service?.name)
-                  .filter(Boolean)
-                  .join(', ')
-                return (
-                  <li key={a.id} className="flex items-center justify-between py-2 text-sm">
-                    <span className="text-ink-muted">
-                      {fmtDateTime(a.starts_at)}
-                      {services ? ` · ${services}` : ''}
-                    </span>
-                    <span className={`rounded-full border px-2 py-0.5 text-xs ${meta?.badge ?? ''}`}>
-                      {meta?.label ?? a.status}
-                    </span>
+          <Section title="Conversaciones">
+            {convs.length === 0 ? (
+              <p className="text-[14.5px] text-ink-muted">Todavía no te ha escrito por ningún canal.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {convs.map((c) => (
+                  <li key={c.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 py-2.5 first:pt-0 last:pb-0">
+                    <div className="min-w-0 flex-1">
+                      <ChannelChip type={c.channel?.type} />
+                      {c.last_message_at && (
+                        <p className="mt-1 text-[13px] tabular-nums text-ink-muted">Último mensaje: {fmtDateTime(c.last_message_at)}</p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/dashboard/conversaciones/${c.id}`}
+                      className="inline-flex min-h-[40px] items-center gap-1 rounded-[11px] px-2.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-brand-50"
+                      data-testid="open-conversation"
+                    >
+                      Abrir chat
+                      <Icon name="arrowRight" className="h-4 w-4" />
+                    </Link>
                   </li>
-                )
-              })}
-            </ul>
-          )}
-        </section>
+                ))}
+              </ul>
+            )}
+          </Section>
+        </div>
 
-        <section className="rounded-card border border-line bg-white p-5">
-          <h2 className="mb-3 text-base font-semibold text-ink">Conversaciones</h2>
-          {convs.length === 0 ? (
-            <p className="text-sm text-ink-faint">Sin conversaciones.</p>
-          ) : (
-            <ul className="divide-y divide-line-row">
-              {convs.map((c) => (
-                <li key={c.id} className="flex items-center justify-between py-2 text-sm">
-                  <span className="text-ink-muted">
-                    {c.channel?.type ?? '—'}
-                    {c.last_message_at ? ` · ${fmtDateTime(c.last_message_at)}` : ''}
-                  </span>
-                  <Link
-                    href={`/dashboard/conversaciones/${c.id}`}
-                    className="text-xs font-medium text-brand-600 hover:underline"
-                    data-testid="open-conversation"
-                  >
-                    Abrir chat →
-                  </Link>
-                </li>
-              ))}
-            </ul>
+        <div className="min-w-0 space-y-4 [grid-area:main]">
+          <ClientRecords clientId={id} records={(records as ClientRecord[] | null) ?? []} />
+
+          <ClientReminders
+            clientId={id}
+            reminders={(reminders as ClientReminder[] | null) ?? []}
+            canReach={convs.length > 0}
+          />
+
+          {orgId && (
+            <ClientFiles
+              clientId={id}
+              orgId={orgId as string}
+              files={(files as ClientFile[] | null) ?? []}
+            />
           )}
-        </section>
+        </div>
       </div>
-    </>
+    </Page>
   )
 }
