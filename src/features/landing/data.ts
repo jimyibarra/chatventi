@@ -86,8 +86,8 @@ export const FEATURES = [
     icon: 'chat' as const,
     tint: '#E9F9EF',
     stroke: '#1DA851',
-    title: 'Omnicanal: WhatsApp, Telegram y web',
-    body: 'Te escriban por donde te escriban, todo cae en la misma agenda y el mismo historial. Un solo lugar, cero chats perdidos.',
+    title: 'WhatsApp, Instagram, Messenger, Telegram y web',
+    body: 'Te escriban por donde te escriban, todo cae en la misma agenda y el mismo historial. Instagram y Messenger, incluidos en todos los planes y sin costo por mensaje.',
   },
   {
     icon: 'bell' as const,
@@ -260,8 +260,8 @@ export const PRICING = {
     items: [
       'Todo lo del plan Negocio',
       `Hasta ${PROFESIONAL.maxResources} profesionales · ${PROFESIONAL.maxSeats} accesos`,
-      'Instagram y Messenger además de WhatsApp',
       'Expediente del cliente con archivos y recordatorios',
+      'El doble de uso de IA incluido que en Negocio',
     ],
     cta: 'Empezar prueba gratis',
   },
@@ -309,6 +309,14 @@ export const FAQS = [
   {
     q: '¿En qué se diferencian los cuatro planes?',
     a: 'La recepcionista con IA por WhatsApp, web y Telegram va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
+  },
+  {
+    q: '¿Cuánto cuestan los mensajes de WhatsApp, Instagram y Messenger?',
+    a: 'Instagram y Messenger no tienen costo por mensaje: Meta no los cobra y vienen incluidos en todos los planes. WhatsApp sí lo cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe), así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
+  },
+  {
+    q: '¿Qué necesito para conectar mi WhatsApp?',
+    a: 'Una cuenta de Facebook (o una cuenta de Meta para empresas), un número que pueda recibir un SMS o una llamada para verificarlo y que no esté activo en la app de WhatsApp, y el nombre que verán tus clientes. Lo conectas desde tu panel en Conexiones, en unos minutos. Mientras tanto puedes atender por Instagram, Messenger, Telegram y tu página de reservas.',
   },
   {
     q: '¿Qué pasa si mi recepcionista atiende más de lo que incluye mi plan?',

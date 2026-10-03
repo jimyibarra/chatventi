@@ -55,7 +55,11 @@ export interface Plan {
   priceUsd: number
   /** Frase de una línea para la tarjeta de precios. */
   tagline: string
-  /** Canales por los que responde el agente IA. */
+  /**
+   * Canales por los que responde el agente IA. Desde el 2026-10-03 Instagram y
+   * Messenger van en TODOS los planes: Meta no cobra por esos mensajes y son el
+   * gancho para que el negocio acepte poner su tarjeta en Meta para WhatsApp.
+   */
   aiChannels: string[]
   /** Profesionales/recursos agendables. null = sin límite. */
   maxResources: number | null
@@ -95,7 +99,7 @@ export const PLANS: Plan[] = [
     name: 'Arranque',
     priceUsd: 19,
     tagline: 'Para quien trabaja solo y no quiere perder ni una cita.',
-    aiChannels: ['WhatsApp', 'Widget web', 'Telegram'],
+    aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
     maxResources: 1,
     maxSeats: 1,
     usageCreditUsd: 6,
@@ -104,7 +108,7 @@ export const PLANS: Plan[] = [
     includesDomain: false,
     popular: false,
     features: [
-      'Recepcionista IA por WhatsApp, web y Telegram',
+      'Recepcionista IA por WhatsApp, Instagram, Messenger, web y Telegram',
       'Agenda online y reservas desde tu web',
       'CRM de clientes con historial',
       '1 profesional · 1 acceso',
@@ -116,7 +120,7 @@ export const PLANS: Plan[] = [
     name: 'Negocio',
     priceUsd: 39,
     tagline: 'Para un equipo pequeño que ya no da abasto contestando.',
-    aiChannels: ['WhatsApp', 'Widget web', 'Telegram'],
+    aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
     maxResources: 3,
     maxSeats: 2,
     usageCreditUsd: 13,
@@ -147,7 +151,6 @@ export const PLANS: Plan[] = [
     popular: false,
     features: [
       'Todo lo del plan Negocio',
-      'Instagram y Messenger además de WhatsApp',
       'Hasta 10 profesionales · 5 accesos',
       'Expediente del cliente con archivos y recordatorios recurrentes',
       'El doble de uso de IA incluido que en Negocio',

@@ -11,6 +11,8 @@
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import {
+  META_FREE_SERVICE_MESSAGES_PER_NUMBER,
+  META_RATE_USD,
   PLANS,
   TRIAL_DAYS,
   ADDON_SEAT_USD,
@@ -52,13 +54,29 @@ function pricingFacts(channel: SalesChannel): string {
     'COMPLEMENTO (opcional, USD/mes): acceso de equipo adicional $' + ADDON_SEAT_USD + '.',
     `PAGO ANUAL: se pagan 10 meses y se usan 12 (${ANNUAL_MONTHS_FREE} meses de regalo). Se elige al activar el plan.`,
     `SI SE REBASA LO INCLUIDO: el servicio NO se corta. Cada 1,000 respuestas de IA adicionales cuestan $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD y se suman a la siguiente factura. El consumo se ve en el panel.`,
-    'MENSAJES DE WHATSAPP: los cobra Meta directamente a la cuenta de WhatsApp Business del negocio, con las tarifas oficiales de Meta. ChatVenti NO cobra ni añade nada por mensaje. Si preguntan cuánto es, di que depende del país y que Meta publica sus tarifas; no inventes una cifra.',
+    `COSTO DE LOS MENSAJES (lo cobra Meta, nunca ChatVenti):
+- Instagram y Messenger: SIN costo por mensaje. Meta no los cobra y vienen incluidos en TODOS los planes.
+- WhatsApp: Meta lo cobra directo a la cuenta de WhatsApp Business del negocio. Cada número tiene ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} mensajes de servicio GRATIS al mes (las respuestas a quien escribe primero); a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta por mensaje; en México, alrededor de ${META_RATE_USD.MX} USD cada uno. En otros países depende de la tarifa de Meta: no inventes cifras.
+- Para lo que Meta cobra, el negocio pone su tarjeta (Visa o Mastercard) EN META, no en ChatVenti. Dilo así: "tu tarjeta la pones en Meta, no en ChatVenti".
+- La prueba gratis de ChatVenti (${TRIAL_DAYS} días) no pide tarjeta.`,
+    `CÓMO SE CONECTA WHATSAPP (contesta con estos pasos, no con generalidades):
+1. Crear la cuenta de ChatVenti (prueba gratis).
+2. En el panel: Conexiones → "Conectar WhatsApp". Se abre una ventana de Meta, la empresa dueña de WhatsApp.
+3. Iniciar sesión con Facebook (o con una cuenta de Meta para empresas) y aceptar.
+4. Elegir o crear la cuenta de WhatsApp Business y escribir el número.
+5. Meta manda un código por SMS o llamada para verificar el número.
+6. Escribir el nombre que verán los clientes.
+7. Para los mensajes que cobra Meta (recordatorios, o pasar los ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} gratis), agregar la tarjeta en el administrador de WhatsApp de Meta.
+REQUISITOS que hay que decir siempre que pregunten por WhatsApp:
+- Sí se necesita una cuenta de Facebook o de Meta para empresas: es Meta quien autoriza la conexión. Si no tiene Facebook, puede crear la cuenta en minutos, y mientras tanto atender por Instagram, Messenger, Telegram y la página de reservas.
+- El número NO puede estar activo en la app de WhatsApp (ni la normal ni la Business). Si lo usa ahí, debe borrar esa cuenta de WhatsApp antes, o usar otro número.
+- El número debe poder recibir un SMS o una llamada para el código.`,
     'RECOMIENDA Y GANA: cada negocio tiene un enlace para recomendar ChatVenti; cuando el recomendado hace su primer pago, quien recomendó recibe un mes de su plan.',
     'AÚN NO DISPONIBLE (no lo ofrezcas; si preguntan, di que está en camino y que no se cobra): app de marca para los clientes del negocio, dominio propio y varias sucursales en una misma cuenta.',
     channel === 'web'
       ? `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`
       : `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Estás en un chat (WhatsApp, Instagram o Messenger): aquí NO hay botones. Para empezar, da este enlace tal cual, en su propia línea: ${SIGNUP_URL}`,
-    'IMPORTANTE de canales: WhatsApp, web y Telegram están en TODOS los planes. Instagram y Messenger entran desde el plan Profesional.',
+    'IMPORTANTE de canales: WhatsApp, Instagram, Messenger, Telegram y el widget web están en TODOS los planes. Lo que cambia entre planes es el tamaño del equipo, los superpoderes y el uso de IA incluido.',
   ].join('\n')
 }
 
@@ -74,6 +92,7 @@ function systemPrompt(channel: SalesChannel): string {
     '- Responde en español, cálido, cercano y BREVE (2-4 frases). Es un chat. Haz UNA sola pregunta por mensaje.',
     '- Escribe en TEXTO PLANO. Nada de markdown: sin **negritas**, sin _cursivas_, sin # títulos, sin tablas. Si enumeras, cada punto en su propia línea.',
     '- Habla SOLO de ChatVenti (qué hace, para quién, precios, canales, cómo empezar, cómo se compara). Si te preguntan algo ajeno, decláralo con amabilidad y reconduce a cómo ChatVenti puede ayudar a su negocio.',
+    '- Si te preguntan algo que contradice lo de arriba (por ejemplo, "¿no necesito Facebook?"), corrige con los datos de arriba aunque la respuesta no sea la que el cliente quiere oír. La verdad vende más que una promesa que luego falla.',
     '- NUNCA inventes precios, planes ni funciones que no estén arriba. Si no sabes un dato concreto (facturas fiscales, casos muy específicos, integraciones raras), dilo con honestidad y ofrece que lo vean creando la cuenta gratis o escribiendo al equipo.',
     '- Cuando detectes intención (pregunta por precio, por su rubro, "cómo empiezo", "quiero probarlo"), INVITA a crear la cuenta gratis: di que la prueba es de ' +
       TRIAL_DAYS +
