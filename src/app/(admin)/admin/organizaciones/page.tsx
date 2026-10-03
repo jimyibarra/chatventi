@@ -2,86 +2,94 @@ import type { Metadata } from 'next'
 import { getAdminOrganizations, orgMonthlyUsd } from '@/features/admin/service'
 import { planById, planFromLegacyTier } from '@/features/billing/plans'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
+import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
+import { EmptyState, Page, PageHeader } from '@/shared/components/ui'
+import { fmtInt, fmtMoney, fmtShortDate, timeAgo } from '@/shared/lib/format'
 
 export const metadata: Metadata = { title: 'Super Admin · Organizaciones' }
 export const dynamic = 'force-dynamic'
-
-const nf = new Intl.NumberFormat('es-MX')
-const usd = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
-const df = new Intl.DateTimeFormat('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
-
-function fmtDate(iso: string | null): string {
-  return iso ? df.format(new Date(iso)) : '—'
-}
 
 export default async function AdminOrganizationsPage() {
   const orgs = await getAdminOrganizations()
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-white">Organizaciones</h1>
-        <p className="mt-1 text-sm text-slate-400">
-          {nf.format(orgs.length)} cuenta(s) registrada(s) en la plataforma.
-        </p>
-      </div>
+    <Page width="wide">
+      <PageHeader
+        title="Organizaciones"
+        subtitle={`${fmtInt(orgs.length)} ${orgs.length === 1 ? 'negocio registrado' : 'negocios registrados'} en la plataforma, del más reciente al más antiguo.`}
+      />
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-800">
-        <table className="w-full min-w-[900px] text-sm">
+      {orgs.length === 0 ? (
+        <EmptyState icon="building" title="Aún no hay organizaciones registradas">
+          Cuando alguien confirme su correo y cree su negocio, aparecerá aquí con su plan y su actividad.
+        </EmptyState>
+      ) : (
+        <AdminTable label="Organizaciones" minWidth={980}>
           <thead>
-            <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-400">
-              <th className="px-4 py-3 font-medium">Negocio</th>
-              <th className="px-4 py-3 font-medium">Dueño</th>
-              <th className="px-4 py-3 font-medium">Suscripción</th>
-              <th className="px-4 py-3 text-right font-medium">USD/mes</th>
-              <th className="px-4 py-3 text-right font-medium">Usuarios</th>
-              <th className="px-4 py-3 text-right font-medium">Clientes</th>
-              <th className="px-4 py-3 text-right font-medium">Citas</th>
-              <th className="px-4 py-3 font-medium">Alta</th>
-              <th className="px-4 py-3 font-medium">Última actividad</th>
+            <tr>
+              <th scope="col" className={`${TH} ${STICKY}`}>
+                Negocio
+              </th>
+              <th scope="col" className={TH}>
+                Dueño
+              </th>
+              <th scope="col" className={TH}>
+                Suscripción
+              </th>
+              <th scope="col" className={`${TH} ${NUM}`}>
+                USD al mes
+              </th>
+              <th scope="col" className={`${TH} ${NUM}`}>
+                Usuarios
+              </th>
+              <th scope="col" className={`${TH} ${NUM}`}>
+                Clientes
+              </th>
+              <th scope="col" className={`${TH} ${NUM}`}>
+                Citas
+              </th>
+              <th scope="col" className={TH}>
+                Alta
+              </th>
+              <th scope="col" className={TH}>
+                Última actividad
+              </th>
             </tr>
           </thead>
           <tbody>
             {orgs.map((o) => (
-              <tr key={o.id} className="border-b border-slate-800/60 last:border-0 hover:bg-slate-900/60">
-                <td className="px-4 py-3">
-                  <p className="font-semibold text-white">{o.name}</p>
-                  <p className="text-xs text-slate-400">
-                    {[o.city, o.country].filter(Boolean).join(', ') || '—'}
+              <tr key={o.id} className={TR}>
+                <th scope="row" className={`${TD} ${STICKY} max-w-[15rem] text-left font-normal`}>
+                  <p className="truncate font-semibold">{o.name}</p>
+                  <p className="truncate text-[13px] text-ink-muted">
+                    {[o.city, o.country].filter(Boolean).join(', ') || 'Sin ciudad'}
                   </p>
+                </th>
+                <td className={`${TD} max-w-[16rem]`}>
+                  <p className="truncate">{o.owner_name ?? '—'}</p>
+                  <p className="truncate text-[13px] text-ink-muted">{o.owner_email ?? '—'}</p>
                 </td>
-                <td className="px-4 py-3">
-                  <p className="text-slate-200">{o.owner_name ?? '—'}</p>
-                  <p className="text-xs text-slate-400">{o.owner_email ?? '—'}</p>
-                </td>
-                <td className="px-4 py-3">
+                <td className={TD}>
                   <OrgStatusBadge status={o.sub_status} />
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 whitespace-nowrap text-[13px] text-ink-muted">
                     {`Plan ${planById(planFromLegacyTier(o.ai_tier)).name}`}
                     {o.has_domain && ' · dominio'}
-                    {o.team_seats > 0 && ` · ${o.team_seats} extra`}
+                    {o.team_seats > 0 && ` · ${fmtInt(o.team_seats)} extra`}
                   </p>
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums font-medium text-white">
-                  {o.sub_status === 'active' ? usd.format(orgMonthlyUsd(o)) : '—'}
+                <td className={`${TD} ${NUM} font-semibold`}>
+                  {o.sub_status === 'active' ? fmtMoney(orgMonthlyUsd(o)) : <span className="font-normal text-ink-faint">—</span>}
                 </td>
-                <td className="px-4 py-3 text-right tabular-nums text-slate-300">{nf.format(o.users_count)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-slate-300">{nf.format(o.clients_count)}</td>
-                <td className="px-4 py-3 text-right tabular-nums text-slate-300">{nf.format(o.appointments_count)}</td>
-                <td className="px-4 py-3 text-slate-400">{fmtDate(o.created_at)}</td>
-                <td className="px-4 py-3 text-slate-400">{fmtDate(o.last_activity)}</td>
+                <td className={`${TD} ${NUM}`}>{fmtInt(o.users_count)}</td>
+                <td className={`${TD} ${NUM}`}>{fmtInt(o.clients_count)}</td>
+                <td className={`${TD} ${NUM}`}>{fmtInt(o.appointments_count)}</td>
+                <td className={`${TD} whitespace-nowrap text-ink-muted`}>{fmtShortDate(o.created_at)}</td>
+                <td className={`${TD} whitespace-nowrap text-ink-muted`}>{o.last_activity ? timeAgo(o.last_activity) : 'Sin actividad'}</td>
               </tr>
             ))}
-            {orgs.length === 0 && (
-              <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-slate-400">
-                  Aún no hay organizaciones registradas.
-                </td>
-              </tr>
-            )}
           </tbody>
-        </table>
-      </div>
-    </div>
+        </AdminTable>
+      )}
+    </Page>
   )
 }

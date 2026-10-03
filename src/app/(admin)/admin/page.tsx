@@ -1,26 +1,27 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import {
   computeMrrUsd,
   getAdminGlobalStats,
   getAdminOrganizations,
 } from '@/features/admin/service'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
+import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
+import { ButtonLink, EmptyState, Icon, KpiCell, Notice, Page, PageHeader } from '@/shared/components/ui'
+import { fmtInt, fmtMoney } from '@/shared/lib/format'
 
 export const metadata: Metadata = { title: 'Super Admin · Resumen' }
 // Datos siempre frescos: es un panel de monitoreo en vivo.
 export const dynamic = 'force-dynamic'
 
-const nf = new Intl.NumberFormat('es-MX')
-const usd = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+function plural(n: number, one: string, many: string): string {
+  return `${fmtInt(n)} ${n === 1 ? one : many}`
+}
 
-function Kpi({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function GroupTitle({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-3xl font-extrabold tracking-tight text-white">{value}</p>
-      {sub && <p className="mt-1 text-xs text-slate-400">{sub}</p>}
-    </div>
+    <h2 id={id} className="mb-2.5 text-[1.15rem] font-bold leading-tight text-ink">
+      {children}
+    </h2>
   )
 }
 
@@ -28,72 +29,117 @@ export default async function AdminOverviewPage() {
   const [stats, orgs] = await Promise.all([getAdminGlobalStats(), getAdminOrganizations()])
   const mrr = computeMrrUsd(orgs)
   const recent = orgs.slice(0, 8)
+  const pastDue = stats.subs_past_due
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight text-white">Resumen de la plataforma</h1>
-        <p className="mt-1 text-sm text-slate-400">Monitoreo global de todas las cuentas de ChatVenti.</p>
-      </div>
+    <Page width="wide">
+      <PageHeader title="Resumen de la plataforma" subtitle="Todas las cuentas de ChatVenti, en vivo." />
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi label="Organizaciones" value={nf.format(stats.orgs_total)} sub={`+${stats.new_orgs_30d} en 30 días`} />
-        <Kpi label="Usuarios" value={nf.format(stats.users_total)} />
-        <Kpi label="MRR activo" value={usd.format(mrr)} sub={`${stats.subs_active} suscripción(es) activa(s)`} />
-        <Kpi label="En prueba" value={nf.format(stats.subs_trialing)} sub="periodo gratis" />
+      {/* Lo único que pide algo: cobros que fallaron. */}
+      {pastDue > 0 && (
+        <Notice
+          tone="action"
+          className="mb-5"
+          title={`${plural(pastDue, 'suscripción tiene', 'suscripciones tienen')} el pago pendiente`}
+          action={
+            <ButtonLink href="/admin/organizaciones" variant="secondary" size="sm">
+              Ver organizaciones
+            </ButtonLink>
+          }
+        >
+          Stripe no pudo cobrarlas (past_due o unpaid).
+        </Notice>
+      )}
+
+      <section aria-labelledby="kpi-subs" className="mb-6">
+        <GroupTitle id="kpi-subs">Suscripciones</GroupTitle>
+        <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCell
+            label="Ingreso mensual (MRR)"
+            value={fmtMoney(mrr)}
+            unit="USD"
+            hint={plural(stats.subs_active, 'suscripción activa', 'suscripciones activas')}
+          />
+          <KpiCell label="En prueba gratis" value={fmtInt(stats.subs_trialing)} hint="Aún sin cobrar" />
+          <KpiCell
+            label="Pago pendiente"
+            value={fmtInt(pastDue)}
+            hint={pastDue > 0 ? 'Conviene revisarlas' : 'Ningún cobro fallido'}
+            tone={pastDue > 0 ? 'danger' : 'plain'}
+          />
+          <KpiCell label="Canceladas" value={fmtInt(stats.subs_canceled)} />
+        </dl>
       </section>
 
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Kpi label="Pago pendiente" value={nf.format(stats.subs_past_due)} sub="past_due / unpaid" />
-        <Kpi label="Canceladas" value={nf.format(stats.subs_canceled)} />
-        <Kpi label="Conversaciones" value={nf.format(stats.conversations_total)} sub={`${nf.format(stats.msgs_7d)} mensajes / 7 días`} />
-        <Kpi label="Citas" value={nf.format(stats.appointments_total)} sub={`${nf.format(stats.appts_7d)} nuevas / 7 días`} />
+      <section aria-labelledby="kpi-uso" className="mb-7">
+        <GroupTitle id="kpi-uso">Uso de la plataforma</GroupTitle>
+        <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <KpiCell label="Organizaciones" value={fmtInt(stats.orgs_total)} hint={`+${fmtInt(stats.new_orgs_30d)} en 30 días`} />
+          <KpiCell label="Usuarios" value={fmtInt(stats.users_total)} />
+          <KpiCell
+            label="Conversaciones"
+            value={fmtInt(stats.conversations_total)}
+            hint={`${fmtInt(stats.msgs_7d)} mensajes en 7 días`}
+          />
+          <KpiCell label="Citas" value={fmtInt(stats.appointments_total)} hint={`${fmtInt(stats.appts_7d)} nuevas en 7 días`} />
+        </dl>
       </section>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-white">Organizaciones recientes</h2>
-          <Link href="/admin/organizaciones" className="text-sm font-medium text-brand-300 hover:text-brand-200">
-            Ver todas →
-          </Link>
+      <section aria-labelledby="recientes">
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+          <GroupTitle id="recientes">Organizaciones recientes</GroupTitle>
+          <ButtonLink href="/admin/organizaciones" variant="ghost" size="sm" className="-mr-2 mb-2.5">
+            Ver todas
+            <Icon name="arrowRight" className="h-4 w-4" />
+          </ButtonLink>
         </div>
-        <div className="overflow-x-auto rounded-2xl border border-slate-800">
-          <table className="w-full min-w-[640px] text-sm">
+
+        {recent.length === 0 ? (
+          <EmptyState icon="building" title="Aún no hay organizaciones registradas">
+            Cuando alguien confirme su correo y cree su negocio, aparecerá aquí con su plan y su actividad.
+          </EmptyState>
+        ) : (
+          <AdminTable label="Organizaciones recientes" minWidth={680}>
             <thead>
-              <tr className="border-b border-slate-800 text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-3 font-medium">Negocio</th>
-                <th className="px-4 py-3 font-medium">Dueño</th>
-                <th className="px-4 py-3 font-medium">Plan</th>
-                <th className="px-4 py-3 text-right font-medium">Citas</th>
-                <th className="px-4 py-3 text-right font-medium">Chats</th>
+              <tr>
+                <th scope="col" className={`${TH} ${STICKY}`}>
+                  Negocio
+                </th>
+                <th scope="col" className={TH}>
+                  Dueño
+                </th>
+                <th scope="col" className={TH}>
+                  Suscripción
+                </th>
+                <th scope="col" className={`${TH} ${NUM}`}>
+                  Citas
+                </th>
+                <th scope="col" className={`${TH} ${NUM}`}>
+                  Chats
+                </th>
               </tr>
             </thead>
             <tbody>
               {recent.map((o) => (
-                <tr key={o.id} className="border-b border-slate-800/60 last:border-0">
-                  <td className="px-4 py-3">
-                    <p className="font-semibold text-white">{o.name}</p>
-                    <p className="text-xs text-slate-400">{[o.city, o.country].filter(Boolean).join(', ') || '—'}</p>
-                  </td>
-                  <td className="px-4 py-3 text-slate-300">{o.owner_email ?? '—'}</td>
-                  <td className="px-4 py-3">
+                <tr key={o.id} className={TR}>
+                  <th scope="row" className={`${TD} ${STICKY} max-w-[15rem] text-left font-normal`}>
+                    <p className="truncate font-semibold">{o.name}</p>
+                    <p className="truncate text-[13px] text-ink-muted">
+                      {[o.city, o.country].filter(Boolean).join(', ') || 'Sin ciudad'}
+                    </p>
+                  </th>
+                  <td className={`${TD} text-ink-muted`}>{o.owner_email ?? '—'}</td>
+                  <td className={TD}>
                     <OrgStatusBadge status={o.sub_status} />
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums text-slate-300">{nf.format(o.appointments_count)}</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-slate-300">{nf.format(o.conversations_count)}</td>
+                  <td className={`${TD} ${NUM}`}>{fmtInt(o.appointments_count)}</td>
+                  <td className={`${TD} ${NUM}`}>{fmtInt(o.conversations_count)}</td>
                 </tr>
               ))}
-              {recent.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-slate-400">
-                    Aún no hay organizaciones registradas.
-                  </td>
-                </tr>
-              )}
             </tbody>
-          </table>
-        </div>
+          </AdminTable>
+        )}
       </section>
-    </div>
+    </Page>
   )
 }
