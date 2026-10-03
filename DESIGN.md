@@ -91,6 +91,22 @@ No es el escritorio encogido: es otra disposición.
 | Datos del Panel | `src/features/lineas/panel-data.ts` |
 | Navegación | `src/shared/components/dashboard-nav.tsx` |
 | Tokens | `tailwind.config.ts` |
+| Primitivas del resto de pantallas (importar de `@/shared/components/ui`) | `src/shared/components/ui/` |
+| · Contenedor de página y título (28 px) con «← volver» y acciones | `page-header.tsx` → `Page`, `PageHeader` |
+| · Tarjeta, sección con título/acciones, subtítulo, zona rebajada | `card.tsx` → `Card`, `Section`, `SubHeading`, `Inset`, `CARD_SHADOW` |
+| · Botones y enlaces con forma de botón (`primary`, `secondary`, `ghost`, `danger`, `inverse`) | `button.tsx` → `Button`, `ButtonLink`, `buttonClass` |
+| · Chips de estado con forma (aro, punto, palomita, equis, pausa) | `status-chip.tsx` → `StatusChip`; `badge.tsx` es el alias antiguo |
+| · Estado de una cita → chip (mismos nombres que las estaciones) | `src/features/lineas/status.ts` → `apptChip` |
+| · Campos: input, textarea, select con flecha, interruptor, etiqueta | `field.tsx` → `Field`, `Input`, `Textarea`, `Select`, `Switch`, `CONTROL`, `FIELD_LABEL` |
+| · Avisos dentro de pantalla (`action` amarillo, `info`, `success`, `danger`) | `notice.tsx` → `Notice` |
+| · Estado vacío útil (qué aparecerá, de dónde sale, siguiente paso) | `empty-state.tsx` → `EmptyState` |
+| · Filtros y vistas (Día/Semana, segmentos de Clientes) | `segmented.tsx` → `SEGMENT_GROUP`, `SEGMENT_SCROLL`, `SegmentLink` |
+| · Cifra de contexto (como las cuatro del pie del Panel) | `kpi-cell.tsx` → `KpiCell` |
+| · Inicial de persona (con el color de su línea si es profesional) | `avatar.tsx` → `Avatar` |
+| · Canal (WhatsApp, Telegram, Instagram, Messenger, Web) | `channel.tsx` → `ChannelChip` |
+| · Iconos dibujados (trazo 2 px; nada de emojis como icono) | `icon.tsx` → `Icon` |
+| · Selección, cursor, foco de teclado, puntos «escribiendo…» | `panel.css` (cargado en el layout del panel bajo `.cv-panel`) |
+| Formatos (miles con coma, «hace 5 min», fechas en hora de México) | `src/shared/lib/format.ts` |
 
 El día se arma **en el servidor** (`buildDay`): si lo calculara el navegador, «ahora» sería otro
 instante y el HTML no coincidiría.
@@ -99,4 +115,11 @@ instante y el HTML no coincidiría.
 
 - Con seis o más profesionales el plano horizontal se aprieta: usar el filtro por línea de la Agenda.
 - Una persona con horario partido se dibuja como una sola ventana (de su primera entrada a su última salida).
-- El resto de las pantallas (Chats, Clientes, Profesionales, Facturación…) heredan la tinta, el fondo, la tipografía y la navegación, pero conservan su disposición anterior. Rediseñarlas es trabajo aparte.
+- Desde el 2026-10-02 todas las pantallas del panel usan las primitivas de `src/shared/components/ui/`: Chats y su conversación, Clientes y su ficha, Profesionales, Equipo, Recepcionista IA y su chat de prueba, Reservas Web, Conexiones, Facturación, Configuración de la agenda, los diálogos de cita y la lista de arranque. Una pantalla nueva empieza por `Page` + `PageHeader` + `Section`; no copia clases de tarjeta, botón o campo.
+- Reglas de las primitivas que no se ven en el código a primera vista:
+  - El amarillo (`StatusChip tone="wait"`, `Notice tone="action"`) solo para lo que espera una acción: «Sin confirmar», «Te espera», «Sin horario» de un profesional activo, la prueba vencida. Un cliente inactivo o un recordatorio en pausa van en `off` (aro gris y pausa), no en amarillo.
+  - `CONTROL` (la clase suelta de los campos) no fija el ancho; `Input`, `Select` y `Textarea` ocupan su contenedor. Para un ancho fijo, envolver en un contenedor con ese ancho en vez de sumar otra clase `w-*` (dos clases de la misma propiedad no tienen orden garantizado en Tailwind).
+  - Un `<Field>` es un `<label>` que envuelve UN control. Si dentro hay un botón (subir imagen, buscar), usar `as="div"` y darle `aria-label` al campo.
+  - Los colores de marca de terceros se oscurecen para que el texto blanco pase 4.5:1: WhatsApp `#0b7d47`, Facebook `#1468d6`.
+- La lista de Chats marca «Te espera» con el estado `pending` de la conversación. Ese estado solo se limpia al aprobar o al cerrar el chat: si el dueño contesta a mano, el chip sigue ahí hasta que pulse «Cerrar».
+- Las barras pegadas abajo (el total de Facturación) en celular van a `bottom: 84px + safe-area` para quedar sobre la barra de navegación, y se compactan: la letra pequeña sale de la barra.
