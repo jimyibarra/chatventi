@@ -50,9 +50,11 @@ const config: Config = {
         card: '20px',
       },
       fontFamily: {
-        // Rubik se carga en el layout del panel (variable --font-rubik). Fuera
-        // de él la variable no existe y cae a la pila del sistema, como antes.
-        sans: ['var(--font-rubik)', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        // Rubik se carga en el layout raíz (variable --font-rubik en <html>).
+        // El respaldo DENTRO del var() no es decorativo: un var() sin respaldo
+        // cuya variable no existe invalida la declaración ENTERA de font-family
+        // (no salta al siguiente de la lista) y el navegador cae a su serif.
+        sans: ['var(--font-rubik, ui-sans-serif)', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
       },
       boxShadow: {
         'card-hover': '0 4px 20px rgba(91,79,224,.10)',

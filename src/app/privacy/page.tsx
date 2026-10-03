@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { LEGAL } from '@/shared/constants/legal'
 
 export const metadata: Metadata = {
-  title: `Política de Privacidad · ${LEGAL.brand}`,
+  title: 'Política de Privacidad',
   description: `Cómo ${LEGAL.brand} recopila, usa y protege los datos personales.`,
 }
 
