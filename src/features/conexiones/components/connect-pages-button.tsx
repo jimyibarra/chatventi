@@ -42,7 +42,7 @@ export function ConnectPagesButton({ appId, configId }: { appId: string; configI
     if (!document.getElementById('facebook-jssdk')) {
       const js = document.createElement('script')
       js.id = 'facebook-jssdk'
-      js.src = 'https://connect.facebook.net/en_US/sdk.js'
+      js.src = 'https://connect.facebook.net/es_LA/sdk.js'
       js.async = true
       js.defer = true
       document.body.appendChild(js)

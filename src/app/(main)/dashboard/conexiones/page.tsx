@@ -6,6 +6,7 @@ import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { planById } from '@/features/billing/plans'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
 import { Section } from '@/shared/components/ui/card'
+import { ButtonLink } from '@/shared/components/ui/button'
 import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
 import { StatusChip, type ChipTone } from '@/shared/components/ui/status-chip'
@@ -103,6 +104,12 @@ export default async function ConexionesPage() {
           title="Instagram y Messenger"
           badge={social.some((c) => c.status === 'active') ? <StatusChip tone="ok" size="md">Conectado</StatusChip> : undefined}
           description="Conecta la página de Facebook de tu negocio; si tiene un Instagram profesional enlazado, se conecta también. Necesitas ser administrador de la página."
+          actions={
+            <ButtonLink href="/ayuda/facebook-instagram" variant="secondary" size="sm" target="_blank" data-testid="guia-fb-ig">
+              <Icon name="book" className="h-4 w-4" />
+              Guía paso a paso
+            </ButtonLink>
+          }
         >
           <ChannelList
             rows={social}

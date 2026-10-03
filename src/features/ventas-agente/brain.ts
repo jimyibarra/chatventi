@@ -31,6 +31,7 @@ export type SalesTurn = { role: 'user' | 'assistant'; content: string }
  */
 export type SalesChannel = 'web' | 'chat'
 const SIGNUP_URL = 'https://www.chatventi.com/signup'
+const GUIDE_URL = 'https://www.chatventi.com/ayuda/facebook-instagram'
 
 // Datos verificables del catálogo, en un bloque que el modelo cita tal cual.
 function pricingFacts(channel: SalesChannel): string {
@@ -71,6 +72,11 @@ REQUISITOS que hay que decir siempre que pregunten por WhatsApp:
 - Sí se necesita una cuenta de Facebook o de Meta para empresas: es Meta quien autoriza la conexión. Si no tiene Facebook, puede crear la cuenta en minutos, y mientras tanto atender por Instagram, Messenger, Telegram y la página de reservas.
 - El número NO puede estar activo en la app de WhatsApp (ni la normal ni la Business). Si lo usa ahí, debe borrar esa cuenta de WhatsApp antes, o usar otro número.
 - El número debe poder recibir un SMS o una llamada para el código.`,
+    `CÓMO SE CONECTAN INSTAGRAM Y MESSENGER: en el panel, Conexiones → "Conectar Facebook e Instagram". Hace falta una página de Facebook del negocio donde la persona sea administradora; para Instagram, que la cuenta sea profesional, esté vinculada a esa página y tenga activado "Permitir acceso a los mensajes". ${
+      channel === 'web'
+        ? 'Hay una guía paso a paso con imágenes en el panel: Conexiones → botón "Guía paso a paso".'
+        : `Guía paso a paso con imágenes (dala tal cual, en su propia línea): ${GUIDE_URL}`
+    }`,
     'RECOMIENDA Y GANA: cada negocio tiene un enlace para recomendar ChatVenti; cuando el recomendado hace su primer pago, quien recomendó recibe un mes de su plan.',
     'AÚN NO DISPONIBLE (no lo ofrezcas; si preguntan, di que está en camino y que no se cobra): app de marca para los clientes del negocio, dominio propio y varias sucursales en una misma cuenta.',
     channel === 'web'
