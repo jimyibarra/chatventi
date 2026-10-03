@@ -10,7 +10,9 @@ import {
   trialEndedEmail,
   deletionWarningEmail,
   dataDeletedEmail,
+  type EmailPromo,
 } from '@/features/emails/templates'
+import { getActiveTrialPromo } from '@/features/billing/promo'
 import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 import { removeInboundFolder } from '@/features/storage/inbound'
 import { runConversationScoring } from '@/features/agente-ia/scoring-job'
@@ -526,6 +528,17 @@ async function runTrialFunnel(
 
     const cols = 'id, name, contact_email, created_at, trial_ends_at, delete_scheduled_at'
 
+    // Promoción vigente (de Stripe), solo si hay algún correo que mandar: el
+    // cron corre cada 15 min y no tiene caso preguntarle a Stripe en vano.
+    let promo: EmailPromo | null | undefined
+    const getPromo = async () => {
+      if (promo === undefined) {
+        const p = await getActiveTrialPromo()
+        promo = p && { code: p.code, label: p.label }
+      }
+      return promo
+    }
+
     // 1) Recordatorio: prueba termina dentro de ~3 días.
     const in3d = new Date(now.getTime() + 3 * 86400000).toISOString()
     const { data: ending } = await service
@@ -541,6 +554,7 @@ async function runTrialFunnel(
         orgName: o.name,
         trialEndLabel: dayLabel(o.trial_ends_at as string),
         siteUrl: SITE,
+        promo: await getPromo(),
       })
       await sendEmail({ to: o.contact_email, subject, html })
       await service.from('organizations').update({ trial_ending_email_sent_at: nowIso }).eq('id', o.id)
@@ -564,6 +578,7 @@ async function runTrialFunnel(
           orgName: o.name,
           deleteLabel: dayLabel(deleteIso),
           siteUrl: SITE,
+          promo: await getPromo(),
         })
         await sendEmail({ to: o.contact_email, subject, html })
       }
@@ -591,6 +606,7 @@ async function runTrialFunnel(
           orgName: o.name,
           deleteLabel: dayLabel(o.delete_scheduled_at as string),
           siteUrl: SITE,
+          promo: await getPromo(),
         })
         await sendEmail({ to: o.contact_email, subject, html })
       }

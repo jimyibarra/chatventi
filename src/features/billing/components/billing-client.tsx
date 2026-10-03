@@ -5,8 +5,6 @@ import {
   PLANS,
   ADDON_SEAT_USD,
   ANNUAL_MONTHS_FREE,
-  PROMO_CODE,
-  PROMO_LABEL,
   monthlyTotalUsd,
   periodPriceUsd,
   planById,
@@ -23,7 +21,11 @@ import { Notice } from '@/shared/components/ui/notice'
 import { SEGMENT_GROUP, segmentItem } from '@/shared/components/ui/segmented'
 import { StatusChip } from '@/shared/components/ui/status-chip'
 
+/** Promoción vigente (de Stripe); null = no se anuncia ningún código. */
+type Promo = { code: string; label: string } | null
+
 interface Props {
+  promo: Promo
   sub: {
     status: string
     plan_id: string | null
@@ -65,14 +67,15 @@ function Pick({ on }: { on: boolean }) {
 }
 
 /** Condiciones del total: anual (10 meses por 12) o mensual con el código de promoción. */
-function FinePrint({ interval, planName }: { interval: BillingInterval; planName: string }) {
+function FinePrint({ interval, planName, promo }: { interval: BillingInterval; planName: string; promo: Promo }) {
   if (interval === 'year') {
     return <>Plan {planName} + extras · pagas 10 meses y usas 12 · cancela cuando quieras</>
   }
+  if (!promo) return <>Plan {planName} + extras · cancela cuando quieras</>
   return (
     <>
       Plan {planName} + extras · usa el código{' '}
-      <span className="rounded-[6px] bg-brand-500/25 px-1.5 font-mono font-semibold">{PROMO_CODE}</span> y obtén {PROMO_LABEL} ·
+      <span className="rounded-[6px] bg-brand-500/25 px-1.5 font-mono font-semibold">{promo.code}</span> y obtén {promo.label} ·
       cancela cuando quieras
     </>
   )
@@ -82,7 +85,7 @@ const OPTION ='flex w-full items-center gap-3 rounded-[16px] px-4 py-3 text-left
 const optionState = (on: boolean) =>
   on ? 'bg-brand-50 shadow-[inset_0_0_0_2px_#2a1a5e]' : 'bg-surface hover:shadow-[inset_0_0_0_2px_#c4bff5]'
 
-export function BillingClient({ sub, active, businessType, managed }: Props) {
+export function BillingClient({ sub, active, businessType, managed, promo }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
@@ -325,7 +328,7 @@ export function BillingClient({ sub, active, businessType, managed }: Props) {
               </span>
             </p>
             <p className="mt-1 hidden max-w-[52ch] text-[13px] leading-snug text-[#dcd8f7] md:block">
-              <FinePrint interval={interval} planName={planDef.name} />
+              <FinePrint interval={interval} planName={planDef.name} promo={promo} />
             </p>
           </div>
           <Button onClick={goCheckout} disabled={pending} className="md:min-w-[12rem]">
@@ -336,7 +339,7 @@ export function BillingClient({ sub, active, businessType, managed }: Props) {
       </Card>
       {/* En celular la letra pequeña va fuera de la barra pegada, para no tapar la pantalla. */}
       <p className="rounded-[16px] bg-white px-4 py-3 text-[13px] leading-snug text-ink-muted shadow-[0_1px_0_#dde2f0] md:hidden">
-        <FinePrint interval={interval} planName={planDef.name} />
+        <FinePrint interval={interval} planName={planDef.name} promo={promo} />
       </p>
     </div>
   )

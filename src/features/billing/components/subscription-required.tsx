@@ -1,11 +1,18 @@
-import { PROMO_CODE, PROMO_LABEL, DATA_RETENTION_DAYS } from '@/features/billing/plans'
+import { DATA_RETENTION_DAYS } from '@/features/billing/plans'
 import { Icon } from '@/shared/components/ui/icon'
 
 // Banner que se muestra en Facturación cuando la prueba gratis terminó y no hay
 // suscripción. Invita a suscribirse con la promo; los datos se conservan hasta
 // el borrado (día 30). La calculadora de planes va debajo, así pueden pagar.
 // Es lo único de la pantalla que pide una acción: va en amarillo.
-export function TrialEndedBanner({ deleteLabel }: { deleteLabel: string | null }) {
+export function TrialEndedBanner({
+  deleteLabel,
+  promo,
+}: {
+  deleteLabel: string | null
+  /** Promoción vigente (de Stripe); null = no se anuncia. */
+  promo: { code: string; label: string } | null
+}) {
   return (
     <section className="mb-4 rounded-card bg-[#ffcd2e] p-4 text-ink md:p-5" aria-label="Tu prueba gratis terminó">
       <div className="flex items-start gap-3">
@@ -28,12 +35,14 @@ export function TrialEndedBanner({ deleteLabel }: { deleteLabel: string | null }
           </p>
         </div>
       </div>
-      <div className="mt-3.5 flex flex-wrap items-center gap-2.5 rounded-[14px] bg-white p-3 text-[14.5px]">
-        <span>Usa el código y obtén {PROMO_LABEL}:</span>
-        <span className="rounded-[10px] border-2 border-dashed border-ink px-3 py-1 font-mono text-[15px] font-bold tracking-wider">
-          {PROMO_CODE}
-        </span>
-      </div>
+      {promo && (
+        <div className="mt-3.5 flex flex-wrap items-center gap-2.5 rounded-[14px] bg-white p-3 text-[14.5px]">
+          <span>Usa el código y obtén {promo.label}:</span>
+          <span className="rounded-[10px] border-2 border-dashed border-ink px-3 py-1 font-mono text-[15px] font-bold tracking-wider">
+            {promo.code}
+          </span>
+        </div>
+      )}
       <p className="mt-3 max-w-[70ch] text-[13px] leading-snug">
         Si no te suscribes, los datos de tu negocio se eliminarán al pasar {DATA_RETENTION_DAYS} días
         desde tu registro. Tu cuenta seguirá disponible por si decides volver.

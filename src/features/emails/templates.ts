@@ -2,7 +2,7 @@
 // correos de autenticación (mismo logotipo oficial). HTML inline (compatibilidad
 // con clientes de correo). El logo se referencia por URL pública absoluta.
 
-import { PROMO_CODE, PROMO_LABEL, TRIAL_DAYS } from '@/features/billing/plans'
+import { TRIAL_DAYS } from '@/features/billing/plans'
 import { CALL_URL } from '@/features/marketing/config'
 
 const LOGO = 'https://www.chatventi.com/brand/chatventi-logo.png'
@@ -12,13 +12,19 @@ interface Built {
   html: string
 }
 
-// Bloque visual con el código de promo (30% off 3 meses) para los correos del
-// funnel de conversión.
-function promoBox(): string {
+// Promoción vigente que se anuncia en los correos del funnel. Quien llama la
+// lee de Stripe; null = apagada, y entonces el correo no menciona ningún código.
+export interface EmailPromo {
+  code: string
+  label: string
+}
+
+function promoBox(promo: EmailPromo | null | undefined): string {
+  if (!promo) return ''
   return `<div style="border:1px dashed #c7bff5;background:#f4f2fe;border-radius:10px;padding:14px 16px;margin:16px 0;text-align:center">
     <p style="margin:0;font-size:13px;color:#4a3fc4">Usa este código al suscribirte y obtén</p>
-    <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#4338ca">${PROMO_LABEL}</p>
-    <p style="margin:8px 0 0"><span style="display:inline-block;border:1px dashed #5b4fe0;background:#ffffff;border-radius:8px;padding:6px 16px;font-family:monospace;font-size:16px;font-weight:bold;letter-spacing:2px;color:#4338ca">${PROMO_CODE}</span></p>
+    <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#4338ca">${promo.label}</p>
+    <p style="margin:8px 0 0"><span style="display:inline-block;border:1px dashed #5b4fe0;background:#ffffff;border-radius:8px;padding:6px 16px;font-family:monospace;font-size:16px;font-weight:bold;letter-spacing:2px;color:#4338ca">${promo.code}</span></p>
   </div>`
 }
 
@@ -173,11 +179,12 @@ export function trialEndingEmail(o: {
   orgName: string
   trialEndLabel: string
   siteUrl: string
+  promo?: EmailPromo | null
 }): Built {
   const body = `
     <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, tu prueba gratuita de ChatVenti termina el <strong>${o.trialEndLabel}</strong>.</p>
     <p style="margin:0 0 14px">Si ya viste cómo te ayuda a llenar tu agenda y responder a tus clientes, suscríbete ahora para seguir sin cortes y no perder tu configuración ni tu historial.</p>
-    ${promoBox()}`
+    ${promoBox(o.promo)}`
   return {
     subject: '⏰ Tu prueba gratis de ChatVenti termina pronto',
     html: layout({
@@ -195,6 +202,7 @@ export function trialEndedEmail(o: {
   orgName: string
   deleteLabel: string | null
   siteUrl: string
+  promo?: EmailPromo | null
 }): Built {
   const keep = o.deleteLabel
     ? `Conservamos los datos de tu negocio hasta el <strong>${o.deleteLabel}</strong>. Si te suscribes antes de esa fecha, sigues justo donde lo dejaste.`
@@ -203,7 +211,7 @@ export function trialEndedEmail(o: {
     <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, tu prueba gratuita de ChatVenti terminó.</p>
     <p style="margin:0 0 14px">${keep}</p>
     <p style="margin:0 0 14px">Suscríbete para reactivar tu agenda y tu recepcionista con IA:</p>
-    ${promoBox()}`
+    ${promoBox(o.promo)}`
   return {
     subject: '🔔 Tu prueba terminó — suscríbete para no perder tus datos',
     html: layout({
@@ -221,12 +229,13 @@ export function deletionWarningEmail(o: {
   orgName: string
   deleteLabel: string
   siteUrl: string
+  promo?: EmailPromo | null
 }): Built {
   const body = `
     <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, este es un aviso importante.</p>
     <p style="margin:0 0 14px">Como tu prueba terminó y aún no tienes una suscripción activa, los <strong>datos de tu negocio</strong> (agenda, clientes, servicios y configuración) se <strong>eliminarán el ${o.deleteLabel}</strong>.</p>
     <p style="margin:0 0 14px">Todavía estás a tiempo: suscríbete antes de esa fecha y conserva todo tal como está.</p>
-    ${promoBox()}`
+    ${promoBox(o.promo)}`
   return {
     subject: '⚠️ Tus datos de ChatVenti se eliminarán pronto',
     html: layout({

@@ -38,10 +38,8 @@ export const TRIAL_DAYS = 14
 // operativos del negocio (se conserva la cuenta del dueño).
 export const DATA_RETENTION_DAYS = 30
 
-// Promo de conversión: 30% de descuento por 3 meses. El código se envía en los
-// correos del funnel y se aplica en el checkout (allow_promotion_codes).
-export const PROMO_CODE = 'BIENVENIDO30'
-export const PROMO_LABEL = '30% de descuento durante 3 meses'
+// La promo de conversión (código, % y meses) ya NO vive aquí: se configura en
+// /admin/promocion y la fuente de verdad es Stripe (ver features/billing/promo.ts).
 
 // ---------------------------------------------------------------------
 // Planes

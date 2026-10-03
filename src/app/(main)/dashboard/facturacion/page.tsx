@@ -9,6 +9,7 @@ import {
 import { BillingClient } from '@/features/billing/components/billing-client'
 import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout'
 import { TrialEndedBanner } from '@/features/billing/components/subscription-required'
+import { getActiveTrialPromo } from '@/features/billing/promo'
 import { OnboardingHelpCard } from '@/features/marketing/components/onboarding-help-card'
 import { DATA_RETENTION_DAYS, type PlanId } from '@/features/billing/plans'
 import { UsageCard } from '@/features/billing/components/usage-card'
@@ -91,6 +92,10 @@ export default async function FacturacionPage({
       )
     : null
 
+  // La promoción se lee de Stripe (con caché); a quien ya paga no se le anuncia.
+  const live = active ? null : await getActiveTrialPromo()
+  const promo = live && { code: live.code, label: live.label }
+
   return (
     <Page width="narrow">
       <PageHeader
@@ -98,7 +103,7 @@ export default async function FacturacionPage({
         subtitle="Elige el plan del tamaño de tu negocio. Todos incluyen el recepcionista IA por WhatsApp, la agenda, el CRM y las reservas web."
       />
 
-      {blocked && <TrialEndedBanner deleteLabel={deleteLabel} />}
+      {blocked && <TrialEndedBanner deleteLabel={deleteLabel} promo={promo} />}
       {success && <PostCheckoutSuccess active={active} />}
       {canceled && !success && (
         <Notice tone="info" className="mb-4">
@@ -122,6 +127,7 @@ export default async function FacturacionPage({
         active={active}
         businessType={org?.business_type ?? null}
         managed={managed}
+        promo={promo}
       />
 
       <UsageCard
