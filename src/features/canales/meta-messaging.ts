@@ -91,8 +91,9 @@ export interface MetaInboundMessage {
 
 /**
  * Aplana un payload de webhook de Messenger/Instagram (`object`: 'page' |
- * 'instagram') a mensajes entrantes de texto. Ignora ecos (mensajes que
- * enviamos nosotros), entregas, lecturas y adjuntos (fase posterior).
+ * 'instagram') a mensajes entrantes de texto. Un postback (pregunta rápida)
+ * cuenta como si el cliente hubiera escrito su título. Ignora ecos (mensajes
+ * que enviamos nosotros), entregas, lecturas y adjuntos (fase posterior).
  */
 export function parseMetaMessaging(body: unknown): MetaInboundMessage[] {
   const out: MetaInboundMessage[] = []
@@ -108,6 +109,8 @@ export function parseMetaMessaging(body: unknown): MetaInboundMessage[] {
           is_echo?: boolean
           quick_reply?: { payload?: string }
         }
+        // Toque en una pregunta rápida (ice breaker) o en «Empezar».
+        postback?: { mid?: string; title?: string; payload?: string }
       }[]
     }[]
   }
@@ -118,17 +121,21 @@ export function parseMetaMessaging(body: unknown): MetaInboundMessage[] {
     if (!entry?.id || !Array.isArray(entry.messaging)) continue
     for (const ev of entry.messaging) {
       const msg = ev?.message
-      if (!msg || msg.is_echo) continue
-      // El payload de un quick reply manda sobre el texto visible del botón:
-      // es el id que esperan los manejadores (conf:/csat:/slot:).
-      const text = msg.quick_reply?.payload ?? msg.text
+      if (msg?.is_echo) continue
+      // El payload de un quick reply manda sobre el texto visible solo si es
+      // uno de nuestros ids (conf:/csat:/slot:). Los de un anuncio de
+      // clic-a-Messenger son opacos: ahí vale lo que el cliente vio y tocó.
+      const payload = msg?.quick_reply?.payload
+      const text = payload && /^(conf|csat|slot):/.test(payload)
+        ? payload
+        : msg?.text ?? ev?.postback?.title
       if (!text || !ev.sender?.id) continue
       out.push({
         channelType,
         channelExternalId: entry.id,
         senderId: ev.sender.id,
         text,
-        externalMessageId: msg.mid ?? null,
+        externalMessageId: msg?.mid ?? ev.postback?.mid ?? null,
       })
     }
   }
