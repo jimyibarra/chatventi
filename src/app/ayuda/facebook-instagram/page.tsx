@@ -21,6 +21,10 @@ const STARTS: { href: string; icon: IconName; title: string; text: string }[] = 
 
 const FAQ: { q: string; a: ReactNode }[] = [
   {
+    q: 'Facebook dice «Este contenido no está disponible en este momento»',
+    a: 'Te pasa al crear la página si estás usando Facebook como una página (por ejemplo, la de tu negocio). Toca tu foto, arriba a la derecha, elige tu perfil personal y vuelve a intentarlo.',
+  },
+  {
     q: 'En la ventana de Facebook no me aparece mi página',
     a: 'Solo aparecen las páginas donde eres administrador con acceso total. Si la creó otra persona, pídele que te dé ese acceso. Si Facebook te muestra lo que ya habías autorizado, elige editar el acceso y marca tu página.',
   },
@@ -49,6 +53,8 @@ function Station({
   lead,
   children,
   shots,
+  shotsBelow = false,
+  stack = false,
   last = false,
 }: {
   n: number
@@ -57,6 +63,10 @@ function Station({
   lead: string
   children: ReactNode
   shots?: ReactNode
+  /** Capturas en fila debajo del texto (una secuencia), en vez de a un lado. */
+  shotsBelow?: boolean
+  /** Capturas una debajo de otra (para que no aprieten el texto). */
+  stack?: boolean
   last?: boolean
 }) {
   const color = LINE[n - 1]
@@ -77,10 +87,17 @@ function Station({
           {title}
         </h2>
         <p className="mt-1.5 max-w-[60ch] text-[16px] leading-relaxed text-ink-muted">{lead}</p>
-        <div className={`mt-5 grid items-start gap-7 ${shots ? 'lg:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
-          <div className="min-w-0 space-y-4">{children}</div>
-          {shots && <div className="flex flex-wrap justify-center gap-6">{shots}</div>}
-        </div>
+        {shotsBelow ? (
+          <div className="mt-5 space-y-7">
+            <div className="min-w-0 max-w-[44rem] space-y-4">{children}</div>
+            <div className="grid grid-cols-1 items-start gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3">{shots}</div>
+          </div>
+        ) : (
+          <div className={`mt-5 grid items-start gap-7 ${shots ? 'lg:grid-cols-[minmax(0,1fr)_auto]' : ''}`}>
+            <div className="min-w-0 space-y-4">{children}</div>
+            {shots && <div className={`flex justify-center gap-6 ${stack ? 'flex-col items-center' : 'flex-wrap'}`}>{shots}</div>}
+          </div>
+        )}
       </div>
     </section>
   )
@@ -226,11 +243,36 @@ export default function GuiaFacebookInstagramPage() {
             id="paso-2"
             title="Crea la página de tu negocio"
             lead="La página es la cara de tu negocio en Facebook: ahí te escriben tus clientes por Messenger. Si ya la tienes, salta al paso 3."
+            stack
+            shots={
+              <>
+                <PhoneShot
+                  src="/guia/fb-crear-pagina.webp"
+                  alt="Formulario Crear una página de Facebook con nombre, categoría y presentación"
+                  width={294}
+                  height={607}
+                  frame="screen"
+                  maxWidth={290}
+                  tap={{ left: 4, top: 87.8, width: 92, height: 5.6, label: 'Al terminar' }}
+                  caption="Crear una página, en la computadora"
+                />
+                <PhoneShot
+                  src="/guia/fb-cambiar-perfil.webp"
+                  alt="Menú de la foto de Facebook con la página y el perfil personal para cambiar entre ellos"
+                  width={295}
+                  height={160}
+                  frame="screen"
+                  maxWidth={290}
+                  tap={{ left: 5, top: 42, width: 90, height: 26, label: 'Tu perfil personal' }}
+                  caption="Si ves «Este contenido no está disponible»"
+                />
+              </>
+            }
           >
             <Steps
               items={[
                 <>
-                  En la app de Facebook: <Path parts={['Menú', 'Páginas', 'Crear']} />. En la computadora entra a{' '}
+                  En la app de Facebook: <Path parts={['Menú', 'Páginas', 'Crear']} />. En la computadora, con tu perfil personal, entra a{' '}
                   <a className="font-semibold text-brand-700 underline underline-offset-2" href="https://www.facebook.com/pages/create" target="_blank" rel="noreferrer">
                     facebook.com/pages/create
                   </a>
@@ -243,6 +285,10 @@ export default function GuiaFacebookInstagramPage() {
               ]}
             />
             <Tip>
+              ¿Facebook dice «Este contenido no está disponible en este momento»? Estás usando Facebook como una página, y desde una página no se
+              pueden crear otras. Toca tu foto, arriba a la derecha, elige tu perfil personal y vuelve a abrir el enlace.
+            </Tip>
+            <Tip>
               Tienes que ser administrador de la página con acceso total. Si la creó otra persona (tu agencia, un familiar), pídele que te dé ese acceso desde{' '}
               <Path parts={['Configuración', 'Acceso a la página']} />
             </Tip>
@@ -253,14 +299,27 @@ export default function GuiaFacebookInstagramPage() {
             id="paso-3"
             title="Prepara tu Instagram (opcional)"
             lead="Si también quieres que la recepcionista conteste en Instagram, tu cuenta debe ser profesional y estar vinculada a tu página. Si solo quieres Messenger, salta al paso 4."
+            stack
             shots={
-              <PhoneShot
-                src="/guia/ig-crear-cuenta.webp"
-                alt="Pantalla para crear una cuenta de Instagram en el celular"
-                width={780}
-                height={1688}
-                caption="Si aún no tienes Instagram: instagram.com o la app"
-              />
+              <>
+                <PhoneShot
+                  src="/guia/ig-crear-cuenta.webp"
+                  alt="Pantalla para crear una cuenta de Instagram en el celular"
+                  width={780}
+                  height={1688}
+                  caption="Si aún no tienes Instagram: instagram.com o la app"
+                />
+                <PhoneShot
+                  src="/guia/fb-cuentas-vinculadas.webp"
+                  alt="Cuentas vinculadas de una página de Facebook con Instagram conectado"
+                  width={585}
+                  height={185}
+                  frame="screen"
+                  maxWidth={340}
+                  tap={{ left: 3.5, top: 31, width: 93, height: 30, label: 'Así se ve vinculado' }}
+                  caption="Facebook › Configuración › Cuentas vinculadas"
+                />
+              </>
             }
           >
             <Steps
@@ -269,7 +328,8 @@ export default function GuiaFacebookInstagramPage() {
                   Hazla profesional. En la app de Instagram: <Path parts={['Tu perfil', 'Menú', 'Configuración y actividad', 'Tipo de cuenta y herramientas']} /> y toca «Cambiar a cuenta profesional». Elige «Negocio».
                 </>,
                 <>
-                  Vincúlala a tu página: <Path parts={['Editar perfil', 'Página']} /> y elige la página de tu negocio.
+                  Vincúlala a tu página: <Path parts={['Editar perfil', 'Página']} /> y elige la página de tu negocio. También se puede desde Facebook, usando tu página:{' '}
+                  <Path parts={['Configuración', 'Cuentas vinculadas', 'Instagram']} />
                 </>,
                 <>
                   Deja entrar los mensajes: <Path parts={['Configuración y actividad', 'Mensajes y respuestas a historias', 'Herramientas conectadas']} /> y activa «Permitir acceso a los mensajes».
@@ -283,7 +343,8 @@ export default function GuiaFacebookInstagramPage() {
             n={4}
             id="paso-4"
             title="Conéctalos en ChatVenti"
-            lead="Un solo botón conecta tu página y, si la vinculaste, tu Instagram."
+            lead="Un solo botón conecta tu página y, si la vinculaste, tu Instagram. Estas son las pantallas, en orden."
+            shotsBelow
             shots={
               <>
                 <PhoneShot
@@ -291,16 +352,48 @@ export default function GuiaFacebookInstagramPage() {
                   alt="Pantalla Conexiones de ChatVenti con el botón Conectar Facebook e Instagram"
                   width={716}
                   height={560}
+                  maxWidth={260}
                   tap={{ left: 3.5, top: 79.5, width: 83.5, height: 17 }}
-                  caption="ChatVenti › Más › Conexiones"
+                  caption="1 · ChatVenti › Más › Conexiones"
                 />
                 <PhoneShot
                   src="/guia/fb-ventana-conectar.webp"
                   alt="Ventana de Facebook que pide iniciar sesión para conectar con ChatVenti"
                   width={780}
                   height={1688}
-                  tap={{ left: 9, top: 48.3, width: 82, height: 5, label: 'Tu Facebook' }}
-                  caption="La ventana que abre Facebook"
+                  maxWidth={260}
+                  tap={{ left: 9, top: 48.3, width: 82, height: 5, label: 'Si te lo pide' }}
+                  caption="2 · Entra con tu Facebook"
+                />
+                <PhoneShot
+                  src="/guia/fb-elegir-pagina.webp"
+                  alt="Ventana de Facebook para elegir la página que se comparte con ChatVenti"
+                  width={460}
+                  height={548}
+                  frame="screen"
+                  maxWidth={330}
+                  tap={{ left: 12, top: 65.8, width: 85, height: 7.6, label: 'Marca tu página' }}
+                  caption="3 · En «Página», marca la de tu negocio"
+                />
+                <PhoneShot
+                  src="/guia/fb-pagina-elegida.webp"
+                  alt="Ventana de Facebook con la página y la cuenta de Instagram elegidas"
+                  width={460}
+                  height={548}
+                  frame="screen"
+                  maxWidth={330}
+                  tap={{ left: 79.6, top: 88.9, width: 18, height: 6.6, label: 'Siguiente' }}
+                  caption="4 · Revisa página e Instagram"
+                />
+                <PhoneShot
+                  src="/guia/fb-permisos.webp"
+                  alt="Ventana de Facebook con lo que se compartirá con ChatVenti y el botón Confirmar"
+                  width={460}
+                  height={548}
+                  frame="screen"
+                  maxWidth={330}
+                  tap={{ left: 72, top: 89.6, width: 20, height: 7.4, label: 'Confirmar' }}
+                  caption="5 · Confirma"
                 />
               </>
             }
@@ -312,11 +405,12 @@ export default function GuiaFacebookInstagramPage() {
                 </>,
                 'En «Instagram y Messenger» toca «Conectar Facebook e Instagram».',
                 'Se abre una ventana de Facebook. Si te pide entrar, escribe tu correo y contraseña de Facebook.',
-                'Toca «Continuar». Marca la página de tu negocio y, si aparece, tu Instagram. Deja los permisos activados y confirma.',
+                'En «Selecciona los activos comerciales…»: en «Página» marca la de tu negocio y en «Cuenta de Instagram» elige la tuya. Si te pide un portafolio empresarial, deja el que aparece o crea uno con el nombre de tu negocio. Toca «Siguiente».',
+                'Revisa lo que se compartirá con ChatVenti y toca «Confirmar».',
                 'Regresas a ChatVenti y verás «Messenger de la página» y «Mensajes directos de Instagram» como conectados.',
               ]}
             />
-            <Tip>Facebook te pregunta qué puede hacer ChatVenti: solo leer y contestar los mensajes de esa página. No publica nada en tu nombre.</Tip>
+            <Tip>ChatVenti pide ver tu página y leer y contestar los mensajes de Messenger e Instagram. No pide permiso para publicar nada en tu nombre.</Tip>
           </Station>
 
           <Station
