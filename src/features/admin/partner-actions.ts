@@ -39,3 +39,45 @@ export async function setPartnerStatus(id: string, status: 'active' | 'suspended
   revalidatePath('/admin/socios')
   return { ok: true }
 }
+
+const updateSchema = createSchema.extend({ id: z.string().uuid() })
+
+export async function updatePartner(raw: unknown): Promise<PartnerActionResult> {
+  const parsed = updateSchema.safeParse(raw)
+  if (!parsed.success) return { ok: false, error: 'Revisa el nombre, el correo y el descuento (0 a 100).' }
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('admin_update_partner', {
+    p_id: parsed.data.id,
+    p_name: parsed.data.name,
+    p_billing_email: parsed.data.billingEmail,
+    p_discount_pct: parsed.data.discountPct,
+  })
+  if (error) return { ok: false, error: 'No se pudieron guardar los cambios.' }
+  revalidatePath('/admin/socios')
+  return { ok: true }
+}
+
+// Clave nueva: la anterior deja de funcionar en ese momento.
+export async function rotatePartnerKey(id: string): Promise<CreatePartnerResult> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('admin_rotate_partner_key', { p_id: id })
+  if (error) return { ok: false, error: 'No se pudo generar la clave nueva.' }
+  revalidatePath('/admin/socios')
+  return { ok: true, apiKey: (data as { api_key: string }).api_key }
+}
+
+// Solo se elimina un socio sin negocios; con negocios se suspende (historia).
+export async function deletePartner(id: string): Promise<PartnerActionResult> {
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('admin_delete_partner', { p_id: id })
+  if (error) {
+    return {
+      ok: false,
+      error: error.message.includes('has_organizations')
+        ? 'Tiene negocios dados de alta: suspéndelo en vez de eliminarlo.'
+        : 'No se pudo eliminar.',
+    }
+  }
+  revalidatePath('/admin/socios')
+  return { ok: true }
+}

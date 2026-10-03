@@ -384,7 +384,7 @@ export async function sendManualReply(
   const supabase = await createClient()
   const { data: conv } = await supabase
     .from('conversations')
-    .select('id, client:clients(phone), channel:channels(type, external_id)')
+    .select('id, status, client:clients(phone), channel:channels(type, external_id)')
     .eq('id', conversationId)
     .maybeSingle()
   if (!conv) return { ok: false, error: 'Conversación no encontrada.' }
@@ -413,7 +413,7 @@ export async function sendManualReply(
     }
   }
 
-  const [{ error: logError }, { error: pauseError }] = await Promise.all([
+  const [{ error: logError }, { error: pauseError }, { error: statusError }] = await Promise.all([
     supabase.rpc('log_outbound_message', {
       p_conversation_id: conversationId,
       p_body: text,
@@ -424,9 +424,14 @@ export async function sendManualReply(
       p_conversation_id: conversationId,
       p_minutes: MANUAL_PAUSE_MINUTES,
     }),
+    // Si el chat esperaba al dueño («Te espera»), ya lo atendió: vuelve a abierto.
+    conv.status === 'pending'
+      ? supabase.rpc('set_conversation_status', { p_conversation_id: conversationId, p_status: 'open' })
+      : Promise.resolve({ error: null }),
   ])
   if (logError) console.error('[sendManualReply] log_outbound_message', logError.message)
   if (pauseError) console.error('[sendManualReply] pause_ai', pauseError.message)
+  if (statusError) console.error('[sendManualReply] set_conversation_status', statusError.message)
 
   revalidatePath(`/dashboard/conversaciones/${conversationId}`)
   revalidatePath('/dashboard/conversaciones')

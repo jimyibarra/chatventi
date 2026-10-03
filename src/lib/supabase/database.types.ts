@@ -1755,6 +1755,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_delete_partner: { Args: { p_id: string }; Returns: undefined }
       admin_global_stats: { Args: never; Returns: Json }
       admin_list_agent_models: {
         Args: never
@@ -1790,12 +1791,22 @@ export type Database = {
         }[]
       }
       admin_list_partners: { Args: never; Returns: Json }
+      admin_rotate_partner_key: { Args: { p_id: string }; Returns: Json }
       admin_set_agent_model: {
         Args: { p_model: string; p_org: string }
         Returns: undefined
       }
       admin_set_partner_status: {
         Args: { p_id: string; p_status: string }
+        Returns: undefined
+      }
+      admin_update_partner: {
+        Args: {
+          p_billing_email: string
+          p_discount_pct: number
+          p_id: string
+          p_name: string
+        }
         Returns: undefined
       }
       apply_deposit_requirement: {
