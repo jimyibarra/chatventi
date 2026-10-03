@@ -7,6 +7,10 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { loginSchema, type LoginInput } from '@/lib/validations/auth'
+import { Button, ButtonLink } from '@/shared/components/ui/button'
+import { FIELD_LABEL, FieldError, Input } from '@/shared/components/ui/field'
+import { Icon } from '@/shared/components/ui/icon'
+import { Notice } from '@/shared/components/ui/notice'
 import { PasswordInput } from './password-input'
 import { TurnstileWidget } from './turnstile-widget'
 
@@ -60,56 +64,68 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" autoComplete="off">
       <div>
-        <label className="block text-sm font-medium text-ink-muted">Correo</label>
-        <input
+        <label htmlFor="login-email" className={FIELD_LABEL}>
+          Correo
+        </label>
+        <Input
+          id="login-email"
           type="email"
           autoComplete="off"
           readOnly={locked}
           placeholder="hola@tunegocio.com"
+          aria-invalid={errors.email ? true : undefined}
+          aria-describedby={errors.email ? 'login-email-error' : undefined}
           {...register('email')}
           onFocus={unlock}
-          className="mt-1 w-full rounded-lg border border-line px-3 py-2 focus:border-brand-400 focus:outline-none focus:ring-1 focus:ring-brand-400"
         />
-        {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+        {errors.email && <FieldError id="login-email-error">{errors.email.message}</FieldError>}
       </div>
       <div>
-        <label className="block text-sm font-medium text-ink-muted">Contraseña</label>
+        <div className="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3">
+          <label htmlFor="login-password" className="text-[13.5px] font-semibold text-ink">
+            Contraseña
+          </label>
+          <Link
+            href="/recuperar"
+            className="rounded-[6px] text-[13.5px] font-semibold text-brand-600 underline-offset-4 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
         <PasswordInput
+          id="login-password"
           registration={register('password')}
           autoComplete="off"
           placeholder="Tu contraseña"
           readOnly={locked}
           onFocus={unlock}
+          errorId={errors.password ? 'login-password-error' : undefined}
         />
-        {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
-        <div className="mt-1 text-right">
-          <Link href="/recuperar" className="text-sm font-medium text-brand-600 hover:underline">
-            ¿Olvidaste tu contraseña?
-          </Link>
-        </div>
+        {errors.password && <FieldError id="login-password-error">{errors.password.message}</FieldError>}
       </div>
       <TurnstileWidget key={captchaNonce} onToken={setCaptchaToken} />
 
-      {serverError && <p className="text-sm text-red-600">{serverError}</p>}
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full rounded-lg bg-brand-500 px-4 py-2 font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-      >
+      {serverError && (
+        <Notice tone="danger" size="sm">
+          {serverError}
+        </Notice>
+      )}
+      <Button type="submit" disabled={isSubmitting} className="w-full">
         {isSubmitting ? 'Entrando…' : 'Iniciar sesión'}
-      </button>
-      <p className="text-center text-sm text-ink-muted">
-        ¿No tienes cuenta?{' '}
-        <Link href="/signup" className="font-medium text-brand-600 hover:underline">
-          Registrarse
-        </Link>
-      </p>
-      <Link
-        href="/"
-        className="block w-full rounded-lg border border-line bg-surface px-4 py-2 text-center text-sm font-medium text-ink-muted transition-colors hover:bg-line-soft"
-      >
-        ← Regresar
-      </Link>
+      </Button>
+
+      <div className="space-y-3 border-t border-line pt-4">
+        <p className="text-center text-[14.5px] text-ink-muted">
+          ¿No tienes cuenta?{' '}
+          <Link href="/signup" className="rounded-[6px] font-semibold text-brand-600 underline-offset-4 hover:underline">
+            Regístrate
+          </Link>
+        </p>
+        <ButtonLink href="/" variant="ghost" className="w-full">
+          <Icon name="arrowLeft" className="h-4 w-4" />
+          Regresar al inicio
+        </ButtonLink>
+      </div>
     </form>
   )
 }

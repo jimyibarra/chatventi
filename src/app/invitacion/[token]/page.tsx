@@ -1,11 +1,13 @@
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { AcceptInvitationForm } from '@/features/equipo/components/accept-invitation-form'
 import { TEAM_ROLES, roleKeyOf } from '@/features/equipo/types'
+import { AuthShell } from '@/features/auth/components/auth-shell'
+import { AuthCard } from '@/features/auth/components/auth-card'
+import { ButtonLink } from '@/shared/components/ui/button'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Invitación · ChatVenti' }
+export const metadata = { title: 'Invitación' }
 
 type Preview = {
   valid: boolean
@@ -17,7 +19,8 @@ type Preview = {
 }
 
 // Pantalla pública (patrón de /c/[token]): el invitado aún no tiene cuenta.
-// El token es el secreto; la RPC solo expone org, email y rol.
+// El token es el secreto; la RPC solo expone org, email y rol. Usa el armazón
+// de acceso: es, en la práctica, un registro.
 export default async function InvitacionPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const supabase = await createClient()
@@ -28,16 +31,13 @@ export default async function InvitacionPage({ params }: { params: Promise<{ tok
 
   if (!preview?.valid) {
     return (
-      <Shell>
-        <h1 className="mb-2 text-xl font-bold text-ink">Esta invitación no está disponible</h1>
-        <p className="text-sm text-ink-muted">{reasonMessage(preview?.reason)}</p>
-        <Link
-          href="/login"
-          className="mt-5 inline-block rounded-lg border border-line px-4 py-2 text-sm font-medium text-ink-muted hover:bg-surface"
-        >
-          Ir a iniciar sesión
-        </Link>
-      </Shell>
+      <AuthShell>
+        <AuthCard title="Esta invitación no está disponible" subtitle={reasonMessage(preview?.reason)}>
+          <ButtonLink href="/login" variant="secondary" className="w-full">
+            Ir a iniciar sesión
+          </ButtonLink>
+        </AuthCard>
+      </AuthShell>
     )
   }
 
@@ -46,48 +46,38 @@ export default async function InvitacionPage({ params }: { params: Promise<{ tok
   // Ya tiene cuenta: no podemos crearle otra. Que entre y vuelva al enlace.
   if (preview.has_account) {
     return (
-      <Shell>
-        <h1 className="mb-2 text-xl font-bold text-ink">Te invitaron a {orgName}</h1>
-        <p className="text-sm text-ink-muted">
-          Ya tienes una cuenta de ChatVenti con <strong>{preview.email}</strong>. Inicia sesión y
-          vuelve a abrir este enlace para unirte al equipo.
-        </p>
-        <Link
-          href="/login"
-          className="mt-5 inline-block rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-btn hover:bg-brand-600"
+      <AuthShell>
+        <AuthCard
+          title={`Te invitaron a ${orgName}`}
+          subtitle={
+            <>
+              Ya tienes una cuenta de ChatVenti con <strong className="font-semibold text-ink">{preview.email}</strong>.
+              Inicia sesión y vuelve a abrir este enlace para unirte al equipo.
+            </>
+          }
         >
-          Iniciar sesión
-        </Link>
-      </Shell>
+          <ButtonLink href="/login" className="w-full">
+            Iniciar sesión
+          </ButtonLink>
+        </AuthCard>
+      </AuthShell>
     )
   }
 
   return (
-    <Shell>
-      <h1 className="mb-1 text-xl font-bold text-ink">Te invitaron a {orgName}</h1>
-      <p className="mb-5 text-sm text-ink-muted">
-        Tu rol será <strong>{roleLabel}</strong>. Crea tu contraseña y entras directo.
-      </p>
-      <AcceptInvitationForm token={token} email={preview.email ?? ''} orgName={orgName} />
-    </Shell>
-  )
-}
-
-function Shell({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-surface p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/brand/chatventi-logo.png"
-            alt="ChatVenti"
-            className="mx-auto h-9 w-auto"
-          />
-        </div>
-        <div className="rounded-card border border-line bg-white p-6">{children}</div>
-      </div>
-    </div>
+    <AuthShell>
+      <AuthCard
+        title={`Te invitaron a ${orgName}`}
+        subtitle={
+          <>
+            Tu rol será <strong className="font-semibold text-ink">{roleLabel}</strong>. Crea tu contraseña y
+            entras directo.
+          </>
+        }
+      >
+        <AcceptInvitationForm token={token} email={preview.email ?? ''} orgName={orgName} />
+      </AuthCard>
+    </AuthShell>
   )
 }
 

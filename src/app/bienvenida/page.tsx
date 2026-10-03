@@ -1,14 +1,19 @@
+import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
-import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { WelcomeWizard } from '@/features/onboarding/components/welcome-wizard'
 import { BUSINESS_TEMPLATES } from '@/features/agente-ia/business-templates'
+import { AuthShell } from '@/features/auth/components/auth-shell'
+import { AuthCard } from '@/features/auth/components/auth-card'
 
 export const dynamic = 'force-dynamic'
+
+export const metadata: Metadata = { title: 'Configura tu negocio' }
 
 // Asistente que crea el negocio, para cuentas ya verificadas y sin
 // organización. Vive FUERA del grupo (main) a propósito: aquel layout da por
 // hecho que existe una organización (menú, gates de plan) y aquí todavía no.
+// Usa el mismo armazón que el registro: es su segundo paso.
 export default async function BienvenidaPage() {
   const supabase = await createClient()
   const {
@@ -38,26 +43,13 @@ export default async function BienvenidaPage() {
       : undefined
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-surface-soft px-4 py-10">
-      <div className="w-full max-w-md space-y-6 rounded-card border border-line bg-white p-8 shadow-sm">
-        <div className="space-y-2 text-center">
-          <Image
-            src="/brand/chatventi-logo.png"
-            alt="ChatVenti"
-            width={150}
-            height={38}
-            className="mx-auto h-9 w-auto"
-            priority
-          />
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
-            ¡Tu correo está confirmado!
-          </h1>
-          <p className="text-sm text-ink-muted">
-            Solo faltan dos datos para dejar tu agenda y tu recepcionista IA funcionando.
-          </p>
-        </div>
+    <AuthShell>
+      <AuthCard
+        title="¡Tu correo está confirmado!"
+        subtitle="Solo faltan dos datos para dejar tu agenda y tu recepcionista IA funcionando."
+      >
         <WelcomeWizard defaultBusinessType={defaultBusinessType} />
-      </div>
-    </main>
+      </AuthCard>
+    </AuthShell>
   )
 }

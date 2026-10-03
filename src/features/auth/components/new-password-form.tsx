@@ -4,9 +4,12 @@ import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { newPasswordSchema, type NewPasswordInput } from '@/lib/validations/auth'
+import { Button, ButtonLink } from '@/shared/components/ui/button'
+import { FIELD_LABEL, FieldError } from '@/shared/components/ui/field'
+import { Notice } from '@/shared/components/ui/notice'
+import { AuthCard } from './auth-card'
 import { PasswordInput } from './password-input'
 
 // Fija una contraseña nueva. Requiere la sesión temporal que crea el enlace de
@@ -41,55 +44,54 @@ export function NewPasswordForm() {
 
   if (ready === false) {
     return (
-      <div className="space-y-4 rounded-card border border-line bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-extrabold tracking-tight text-ink">Enlace no válido</h1>
-        <p className="text-sm text-ink-muted">
-          Este enlace ya se usó o expiró. Solicita uno nuevo desde{' '}
-          <Link href="/recuperar" className="font-semibold text-brand-600 hover:underline">
-            recuperar contraseña
-          </Link>
-          .
-        </p>
-      </div>
+      <AuthCard title="Enlace no válido" subtitle="Este enlace ya se usó o expiró. Solicita uno nuevo y te lo enviamos a tu correo.">
+        <ButtonLink href="/recuperar" className="w-full">
+          Solicitar un enlace nuevo
+        </ButtonLink>
+      </AuthCard>
     )
   }
 
   return (
-    <div className="space-y-6 rounded-card border border-line bg-white p-8 shadow-sm">
-      <div className="text-center">
-        <h1 className="text-2xl font-extrabold tracking-tight text-ink">Define tu contraseña</h1>
-        <p className="mt-1 text-sm text-ink-muted">Elige una contraseña para tu cuenta.</p>
-      </div>
+    <AuthCard title="Define tu contraseña" subtitle="Elige una contraseña para tu cuenta.">
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-ink-muted">Nueva contraseña</label>
+          <label htmlFor="new-password" className={FIELD_LABEL}>
+            Nueva contraseña
+          </label>
           <PasswordInput
+            id="new-password"
             registration={register('password')}
             autoComplete="new-password"
             placeholder="Tu nueva contraseña"
+            errorId={errors.password ? 'new-password-error' : undefined}
           />
-          {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+          {errors.password && <FieldError id="new-password-error">{errors.password.message}</FieldError>}
         </div>
         <div>
-          <label className="block text-sm font-medium text-ink-muted">Confirmar contraseña</label>
+          <label htmlFor="confirm-password" className={FIELD_LABEL}>
+            Confirmar contraseña
+          </label>
           <PasswordInput
+            id="confirm-password"
             registration={register('confirmPassword')}
             autoComplete="new-password"
             placeholder="Repite tu contraseña"
+            errorId={errors.confirmPassword ? 'confirm-password-error' : undefined}
           />
           {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+            <FieldError id="confirm-password-error">{errors.confirmPassword.message}</FieldError>
           )}
         </div>
-        {serverError && <p className="text-sm text-red-600">{serverError}</p>}
-        <button
-          type="submit"
-          disabled={isSubmitting || ready === null}
-          className="w-full rounded-lg bg-brand-500 px-4 py-2 font-medium text-white shadow-btn hover:bg-brand-600 disabled:opacity-50"
-        >
+        {serverError && (
+          <Notice tone="danger" size="sm">
+            {serverError}
+          </Notice>
+        )}
+        <Button type="submit" disabled={isSubmitting || ready === null} className="w-full">
           {isSubmitting ? 'Guardando…' : 'Guardar contraseña'}
-        </button>
+        </Button>
       </form>
-    </div>
+    </AuthCard>
   )
 }
