@@ -14,11 +14,19 @@ const bodySchema = z.object({
     .array(
       z.object({
         role: z.enum(['user', 'assistant']),
-        content: z.string().trim().min(1).max(600),
+        // Las respuestas del asesor pueden ser largas (los pasos para conectar
+        // WhatsApp pasan de 600 caracteres). Con el tope antiguo de 600 para
+        // todo, el mensaje SIGUIENTE a una respuesta larga se rechazaba y el
+        // chat se rompía. El tope corto se aplica solo a lo que escribe el
+        // visitante.
+        content: z.string().trim().min(1).max(2400),
       })
     )
     .min(1)
-    .max(24),
+    .max(24)
+    .refine((list) => list.every((m) => m.role === 'assistant' || m.content.length <= 600), {
+      message: 'mensaje demasiado largo',
+    }),
 })
 
 const FALLBACK =
