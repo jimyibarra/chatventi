@@ -250,20 +250,20 @@ export default function GuiaFacebookInstagramPage() {
                   src="/guia/fb-crear-pagina.webp"
                   alt="Formulario Crear una página de Facebook con nombre, categoría y presentación"
                   width={294}
-                  height={607}
+                  height={664}
                   frame="screen"
                   maxWidth={290}
-                  tap={{ left: 4, top: 87.8, width: 92, height: 5.6, label: 'Al terminar' }}
+                  tap={{ left: 4, top: 88.6, width: 92, height: 5.4, label: 'Al terminar' }}
                   caption="Crear una página, en la computadora"
                 />
                 <PhoneShot
                   src="/guia/fb-cambiar-perfil.webp"
                   alt="Menú de la foto de Facebook con la página y el perfil personal para cambiar entre ellos"
-                  width={295}
-                  height={160}
+                  width={290}
+                  height={166}
                   frame="screen"
                   maxWidth={290}
-                  tap={{ left: 5, top: 42, width: 90, height: 26, label: 'Tu perfil personal' }}
+                  tap={{ left: 4, top: 39, width: 92, height: 28, label: 'Tu perfil personal' }}
                   caption="Si ves «Este contenido no está disponible»"
                 />
               </>
