@@ -59,6 +59,15 @@ export function Switch({ className = '', ...props }: Omit<ComponentProps<'input'
   )
 }
 
+/** Mensaje de validación bajo un campo. Dale `id` y apúntalo con `aria-describedby`. */
+export function FieldError({ id, children }: { id?: string; children: ReactNode }) {
+  return (
+    <span id={id} className="mt-1.5 block text-[13px] font-medium leading-snug text-[#a51b18]">
+      {children}
+    </span>
+  )
+}
+
 /** Casilla nativa con el color de marca. */
 export const CHECKBOX = 'h-[18px] w-[18px] flex-none cursor-pointer rounded accent-brand-500'
 
