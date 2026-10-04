@@ -48,8 +48,8 @@ export function PostCheckoutSuccess({ active }: { active: boolean }) {
   return (
     <div className="mb-4 space-y-4">
       <Notice tone="success" title="¡Listo! Tu plan quedó activo">
-        Empezaste tu prueba gratis. No se te cobrará hasta que termine el periodo, y puedes
-        cancelar cuando quieras desde «Administrar suscripción».
+        Recibimos tu pago. El plan se renueva solo en cada periodo, y puedes cambiarlo o
+        cancelarlo cuando quieras desde «Administrar suscripción».
         {!active && ' Estamos activando tu plan; si no aparece abajo en unos segundos, actualiza la página.'}
       </Notice>
 

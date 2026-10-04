@@ -131,7 +131,7 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       customer: customerId,
       currency,
       line_items: lineItems,
-      // El código de promo (30% off 3 meses) se aplica aquí. Ya NO hay trial de
+      // El código de promoción (/admin/promocion) se aplica aquí. Ya NO hay trial de
       // Stripe: la prueba gratis (sin tarjeta) ocurre a nivel de app antes.
       // En el plan anual NO: ya lleva dos meses de regalo, y ese cupón sobre
       // una factura de un año entero descontaría el 30 % de los doce meses.
