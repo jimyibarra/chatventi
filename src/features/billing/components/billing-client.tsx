@@ -45,6 +45,8 @@ interface Props {
   businessType?: string | null
   /** Plan administrado por un socio (sin Stripe propio): no hay nada que pagar aquí. */
   managed?: boolean
+  /** Socio interno (otra plataforma de Grupo ELRI) cuyo paquete incluye el plan. */
+  includedIn?: string | null
 }
 
 const money = fmtAmount
@@ -90,7 +92,7 @@ const OPTION ='flex w-full items-center gap-3 rounded-[16px] px-4 py-3 text-left
 const optionState = (on: boolean) =>
   on ? 'bg-brand-50 shadow-[inset_0_0_0_2px_#2a1a5e]' : 'bg-surface hover:shadow-[inset_0_0_0_2px_#c4bff5]'
 
-export function BillingClient({ sub, active, businessType, managed, promo, currency }: Props) {
+export function BillingClient({ sub, active, businessType, managed, includedIn, promo, currency }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
@@ -160,8 +162,9 @@ export function BillingClient({ sub, active, businessType, managed, promo, curre
         {error && <p className="mt-3 text-sm text-[#a51b18]" role="alert">{error}</p>}
         {managed ? (
           <p className="mt-4 max-w-[62ch] text-[14.5px] text-ink-muted" data-testid="managed-plan">
-            Tu plan lo administra el proveedor con el que contrataste. Para cambiarlo o darlo de
-            baja, escríbele a él: aquí no tienes nada que pagar.
+            {includedIn
+              ? `Tu plan está incluido en tu suscripción de ${includedIn}. Para cambiarlo o darlo de baja, hazlo en ${includedIn}: aquí no tienes nada que pagar.`
+              : 'Tu plan lo administra el proveedor con el que contrataste. Para cambiarlo o darlo de baja, escríbele a él: aquí no tienes nada que pagar.'}
           </p>
         ) : (
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">

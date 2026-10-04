@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { getAdminOrganizations, orgMonthlyUsd } from '@/features/admin/service'
+import { getAdminOrganizations, getPartnerOrigins, orgMonthlyUsd } from '@/features/admin/service'
 import { planById, planFromLegacyTier } from '@/features/billing/plans'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Super Admin · Organizaciones' }
 export const dynamic = 'force-dynamic'
 
 export default async function AdminOrganizationsPage() {
-  const orgs = await getAdminOrganizations()
+  const [orgs, origins] = await Promise.all([getAdminOrganizations(), getPartnerOrigins()])
 
   return (
     <Page width="wide">
@@ -57,7 +57,10 @@ export default async function AdminOrganizationsPage() {
             </tr>
           </thead>
           <tbody>
-            {orgs.map((o) => (
+            {orgs.map((o) => {
+              const origin = origins.get(o.id)
+              const includedIn = origin?.internal ? origin.name : undefined
+              return (
               <tr key={o.id} className={TR}>
                 <th scope="row" className={`${TD} ${STICKY} max-w-[15rem] text-left font-normal`}>
                   <p className="truncate font-semibold">{o.name}</p>
@@ -70,15 +73,23 @@ export default async function AdminOrganizationsPage() {
                   <p className="truncate text-[13px] text-ink-muted">{o.owner_email ?? '—'}</p>
                 </td>
                 <td className={TD}>
-                  <OrgStatusBadge status={o.sub_status} />
+                  <OrgStatusBadge status={o.sub_status} includedIn={includedIn} />
                   <p className="mt-1 whitespace-nowrap text-[13px] text-ink-muted">
                     {`Plan ${planById(planFromLegacyTier(o.ai_tier)).name}`}
                     {o.has_domain && ' · dominio'}
                     {o.team_seats > 0 && ` · ${fmtInt(o.team_seats)} extra`}
+                    {origin && !origin.internal && ` · vía ${origin.name}`}
                   </p>
                 </td>
                 <td className={`${TD} ${NUM} font-semibold`}>
-                  {o.sub_status === 'active' ? fmtMoney(orgMonthlyUsd(o)) : <span className="font-normal text-ink-faint">—</span>}
+                  {includedIn ? (
+                    // Lo cobra la otra plataforma: no es ingreso de ChatVenti.
+                    <span className="font-normal text-ink-muted">Incluido</span>
+                  ) : o.sub_status === 'active' ? (
+                    fmtMoney(orgMonthlyUsd(o))
+                  ) : (
+                    <span className="font-normal text-ink-faint">—</span>
+                  )}
                 </td>
                 <td className={`${TD} ${NUM}`}>{fmtInt(o.users_count)}</td>
                 <td className={`${TD} ${NUM}`}>{fmtInt(o.clients_count)}</td>
@@ -86,7 +97,8 @@ export default async function AdminOrganizationsPage() {
                 <td className={`${TD} whitespace-nowrap text-ink-muted`}>{fmtShortDate(o.created_at)}</td>
                 <td className={`${TD} whitespace-nowrap text-ink-muted`}>{o.last_activity ? timeAgo(o.last_activity) : 'Sin actividad'}</td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </AdminTable>
       )}

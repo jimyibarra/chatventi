@@ -3,6 +3,8 @@ import {
   computeMrrUsd,
   getAdminGlobalStats,
   getAdminOrganizations,
+  getPartnerOrigins,
+  internalOrgIds,
 } from '@/features/admin/service'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
@@ -26,8 +28,10 @@ function GroupTitle({ id, children }: { id: string; children: React.ReactNode })
 }
 
 export default async function AdminOverviewPage() {
-  const [stats, orgs] = await Promise.all([getAdminGlobalStats(), getAdminOrganizations()])
-  const mrr = computeMrrUsd(orgs)
+  const [stats, orgs, origins] = await Promise.all([getAdminGlobalStats(), getAdminOrganizations(), getPartnerOrigins()])
+  const internal = internalOrgIds(origins)
+  const mrr = computeMrrUsd(orgs, internal)
+  const includedActive = orgs.filter((o) => o.sub_status === 'active' && internal.has(o.id)).length
   const recent = orgs.slice(0, 8)
   const pastDue = stats.subs_past_due
 
@@ -58,7 +62,11 @@ export default async function AdminOverviewPage() {
             label="Ingreso mensual (MRR)"
             value={fmtMoney(mrr)}
             unit="USD"
-            hint={plural(stats.subs_active, 'suscripción activa', 'suscripciones activas')}
+            hint={
+              includedActive > 0
+                ? `${plural(stats.subs_active - includedActive, 'suscripción activa', 'suscripciones activas')} · ${fmtInt(includedActive)} en paquetes de otra plataforma`
+                : plural(stats.subs_active, 'suscripción activa', 'suscripciones activas')
+            }
           />
           <KpiCell label="En prueba gratis" value={fmtInt(stats.subs_trialing)} hint="Aún sin cobrar" />
           <KpiCell
@@ -130,7 +138,7 @@ export default async function AdminOverviewPage() {
                   </th>
                   <td className={`${TD} text-ink-muted`}>{o.owner_email ?? '—'}</td>
                   <td className={TD}>
-                    <OrgStatusBadge status={o.sub_status} />
+                    <OrgStatusBadge status={o.sub_status} includedIn={internal.has(o.id) ? origins.get(o.id)?.name : undefined} />
                   </td>
                   <td className={`${TD} ${NUM}`}>{fmtInt(o.appointments_count)}</td>
                   <td className={`${TD} ${NUM}`}>{fmtInt(o.conversations_count)}</td>

@@ -12,6 +12,7 @@ export function UsageCard({
   aiReplies,
   planId,
   managed = false,
+  includedIn = null,
   currency = 'usd',
 }: {
   aiReplies: number
@@ -20,6 +21,8 @@ export function UsageCard({
   currency?: Currency
   /** Plan administrado por un socio: el negocio no le paga nada a ChatVenti. */
   managed?: boolean
+  /** Socio interno (PASEN): el uso adicional se cobra en su suscripción de esa plataforma. */
+  includedIn?: string | null
 }) {
   const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(new Date())
   const usage = planId ? usageOverage(planId, aiReplies, currency) : null
@@ -55,7 +58,9 @@ export function UsageCard({
           </div>
           {managed ? (
             <p className="mt-3 max-w-[65ch] text-[14.5px] leading-snug text-ink-muted">
-              Tu recepcionista atiende sin interrupciones. El plan y el uso los cubre tu proveedor.
+              {includedIn
+                ? `Tu recepcionista atiende sin interrupciones. Si un mes pasas de lo incluido, el uso adicional se cobra en tu suscripción de ${includedIn}.`
+                : 'Tu recepcionista atiende sin interrupciones. El plan y el uso los cubre tu proveedor.'}
             </p>
           ) : usage.extra > 0 ? (
             <p className="mt-3 max-w-[65ch] text-[14.5px] leading-snug text-ink-muted">

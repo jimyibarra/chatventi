@@ -11,6 +11,8 @@ const createSchema = z.object({
   name: z.string().trim().min(2).max(80),
   billingEmail: z.string().trim().email(),
   discountPct: z.coerce.number().min(0).max(100),
+  // 'internal' = otra plataforma de Grupo ELRI: no se le factura.
+  kind: z.enum(['external', 'internal']).default('external'),
 })
 
 // Las RPC admin_* validan super_admin DENTRO de la base (doble guarda con el
@@ -28,8 +30,14 @@ export async function createPartner(raw: unknown): Promise<CreatePartnerResult> 
   if (error) {
     return { ok: false, error: error.message.includes('forbidden') ? 'No autorizado.' : 'No se pudo crear el socio.' }
   }
+  const created = data as { id: string; api_key: string }
+  if (parsed.data.kind === 'internal') {
+    const { error: kindErr } = await supabase.rpc('admin_set_partner_kind', { p_id: created.id, p_kind: 'internal' })
+    // La clave ya existe: se muestra igual para no perderla; el tipo se corrige con «Editar».
+    if (kindErr) console.error('[socios] no se pudo marcar como interno', kindErr.message)
+  }
   revalidatePath('/admin/socios')
-  return { ok: true, apiKey: (data as { api_key: string }).api_key }
+  return { ok: true, apiKey: created.api_key }
 }
 
 export async function setPartnerStatus(id: string, status: 'active' | 'suspended'): Promise<PartnerActionResult> {
@@ -40,7 +48,8 @@ export async function setPartnerStatus(id: string, status: 'active' | 'suspended
   return { ok: true }
 }
 
-const updateSchema = createSchema.extend({ id: z.string().uuid() })
+// Al editar el tipo es obligatorio: un default aquí podría volver externo a PASEN sin querer.
+const updateSchema = createSchema.extend({ id: z.string().uuid(), kind: z.enum(['external', 'internal']) })
 
 export async function updatePartner(raw: unknown): Promise<PartnerActionResult> {
   const parsed = updateSchema.safeParse(raw)
@@ -53,6 +62,8 @@ export async function updatePartner(raw: unknown): Promise<PartnerActionResult> 
     p_discount_pct: parsed.data.discountPct,
   })
   if (error) return { ok: false, error: 'No se pudieron guardar los cambios.' }
+  const { error: kindErr } = await supabase.rpc('admin_set_partner_kind', { p_id: parsed.data.id, p_kind: parsed.data.kind })
+  if (kindErr) return { ok: false, error: 'Se guardaron los datos, pero no el tipo de socio. Inténtalo de nuevo.' }
   revalidatePath('/admin/socios')
   return { ok: true }
 }

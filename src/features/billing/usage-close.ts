@@ -15,9 +15,12 @@ import { planById, usageOverage, type Currency, type PlanId } from './plans'
 //   Dos tipos de negocio:
 //     · Directo  → paga con su tarjeta. Solo se le carga el excedente (su
 //                  plan ya lo cobra su suscripción de Stripe).
-//     · De socio → no tiene Stripe propio. Al SOCIO se le factura el plan del
-//                  mes (con su descuento) más el excedente, todo en una
-//                  factura mensual que paga por enlace.
+//     · De socio → no tiene Stripe propio. Al SOCIO externo se le factura el
+//                  plan del mes (con su descuento) más el excedente, todo en
+//                  una factura mensual que paga por enlace. Al socio INTERNO
+//                  (otra plataforma de Grupo ELRI, como PASEN) no se le factura:
+//                  es la misma empresa. Su mes se cierra igual, para que la
+//                  otra plataforma lea el excedente y se lo cobre a su cliente.
 //
 //   🔴 Reclamo ANTES de cobrar ('open' → 'closing' en un solo UPDATE): dos
 //   corridas a la vez no pueden cobrar el mismo mes. Si algo falla antes de
@@ -41,6 +44,7 @@ type PartnerRow = {
   billing_email: string
   discount_pct: number
   stripe_customer_id: string | null
+  kind: string
 }
 
 function monthLabel(periodStart: string): string {
@@ -149,13 +153,13 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
         if (!partners.has(org.partner_id)) {
           const { data: p } = await service
             .from('partners')
-            .select('id, name, billing_email, discount_pct, stripe_customer_id')
+            .select('id, name, billing_email, discount_pct, stripe_customer_id, kind')
             .eq('id', org.partner_id)
             .maybeSingle()
           partners.set(org.partner_id, p ? { ...p, discount_pct: Number(p.discount_pct) } : null)
         }
         const partner = partners.get(org.partner_id)
-        if (partner) {
+        if (partner && partner.kind !== 'internal') {
           const planFee = Number((planById(planId).priceUsd * (1 - partner.discount_pct / 100)).toFixed(2))
           chargeUsd = Number((planFee + usage.charge).toFixed(2))
           if (chargeUsd > 0) {

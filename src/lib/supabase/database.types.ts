@@ -1056,6 +1056,7 @@ export type Database = {
           created_at: string
           discount_pct: number
           id: string
+          kind: string
           name: string
           status: string
           stripe_customer_id: string | null
@@ -1067,6 +1068,7 @@ export type Database = {
           created_at?: string
           discount_pct?: number
           id?: string
+          kind?: string
           name: string
           status?: string
           stripe_customer_id?: string | null
@@ -1078,6 +1080,7 @@ export type Database = {
           created_at?: string
           discount_pct?: number
           id?: string
+          kind?: string
           name?: string
           status?: string
           stripe_customer_id?: string | null
@@ -1797,9 +1800,14 @@ export type Database = {
         }[]
       }
       admin_list_partners: { Args: never; Returns: Json }
+      admin_partner_orgs: { Args: never; Returns: Json }
       admin_rotate_partner_key: { Args: { p_id: string }; Returns: Json }
       admin_set_agent_model: {
         Args: { p_model: string; p_org: string }
+        Returns: undefined
+      }
+      admin_set_partner_kind: {
+        Args: { p_id: string; p_kind: string }
         Returns: undefined
       }
       admin_set_partner_status: {

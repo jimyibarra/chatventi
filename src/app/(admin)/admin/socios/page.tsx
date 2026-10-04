@@ -15,7 +15,7 @@ export default async function AdminSociosPage() {
     <Page>
       <PageHeader
         title="Socios"
-        subtitle="Un socio da de alta negocios por API con su clave. ChatVenti le factura a él, una vez al mes, el plan de cada negocio (con su descuento) y el uso de IA. La guía de integración está en docs/api-socios.md del repositorio."
+        subtitle="Un socio da de alta negocios por API con su clave. Al externo, ChatVenti le factura cada mes el plan de cada negocio (con su descuento) y el uso de IA. Al interno (otra plataforma de Grupo ELRI, como PASEN) no se le factura: él le cobra a su cliente. La guía de integración está en docs/api-socios.md del repositorio."
       />
       <PartnersPanel rows={rows} />
     </Page>

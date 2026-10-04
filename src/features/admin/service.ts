@@ -62,11 +62,31 @@ export function orgMonthlyUsd(org: Pick<AdminOrg, 'ai_tier' | 'has_domain' | 'te
   )
 }
 
-/** MRR = suma del valor mensual de las suscripciones activas (paga confirmada). */
-export function computeMrrUsd(orgs: AdminOrg[]): number {
+/**
+ * MRR = suma del valor mensual de las suscripciones activas (paga confirmada).
+ * Los negocios de un socio interno (PASEN) no cuentan: ese ingreso es de la
+ * otra plataforma, que es quien le cobra al cliente.
+ */
+export function computeMrrUsd(orgs: AdminOrg[], internal: ReadonlySet<string> = new Set()): number {
   return orgs
-    .filter((o) => o.sub_status === 'active')
+    .filter((o) => o.sub_status === 'active' && !internal.has(o.id))
     .reduce((sum, o) => sum + orgMonthlyUsd(o), 0)
+}
+
+/** Negocio que llegó por un socio: nombre del socio y si es interno (Grupo ELRI). */
+export type PartnerOrigin = { name: string; internal: boolean }
+
+export async function getPartnerOrigins(): Promise<Map<string, PartnerOrigin>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('admin_partner_orgs')
+  if (error) throw error
+  const rows = (data ?? []) as unknown as { organization_id: string; partner_name: string; partner_kind: string }[]
+  return new Map(rows.map((r) => [r.organization_id, { name: r.partner_name, internal: r.partner_kind === 'internal' }]))
+}
+
+/** Ids de los negocios incluidos en el paquete de un socio interno. */
+export function internalOrgIds(origins: Map<string, PartnerOrigin>): Set<string> {
+  return new Set([...origins].filter(([, o]) => o.internal).map(([id]) => id))
 }
 
 export async function getAdminGlobalStats(): Promise<AdminGlobalStats> {

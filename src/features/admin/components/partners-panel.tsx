@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react'
 import { createPartner, deletePartner, rotatePartnerKey, setPartnerStatus, updatePartner } from '../partner-actions'
-import { Button, Card, Field, Input, Notice, Section, StatusChip } from '@/shared/components/ui'
+import { Button, Card, Field, Input, Notice, SEGMENT_GROUP, Section, StatusChip, segmentItem } from '@/shared/components/ui'
+
+type PartnerKind = 'external' | 'internal'
 
 export type PartnerRow = {
   id: string
@@ -12,9 +14,25 @@ export type PartnerRow = {
   discount_pct: number
   status: 'active' | 'suspended'
   organizations: number
+  kind: PartnerKind
 }
 
 const DISCOUNT_HINT = 'Se resta al precio de lista de cada plan cuando le facturas al socio. 0 = sin descuento.'
+
+// Grupo ELRI es dueño de ChatVenti, PASEN, SastrePro y ContaCero: entre ellas
+// no hay factura. El socio interno cobra a su cliente; ChatVenti solo da acceso.
+const KINDS: { value: PartnerKind; label: string; help: string }[] = [
+  {
+    value: 'internal',
+    label: 'Interno · Grupo ELRI',
+    help: 'Otra plataforma de Grupo ELRI, como PASEN. No se le factura nada: ella le cobra a su cliente, incluido el uso de IA adicional.',
+  },
+  {
+    value: 'external',
+    label: 'Externo · otra empresa',
+    help: 'Una empresa distinta. Cada mes se le factura el plan de sus negocios, con su descuento, más el uso de IA adicional.',
+  },
+]
 
 /** Clave recién generada: se muestra una sola vez, con botón de copiar. */
 function KeyReveal({ apiKey, onDone }: { apiKey: string; onDone: () => void }) {
@@ -52,36 +70,70 @@ function PartnerForm({
   onCancel,
   pending,
 }: {
-  initial: { name: string; email: string; discount: string }
+  initial: { name: string; email: string; discount: string; kind: PartnerKind }
   submitLabel: string
-  onSubmit: (v: { name: string; billingEmail: string; discountPct: string }) => void
+  onSubmit: (v: { name: string; billingEmail: string; discountPct: string; kind: PartnerKind }) => void
   onCancel?: () => void
   pending: boolean
 }) {
   const [name, setName] = useState(initial.name)
   const [email, setEmail] = useState(initial.email)
   const [discount, setDiscount] = useState(initial.discount)
-  const valid = name.trim().length >= 2 && email.includes('@') && discount.trim() !== ''
+  const [kind, setKind] = useState<PartnerKind>(initial.kind)
+  const internal = kind === 'internal'
+  const valid = name.trim().length >= 2 && email.includes('@') && (internal || discount.trim() !== '')
   return (
     <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,13rem)]">
+      <div className="space-y-1.5 sm:col-span-3">
+        <div className={SEGMENT_GROUP} role="group" aria-label="Tipo de socio">
+          {KINDS.map((k) => (
+            <button
+              key={k.value}
+              type="button"
+              aria-pressed={kind === k.value}
+              onClick={() => setKind(k.value)}
+              className={segmentItem(kind === k.value)}
+              data-testid={`partner-kind-${k.value}`}
+            >
+              {k.label}
+            </button>
+          ))}
+        </div>
+        <p className="max-w-[70ch] text-[13.5px] text-ink-muted">{KINDS.find((k) => k.value === kind)?.help}</p>
+      </div>
       <Field label="Nombre del socio">
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="PASEN" data-testid="partner-name" />
       </Field>
-      <Field label="Correo de facturación" hint="A dónde le mandas su factura mensual.">
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="facturas@socio.com" data-testid="partner-email" />
-      </Field>
-      <Field label="Descuento de mayoreo (%)" hint={DISCOUNT_HINT}>
+      <Field
+        label={internal ? 'Correo de contacto' : 'Correo de facturación'}
+        hint={internal ? 'Del equipo de esa plataforma. No recibe facturas.' : 'A dónde le mandas su factura mensual.'}
+      >
         <Input
-          inputMode="decimal"
-          value={discount}
-          onChange={(e) => setDiscount(e.target.value)}
-          placeholder="20"
-          className="tabular-nums"
-          data-testid="partner-discount"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder={internal ? 'equipo@plataforma.com' : 'facturas@socio.com'}
+          data-testid="partner-email"
         />
       </Field>
+      {!internal && (
+        <Field label="Descuento de mayoreo (%)" hint={DISCOUNT_HINT}>
+          <Input
+            inputMode="decimal"
+            value={discount}
+            onChange={(e) => setDiscount(e.target.value)}
+            placeholder="20"
+            className="tabular-nums"
+            data-testid="partner-discount"
+          />
+        </Field>
+      )}
       <div className="flex flex-wrap gap-2 sm:col-span-3">
-        <Button onClick={() => onSubmit({ name, billingEmail: email, discountPct: discount })} disabled={pending || !valid}>
+        <Button
+          // Al interno no se le cobra: su descuento se conserva tal cual, sin usarse.
+          onClick={() => onSubmit({ name, billingEmail: email, discountPct: discount.trim() || '0', kind })}
+          disabled={pending || !valid}
+        >
           {pending ? 'Guardando…' : submitLabel}
         </Button>
         {onCancel && (
@@ -117,6 +169,9 @@ function PartnerCard({ row }: { row: PartnerRow }) {
           <p className="flex flex-wrap items-center gap-2 text-[1.05rem] font-bold text-ink">
             {row.name}
             <StatusChip tone={active ? 'ok' : 'off'}>{active ? 'Activo' : 'Suspendido'}</StatusChip>
+            <StatusChip tone={row.kind === 'internal' ? 'brand' : 'neutral'}>
+              {row.kind === 'internal' ? 'Interno · Grupo ELRI' : 'Externo'}
+            </StatusChip>
           </p>
           <p className="text-[14px] text-ink-muted">{row.billing_email}</p>
         </div>
@@ -127,7 +182,9 @@ function PartnerCard({ row }: { row: PartnerRow }) {
           </div>
           <div>
             <dt className="text-[12.5px] text-ink-muted">Descuento</dt>
-            <dd className="font-semibold tabular-nums text-ink">{Number(row.discount_pct)}%</dd>
+            <dd className="font-semibold tabular-nums text-ink">
+              {row.kind === 'internal' ? <span className="font-normal text-ink-muted">No aplica</span> : `${Number(row.discount_pct)}%`}
+            </dd>
           </div>
           <div>
             <dt className="text-[12.5px] text-ink-muted">Negocios</dt>
@@ -138,7 +195,7 @@ function PartnerCard({ row }: { row: PartnerRow }) {
 
       {mode === 'edit' && (
         <PartnerForm
-          initial={{ name: row.name, email: row.billing_email, discount: String(Number(row.discount_pct)) }}
+          initial={{ name: row.name, email: row.billing_email, discount: String(Number(row.discount_pct)), kind: row.kind }}
           submitLabel="Guardar cambios"
           pending={pending}
           onCancel={() => setMode('view')}
@@ -214,7 +271,7 @@ export function PartnersPanel({ rows }: { rows: PartnerRow[] }) {
   const [formKey, setFormKey] = useState(0)
   const [error, setError] = useState('')
 
-  function create(v: { name: string; billingEmail: string; discountPct: string }) {
+  function create(v: { name: string; billingEmail: string; discountPct: string; kind: PartnerKind }) {
     setError('')
     setNewKey(null)
     startTransition(async () => {
@@ -229,7 +286,7 @@ export function PartnersPanel({ rows }: { rows: PartnerRow[] }) {
     <div className="space-y-4">
       <Section title="Nuevo socio" description="Al crearlo se genera su clave de acceso a la API. Pásala al servidor del socio; aquí solo queda su huella.">
         <div className="space-y-3.5">
-          <PartnerForm key={formKey} initial={{ name: '', email: '', discount: '0' }} submitLabel="Crear y generar clave" pending={pending} onSubmit={create} />
+          <PartnerForm key={formKey} initial={{ name: '', email: '', discount: '0', kind: 'external' }} submitLabel="Crear y generar clave" pending={pending} onSubmit={create} />
           {error && <p className="text-[14px] text-[#a51b18]">{error}</p>}
           {newKey && <KeyReveal apiKey={newKey} onDone={() => setNewKey(null)} />}
         </div>

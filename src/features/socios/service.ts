@@ -23,6 +23,8 @@ export type Partner = {
   id: string
   name: string
   discount_pct: number
+  /** 'internal' = otra plataforma de Grupo ELRI (PASEN): no se le factura nada. */
+  kind: 'external' | 'internal'
 }
 
 type Service = ReturnType<typeof createServiceClient>
@@ -42,7 +44,7 @@ export async function authenticatePartner(
   const service = createServiceClient()
   const { data: partner } = await service
     .from('partners')
-    .select('id, name, discount_pct, status')
+    .select('id, name, discount_pct, status, kind')
     .eq('api_key_hash', createHash('sha256').update(key).digest('hex'))
     .maybeSingle()
   if (!partner) return apiError('unauthorized', 401)
@@ -56,7 +58,29 @@ export async function authenticatePartner(
   })
   if (!allowed) return apiError('rate_limited', 429)
 
-  return { partner: { id: partner.id, name: partner.name, discount_pct: Number(partner.discount_pct) }, service }
+  return {
+    partner: {
+      id: partner.id,
+      name: partner.name,
+      discount_pct: Number(partner.discount_pct),
+      kind: partner.kind === 'internal' ? 'internal' : 'external',
+    },
+    service,
+  }
+}
+
+/**
+ * Nombre del socio si es INTERNO (PASEN), para decirle al dueño en su panel
+ * que su plan va incluido ahí. La tabla `partners` no la lee ninguna sesión:
+ * se consulta con service_role y solo con el `partner_id` de la propia org.
+ */
+export async function internalPartnerName(partnerId: string): Promise<string | null> {
+  const { data } = await createServiceClient()
+    .from('partners')
+    .select('name, kind')
+    .eq('id', partnerId)
+    .maybeSingle()
+  return data?.kind === 'internal' ? data.name : null
 }
 
 // ---------------------------------------------------------------------
@@ -262,7 +286,8 @@ export async function getPartnerOrganization(
       closed: usageRow ? usageRow.status !== 'open' : false,
     },
     activity: { appointmentsCreated: appts.count ?? 0, conversationsActive: convs.count ?? 0 },
-    billing: { planPriceUsd: partnerPlanPriceUsd(partner, planId), currency: 'usd' },
+    // Un socio interno no le paga nada a ChatVenti: no hay precio que mostrarle.
+    billing: partner.kind === 'internal' ? null : { planPriceUsd: partnerPlanPriceUsd(partner, planId), currency: 'usd' },
   })
 }
 

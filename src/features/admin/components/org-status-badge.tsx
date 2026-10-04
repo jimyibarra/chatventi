@@ -13,6 +13,11 @@ const TONES: Record<string, ChipTone> = {
   none: 'off',
 }
 
-export function OrgStatusBadge({ status }: { status: string }) {
+/**
+ * `includedIn` = nombre del socio interno (PASEN) cuyo paquete incluye este
+ * negocio: activo, pero no le paga a ChatVenti.
+ */
+export function OrgStatusBadge({ status, includedIn }: { status: string; includedIn?: string }) {
+  if (includedIn && status === 'active') return <StatusChip tone="brand">{`Incluido en ${includedIn}`}</StatusChip>
   return <StatusChip tone={TONES[status] ?? 'neutral'}>{STATUS_LABELS[status] ?? status}</StatusChip>
 }

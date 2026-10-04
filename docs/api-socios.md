@@ -3,8 +3,14 @@
 Para sistemas que revenden ChatVenti dentro de su propio producto. El primero es **PASEN**.
 
 Un socio da de alta negocios en ChatVenti con una clave, sin que el dueño pase por el registro.
-ChatVenti le factura **al socio** el plan y el uso de IA de esos negocios, una vez al mes.
-El socio cobra a sus clientes como quiera.
+Hay dos tipos de socio:
+
+- **Externo** (otra empresa): ChatVenti le factura **al socio** el plan y el uso de IA de esos
+  negocios, una vez al mes. El socio cobra a sus clientes como quiera.
+- **Interno** (otra plataforma de Grupo ELRI, como **PASEN**): es la misma empresa, así que
+  ChatVenti **no le factura nada**. La plataforma vende ChatVenti dentro de su paquete, le cobra
+  a su cliente (incluido el uso de IA adicional) y emite la factura con su propio concepto.
+  ChatVenti solo da el acceso y mide el consumo. En las respuestas, `billing` llega en `null`.
 
 - **Base:** `https://www.chatventi.com/api/partners/v1`
 - **Autenticación:** cabecera `Authorization: Bearer cvp_…` en todas las llamadas.
@@ -95,7 +101,12 @@ El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tar
 
 - `usage` es lo que ChatVenti mide y factura: respuestas de la recepcionista con IA.
 - `activity` es informativo: sirve para que el socio aplique **sus propios** topes comerciales (por ejemplo «150 citas y 300 conversaciones al mes»). ChatVenti no corta nada por esas cifras.
-- `billing.planPriceUsd` ya lleva el descuento de mayoreo del socio.
+- `billing.planPriceUsd` ya lleva el descuento de mayoreo del socio. **Socio interno:** `billing`
+  es `null` (no le paga nada a ChatVenti).
+- `usage.extraReplies` es lo que el socio interno le cobra a su cliente, al precio que él fije
+  (referencia: $0.037 MXN por respuesta, $37 por cada 1,000, más IVA). Léelo cuando
+  `usage.closed` sea `true`: el mes ya cerró y la cifra no cambia. `extraReplyPriceUsd` y
+  `overageUsd` son el precio de ChatVenti a un socio externo, en dólares; un interno los ignora.
 
 ## Suspender, reactivar o cambiar de plan
 
@@ -103,9 +114,12 @@ El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tar
 
 Un negocio suspendido pierde el acceso al panel y su recepcionista deja de responder; **sus datos se conservan**. Al dueño se le dice que escriba a su proveedor, no se le ofrece contratar directo con ChatVenti.
 
-## Cómo factura ChatVenti al socio
+## Cómo factura ChatVenti al socio externo
 
-El día 1 de cada mes (o el siguiente en que corra el cierre) se cierra el mes anterior:
+Al socio **interno** no se le factura: su mes se cierra igual (`usage.closed` pasa a `true`)
+para que lea el excedente y se lo cobre a su cliente.
+
+Al **externo**, el día 1 de cada mes (o el siguiente en que corra el cierre) se cierra el mes anterior:
 
 - Por cada negocio **activo al cierre** que ya existía antes de empezar el mes en curso: el precio del plan con el descuento del socio.
 - Más el uso de IA por encima de lo incluido en su plan (`extraReplies × extraReplyPriceUsd`).

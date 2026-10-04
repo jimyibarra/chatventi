@@ -11,6 +11,7 @@ import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout
 import { TrialEndedBanner } from '@/features/billing/components/subscription-required'
 import { getActiveTrialPromo } from '@/features/billing/promo'
 import { billingCurrency } from '@/features/billing/currency'
+import { internalPartnerName } from '@/features/socios/service'
 import { OnboardingHelpCard } from '@/features/marketing/components/onboarding-help-card'
 import { DATA_RETENTION_DAYS, type PlanId } from '@/features/billing/plans'
 import { UsageCard } from '@/features/billing/components/usage-card'
@@ -64,6 +65,8 @@ export default async function FacturacionPage({
   const active = subIsActive(sub)
   // Negocio dado de alta por un socio: tiene plan activo pero no Stripe propio.
   const managed = active && !sub?.stripe_customer_id
+  // Socio interno (PASEN): se nombra la plataforma en vez de «tu proveedor».
+  const includedIn = org?.partner_id ? await internalPartnerName(org.partner_id) : null
 
   // Negocio de socio con el acceso en pausa: NO se le ofrece contratar
   // directo con ChatVenti (sería saltarse a quien se lo vendió).
@@ -73,8 +76,9 @@ export default async function FacturacionPage({
         <PageHeader title="Facturación" />
         <EmptyState icon="lock" title="Tu acceso está en pausa">
           <span data-testid="partner-paused">
-            Tu cuenta la administra el proveedor con el que contrataste el servicio. Escríbele para
-            reactivarla: tus datos, tu agenda y tus conversaciones siguen guardados.
+            {includedIn
+              ? `Tu recepcionista está incluida en tu suscripción de ${includedIn}. Reactívala desde ${includedIn}: tus datos, tu agenda y tus conversaciones siguen guardados.`
+              : 'Tu cuenta la administra el proveedor con el que contrataste el servicio. Escríbele para reactivarla: tus datos, tu agenda y tus conversaciones siguen guardados.'}
           </span>
         </EmptyState>
       </Page>
@@ -131,6 +135,7 @@ export default async function FacturacionPage({
         active={active}
         businessType={org?.business_type ?? null}
         managed={managed}
+        includedIn={includedIn}
         promo={promo}
         currency={currency}
       />
@@ -139,6 +144,7 @@ export default async function FacturacionPage({
         aiReplies={usageRow?.ai_replies ?? 0}
         planId={active ? ((sub?.plan_id ?? null) as PlanId | null) : null}
         managed={managed}
+        includedIn={includedIn}
         currency={currency}
       />
       {org?.referral_code && !managed && (
