@@ -8,6 +8,7 @@ import { notifyOrgOwners } from '@/features/notifications/send'
 import { TRIAL_AI_MESSAGE_CAP } from '@/shared/security/limits'
 import { renderVoiceBlock, resolveVoiceProfile } from './voice'
 import { salesReply, type SalesTurn } from '@/features/ventas-agente/brain'
+import { OPENROUTER_USAGE, recordAiCost } from './ai-cost'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 
 type AnyClient = SupabaseClient<Database>
@@ -463,7 +464,7 @@ async function runSalesTurn(
   }
 
   const reply =
-    (await salesReply(history, 'chat')) ??
+    (await salesReply(history, 'chat', null, { orgId: ctx.org_id, source: 'ventas' })) ??
     'Gracias por escribir a ChatVenti. En este momento no puedo responderte; escríbenos a soporte@chatventi.com y te atendemos enseguida.'
   const extId = await senders.sendToCustomer(reply)
   await supabase.rpc('log_outbound_message', {
@@ -647,7 +648,7 @@ export async function runAgent(params: {
     (ctx.upcoming_appointments ?? []).find((a) => a.id === id)
 
   const openrouter = createOpenRouter({ apiKey })
-  const model = openrouter(ctx.config?.model || 'openai/gpt-4o-mini')
+  const model = openrouter(ctx.config?.model || 'openai/gpt-4o-mini', OPENROUTER_USAGE)
 
   const tools = {
     check_availability: tool({
@@ -915,6 +916,7 @@ export async function runAgent(params: {
       stopWhen: stepCountIs(6),
     })
     text = result.text?.trim() ?? ''
+    await recordAiCost({ orgId: ctx.org_id, source: sandbox ? 'prueba' : 'agente' }, result)
   } catch (err) {
     console.error('[agent] generateText error', err)
     // En sandbox no escalamos ni notificamos: solo devolvemos el fallback.

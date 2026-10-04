@@ -1,5 +1,6 @@
 import { generateObject } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { OPENROUTER_USAGE, recordAiCost, type AiCostTag } from './ai-cost'
 import { safeFetchHtml, visibleText, type SafeFetchError } from '@/shared/security/safe-fetch'
 import { voiceAnalysisSchema, voiceProfileSchema, type VoiceProfile } from './voice'
 
@@ -62,7 +63,8 @@ const ANALYZER_SYSTEM = [
  * sin montar un sitio web.
  */
 export async function analyzeSample(
-  sample: string
+  sample: string,
+  costTag?: AiCostTag
 ): Promise<{ ok: true; profile: VoiceProfile } | { ok: false; error: string }> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return { ok: false, error: 'El análisis de sitios no está disponible ahora mismo.' }
@@ -70,8 +72,8 @@ export async function analyzeSample(
   const openrouter = createOpenRouter({ apiKey })
 
   try {
-    const { object } = await generateObject({
-      model: openrouter(MODEL),
+    const generated = await generateObject({
+      model: openrouter(MODEL, OPENROUTER_USAGE),
       // Esquema PLANO para el modelo (ver voiceAnalysisSchema): con
       // `.default()` la API de structured outputs rechaza la petición entera.
       schema: voiceAnalysisSchema,
@@ -87,6 +89,8 @@ export async function analyzeSample(
         'Describe el estilo de esa muestra rellenando el esquema.',
       ].join('\n'),
     })
+    await recordAiCost(costTag, generated)
+    const object = generated.object
 
     // Cinturón y tirantes: aunque generateObject ya valida, se vuelve a pasar
     // por el MISMO parseo que se usa al leer de la base, para que lo que se
@@ -102,7 +106,7 @@ export async function analyzeSample(
   }
 }
 
-export async function extractVoiceFromUrl(rawUrl: string): Promise<ExtractResult> {
+export async function extractVoiceFromUrl(rawUrl: string, costTag?: AiCostTag): Promise<ExtractResult> {
   const fetched = await safeFetchHtml(rawUrl)
   if (!fetched.ok) return { ok: false, error: FETCH_ERRORS[fetched.error] }
 
@@ -111,7 +115,7 @@ export async function extractVoiceFromUrl(rawUrl: string): Promise<ExtractResult
     return { ok: false, error: 'Esa página tiene muy poco texto para deducir un estilo.' }
   }
 
-  const analyzed = await analyzeSample(sample)
+  const analyzed = await analyzeSample(sample, costTag)
   if (!analyzed.ok) return { ok: false, error: analyzed.error }
 
   return { ok: true, profile: analyzed.profile, finalUrl: fetched.finalUrl }

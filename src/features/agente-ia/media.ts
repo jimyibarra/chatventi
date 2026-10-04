@@ -81,10 +81,11 @@ async function ingestMedia(params: {
 async function readMedia(params: {
   fetched: FetchedMedia
   caps: { vision: boolean; transcribe: boolean }
+  orgId: string
 }): Promise<string | null> {
   const { fetched, caps } = params
   if (fetched.mime.startsWith('image/')) {
-    return caps.vision ? readImage(fetched.bytes, fetched.mime) : null
+    return caps.vision ? readImage(fetched.bytes, fetched.mime, { orgId: params.orgId, source: 'superpoderes' }) : null
   }
   if (fetched.mime.startsWith('audio/')) {
     return caps.transcribe ? transcribeAudio(fetched.bytes, fetched.mime) : null
@@ -191,7 +192,7 @@ export async function handleIncomingMedia(params: {
       transcribe: ctx.config?.cap_transcribe === true,
     }
     if (caps.vision || caps.transcribe) {
-      const text = await readMedia({ fetched, caps })
+      const text = await readMedia({ fetched, caps, orgId: ctx.org_id })
       if (text) {
         const { data: saved } = await supabase.rpc('set_message_media_text', {
           p_message_id: media.messageId,

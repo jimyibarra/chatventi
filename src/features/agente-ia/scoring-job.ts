@@ -64,7 +64,7 @@ export async function runConversationScoring(
       .order('created_at', { ascending: true })
       .limit(40)
 
-    const result = await scoreConversation(messages ?? [])
+    const result = await scoreConversation(messages ?? [], { orgId: item.organization_id, source: 'superpoderes' })
     if (!result) {
       out.failed++
       continue

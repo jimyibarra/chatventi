@@ -1,6 +1,7 @@
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { z } from 'zod'
+import { OPENROUTER_USAGE, recordAiCost, type AiCostTag } from './ai-cost'
 
 // =====================================================================
 // Calificación de la conversación (Fase 4).
@@ -37,7 +38,8 @@ export type ConversationScore = { score: number; reason: string }
  * siguiente conversación.
  */
 export async function scoreConversation(
-  messages: { direction: string; sender: string; body: string | null }[]
+  messages: { direction: string; sender: string; body: string | null }[],
+  costTag?: AiCostTag
 ): Promise<ConversationScore | null> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
@@ -53,11 +55,13 @@ export async function scoreConversation(
 
   try {
     const openrouter = createOpenRouter({ apiKey })
-    const { text } = await generateText({
-      model: openrouter(SCORING_MODEL),
+    const result = await generateText({
+      model: openrouter(SCORING_MODEL, OPENROUTER_USAGE),
       system: PROMPT,
       messages: [{ role: 'user', content: transcript }],
     })
+    await recordAiCost(costTag, result)
+    const text = result.text
 
     // El modelo a veces envuelve el JSON en ```json … ```.
     const raw = (text ?? '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()

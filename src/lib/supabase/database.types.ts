@@ -139,6 +139,53 @@ export type Database = {
           },
         ]
       }
+      ai_costs: {
+        Row: {
+          calls: number
+          calls_without_cost: number
+          cost_usd: number
+          organization_id: string | null
+          period_start: string
+          requests: number
+          source: string
+          tokens_in: number
+          tokens_out: number
+          updated_at: string
+        }
+        Insert: {
+          calls?: number
+          calls_without_cost?: number
+          cost_usd?: number
+          organization_id?: string | null
+          period_start: string
+          requests?: number
+          source: string
+          tokens_in?: number
+          tokens_out?: number
+          updated_at?: string
+        }
+        Update: {
+          calls?: number
+          calls_without_cost?: number
+          cost_usd?: number
+          organization_id?: string | null
+          period_start?: string
+          requests?: number
+          source?: string
+          tokens_in?: number
+          tokens_out?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_costs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointment_services: {
         Row: {
           appointment_id: string
@@ -1756,6 +1803,7 @@ export type Database = {
       }
       _resolve_token_appointment: { Args: { p_token: string }; Returns: string }
       accept_team_invitation: { Args: { p_token: string }; Returns: Json }
+      admin_ai_costs: { Args: { p_period: string }; Returns: Json }
       admin_create_partner: {
         Args: {
           p_billing_email: string
@@ -2087,6 +2135,18 @@ export type Database = {
         Returns: undefined
       }
       plan_included_seats: { Args: { p_plan: string }; Returns: number }
+      record_ai_cost: {
+        Args: {
+          p_calls: number
+          p_calls_without_cost: number
+          p_cost: number
+          p_org: string
+          p_source: string
+          p_tokens_in: number
+          p_tokens_out: number
+        }
+        Returns: undefined
+      }
       record_csat: {
         Args: {
           p_appointment_id: string

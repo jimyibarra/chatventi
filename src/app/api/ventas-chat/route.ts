@@ -63,6 +63,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const chosen = request.cookies.get('cv_moneda')?.value
   const currency =
     chosen === 'mxn' || chosen === 'usd' ? chosen : request.headers.get('x-vercel-ip-country') === 'MX' ? 'mxn' : 'usd'
-  const reply = await salesReply(history, 'web', currency)
+  const reply = await salesReply(history, 'web', currency, { orgId: null, source: 'ventas' })
   return NextResponse.json({ reply: reply ?? FALLBACK })
 }

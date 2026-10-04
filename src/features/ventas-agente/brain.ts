@@ -10,6 +10,7 @@
 // =====================================================================
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { OPENROUTER_USAGE, recordAiCost, type AiCostTag } from '@/features/agente-ia/ai-cost'
 import {
   META_FREE_SERVICE_MESSAGES_PER_NUMBER,
   META_RATE_USD,
@@ -128,7 +129,8 @@ function systemPrompt(channel: SalesChannel, currency: Currency | null): string 
 export async function salesReply(
   history: SalesTurn[],
   channel: SalesChannel = 'web',
-  currency: Currency | null = null
+  currency: Currency | null = null,
+  costTag?: AiCostTag
 ): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return null
@@ -139,12 +141,13 @@ export async function salesReply(
 
   try {
     const openrouter = createOpenRouter({ apiKey })
-    const model = openrouter('openai/gpt-4o-mini')
+    const model = openrouter('openai/gpt-4o-mini', OPENROUTER_USAGE)
     const result = await generateText({
       model,
       system: systemPrompt(channel, currency),
       messages,
     })
+    await recordAiCost(costTag, result)
     const text = result.text?.trim()
     return text && text.length > 0 ? text : null
   } catch (err) {

@@ -61,7 +61,7 @@ export async function analyzeVoiceUrl(raw: unknown): Promise<
   // fetch blindado rechaza cualquier otro esquema.
   const url = /^https?:\/\//i.test(parsed.data.url) ? parsed.data.url : `https://${parsed.data.url}`
 
-  const result = await extractVoiceFromUrl(url)
+  const result = await extractVoiceFromUrl(url, { orgId, source: 'superpoderes' })
   if (!result.ok) return { ok: false, error: result.error }
   return { ok: true, profile: result.profile, sourceUrl: result.finalUrl }
 }

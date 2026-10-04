@@ -1,5 +1,6 @@
 import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
+import { OPENROUTER_USAGE, recordAiCost, type AiCostTag } from './ai-cost'
 
 // =====================================================================
 // Lectura de imágenes (Fase 3). Lo más común en WhatsApp: el comprobante
@@ -29,7 +30,7 @@ No saludes, no des consejos y no inventes lo que no se vea con claridad.`
  * (sin API key, proveedor caído, respuesta vacía). Nunca lanza: quien llama
  * degrada al aviso de siempre.
  */
-export async function readImage(bytes: ArrayBuffer, mime: string): Promise<string | null> {
+export async function readImage(bytes: ArrayBuffer, mime: string, costTag?: AiCostTag): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) {
     console.error('[vision] falta OPENROUTER_API_KEY')
@@ -37,8 +38,8 @@ export async function readImage(bytes: ArrayBuffer, mime: string): Promise<strin
   }
   try {
     const openrouter = createOpenRouter({ apiKey })
-    const { text } = await generateText({
-      model: openrouter(VISION_MODEL),
+    const result = await generateText({
+      model: openrouter(VISION_MODEL, OPENROUTER_USAGE),
       messages: [
         {
           role: 'user',
@@ -49,7 +50,8 @@ export async function readImage(bytes: ArrayBuffer, mime: string): Promise<strin
         },
       ],
     })
-    const clean = text?.trim() ?? ''
+    await recordAiCost(costTag, result)
+    const clean = result.text?.trim() ?? ''
     return clean.length > 0 ? clean : null
   } catch (e) {
     console.error('[vision] readImage error', e)
