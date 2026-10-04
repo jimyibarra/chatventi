@@ -324,6 +324,59 @@ export type Database = {
           },
         ]
       }
+      billing_inquiries: {
+        Row: {
+          amount: number | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          id: string
+          invoice_number: string | null
+          message: string
+          organization_id: string
+          reason: string
+          resolved_at: string | null
+          status: string
+          stripe_invoice_id: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          message: string
+          organization_id: string
+          reason: string
+          resolved_at?: string | null
+          status?: string
+          stripe_invoice_id: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          id?: string
+          invoice_number?: string | null
+          message?: string
+          organization_id?: string
+          reason?: string
+          resolved_at?: string | null
+          status?: string
+          stripe_invoice_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_inquiries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -1572,6 +1625,7 @@ export type Database = {
           has_domain: boolean
           id: string
           organization_id: string
+          past_due_since: string | null
           plan: string
           plan_id: string | null
           status: string
@@ -1593,6 +1647,7 @@ export type Database = {
           has_domain?: boolean
           id?: string
           organization_id: string
+          past_due_since?: string | null
           plan?: string
           plan_id?: string | null
           status?: string
@@ -1614,6 +1669,7 @@ export type Database = {
           has_domain?: boolean
           id?: string
           organization_id?: string
+          past_due_since?: string | null
           plan?: string
           plan_id?: string | null
           status?: string
@@ -1823,6 +1879,7 @@ export type Database = {
           org_name: string
         }[]
       }
+      admin_list_billing_inquiries: { Args: never; Returns: Json }
       admin_list_organizations: {
         Args: never
         Returns: {
@@ -1848,7 +1905,12 @@ export type Database = {
         }[]
       }
       admin_list_partners: { Args: never; Returns: Json }
+      admin_org_billing: { Args: never; Returns: Json }
       admin_partner_orgs: { Args: never; Returns: Json }
+      admin_resolve_billing_inquiry: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
       admin_rotate_partner_key: { Args: { p_id: string }; Returns: Json }
       admin_set_agent_model: {
         Args: { p_model: string; p_org: string }

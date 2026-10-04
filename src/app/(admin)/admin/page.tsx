@@ -1,11 +1,15 @@
 import type { Metadata } from 'next'
 import {
-  computeMrrUsd,
+  computeMrr,
   getAdminGlobalStats,
   getAdminOrganizations,
+  getBillingInquiries,
+  getOrgBilling,
   getPartnerOrigins,
   internalOrgIds,
+  paysChatVenti,
 } from '@/features/admin/service'
+import { BillingInquiriesPanel } from '@/features/admin/components/billing-inquiries-panel'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
 import { ButtonLink, EmptyState, Icon, KpiCell, Notice, Page, PageHeader } from '@/shared/components/ui'
@@ -28,10 +32,17 @@ function GroupTitle({ id, children }: { id: string; children: React.ReactNode })
 }
 
 export default async function AdminOverviewPage() {
-  const [stats, orgs, origins] = await Promise.all([getAdminGlobalStats(), getAdminOrganizations(), getPartnerOrigins()])
+  const [stats, orgs, origins, billing, inquiries] = await Promise.all([
+    getAdminGlobalStats(),
+    getAdminOrganizations(),
+    getPartnerOrigins(),
+    getOrgBilling(),
+    getBillingInquiries(),
+  ])
   const internal = internalOrgIds(origins)
-  const mrr = computeMrrUsd(orgs, internal)
+  const mrr = computeMrr(orgs, billing, origins)
   const includedActive = orgs.filter((o) => o.sub_status === 'active' && internal.has(o.id)).length
+  const paying = orgs.filter((o) => o.sub_status === 'active' && paysChatVenti(billing.get(o.id), origins.get(o.id))).length
   const recent = orgs.slice(0, 8)
   const pastDue = stats.subs_past_due
 
@@ -51,31 +62,42 @@ export default async function AdminOverviewPage() {
             </ButtonLink>
           }
         >
-          Stripe no pudo cobrarlas (past_due o unpaid).
+          Stripe no pudo cobrarlas. Siguen funcionando 7 días mientras Stripe reintenta; después se pausan hasta que paguen.
         </Notice>
       )}
+
+      <BillingInquiriesPanel rows={inquiries} />
 
       <section aria-labelledby="kpi-subs" className="mb-6">
         <GroupTitle id="kpi-subs">Suscripciones</GroupTitle>
         <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <KpiCell
-            label="Ingreso mensual (MRR)"
-            value={fmtMoney(mrr)}
-            unit="USD"
-            hint={
-              includedActive > 0
-                ? `${plural(stats.subs_active - includedActive, 'suscripción activa', 'suscripciones activas')} · ${fmtInt(includedActive)} en paquetes de otra plataforma`
-                : plural(stats.subs_active, 'suscripción activa', 'suscripciones activas')
-            }
+            label="Ingreso mensual en pesos"
+            value={fmtMoney(mrr.mxn)}
+            unit="MXN"
+            hint="Sin IVA; el anual repartido en 12 meses"
+            testId="mrr-mxn"
           />
-          <KpiCell label="En prueba gratis" value={fmtInt(stats.subs_trialing)} hint="Aún sin cobrar" />
+          <KpiCell
+            label="Ingreso mensual en dólares"
+            value={fmtMoney(mrr.usd)}
+            unit="USD"
+            hint={`${plural(paying, 'negocio que paga', 'negocios que pagan')}${
+              includedActive > 0 ? ` · ${fmtInt(includedActive)} en paquetes de otra plataforma` : ''
+            }`}
+            testId="mrr-usd"
+          />
+          <KpiCell
+            label="En prueba gratis"
+            value={fmtInt(stats.subs_trialing)}
+            hint={`Aún sin cobrar · ${plural(stats.subs_canceled, 'cancelada', 'canceladas')}`}
+          />
           <KpiCell
             label="Pago pendiente"
             value={fmtInt(pastDue)}
-            hint={pastDue > 0 ? 'Conviene revisarlas' : 'Ningún cobro fallido'}
+            hint={pastDue > 0 ? 'En sus 7 días de gracia o ya pausadas' : 'Ningún cobro fallido'}
             tone={pastDue > 0 ? 'danger' : 'plain'}
           />
-          <KpiCell label="Canceladas" value={fmtInt(stats.subs_canceled)} />
         </dl>
       </section>
 

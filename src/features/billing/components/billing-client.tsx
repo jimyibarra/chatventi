@@ -18,6 +18,7 @@ import {
   type PlanId,
 } from '@/features/billing/plans'
 import { createCheckoutSession, createPortalSession } from '@/features/billing/actions'
+import { ChangePlan } from './change-plan'
 import { businessNoun } from '@/features/marketing/config'
 import { Card, Section } from '@/shared/components/ui/card'
 import { Button } from '@/shared/components/ui/button'
@@ -131,7 +132,10 @@ export function BillingClient({ sub, active, businessType, managed, includedIn, 
   }
 
   // -------- Suscripción vigente: mostrar estado + portal ------------------
-  if (active && sub) {
+  // También con el pago pendiente (en gracia o vencida): el dueño necesita ver
+  // su plan y pagar, no la pantalla de contratar (eso crearía otra suscripción).
+  const paymentPending = sub?.status === 'past_due' || sub?.status === 'unpaid'
+  if (sub && (active || paymentPending)) {
     // plan_id nuevo si existe; si no, nombre aproximado del catálogo legado.
     const currentName = sub.plan_id
       ? `ChatVenti ${planById(sub.plan_id).name}`
@@ -143,7 +147,9 @@ export function BillingClient({ sub, active, businessType, managed, includedIn, 
         title="Tu plan"
         badge={
           <>
-            <StatusChip tone="ok" size="md">{STATUS_LABELS[sub.status] ?? sub.status}</StatusChip>
+            <StatusChip tone={paymentPending ? 'wait' : 'ok'} size="md">
+              {STATUS_LABELS[sub.status] ?? sub.status}
+            </StatusChip>
             {sub.cancel_at_period_end && <StatusChip tone="off" size="md">Se cancela al final del periodo</StatusChip>}
           </>
         }
@@ -167,15 +173,26 @@ export function BillingClient({ sub, active, businessType, managed, includedIn, 
               : 'Tu plan lo administra el proveedor con el que contrataste. Para cambiarlo o darlo de baja, escríbele a él: aquí no tienes nada que pagar.'}
           </p>
         ) : (
-          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-            <Button onClick={goPortal} disabled={pending}>
-              <Icon name="card" />
-              {pending ? 'Abriendo…' : 'Administrar suscripción'}
-            </Button>
-            <p className="text-[13.5px] text-ink-muted">
-              Cambia de plan, actualiza tu tarjeta o cancela desde el portal de Stripe.
-            </p>
-          </div>
+          <>
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Button onClick={goPortal} disabled={pending}>
+                <Icon name="card" />
+                {pending ? 'Abriendo…' : paymentPending ? 'Cambiar tarjeta' : 'Administrar suscripción'}
+              </Button>
+              <p className="text-[13.5px] text-ink-muted">
+                {paymentPending
+                  ? 'Cambia tu tarjeta en el portal de Stripe o paga la factura pendiente en tu historial de pagos.'
+                  : 'Actualiza tu tarjeta o cancela desde el portal de Stripe.'}
+              </p>
+            </div>
+            {!paymentPending && (
+              <ChangePlan
+                currentPlan={sub.plan_id}
+                currentInterval={sub.billing_interval === 'year' ? 'year' : 'month'}
+                currency={currency}
+              />
+            )}
+          </>
         )}
       </Section>
     )

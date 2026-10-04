@@ -12,6 +12,8 @@ import { TrialEndedBanner } from '@/features/billing/components/subscription-req
 import { getActiveTrialPromo } from '@/features/billing/promo'
 import { billingCurrency } from '@/features/billing/currency'
 import { internalPartnerName } from '@/features/socios/service'
+import { listPayments } from '@/features/billing/payments'
+import { PaymentHistory } from '@/features/billing/components/payment-history'
 import { OnboardingHelpCard } from '@/features/marketing/components/onboarding-help-card'
 import { DATA_RETENTION_DAYS, type PlanId } from '@/features/billing/plans'
 import { UsageCard } from '@/features/billing/components/usage-card'
@@ -85,7 +87,18 @@ export default async function FacturacionPage({
     )
   }
   // Banner de "prueba terminada" si el acceso está bloqueado (sin éxito reciente).
-  const blocked = !!orgTrial && !hasAppAccess(orgTrial, sub) && !success
+  // Si lo que falló fue un cobro, el aviso es otro (va arriba, en el layout).
+  const paymentPending = sub?.status === 'past_due' || sub?.status === 'unpaid'
+  const blocked = !!orgTrial && !hasAppAccess(orgTrial, sub) && !success && !paymentPending
+
+  // Historial de pagos (Stripe) y aclaraciones abiertas, para quien paga con tarjeta.
+  const customerId = !managed ? sub?.stripe_customer_id ?? null : null
+  const [payments, { data: openInquiries }] = customerId
+    ? await Promise.all([
+        listPayments(customerId),
+        supabase.from('billing_inquiries').select('stripe_invoice_id').eq('organization_id', orgId as string).eq('status', 'open'),
+      ])
+    : [[], { data: [] as { stripe_invoice_id: string }[] }]
   const deleteIso =
     orgTrial?.delete_scheduled_at ??
     (orgTrial?.created_at
@@ -140,9 +153,13 @@ export default async function FacturacionPage({
         currency={currency}
       />
 
+      {customerId && (
+        <PaymentHistory rows={payments} inReview={(openInquiries ?? []).map((i) => i.stripe_invoice_id)} />
+      )}
+
       <UsageCard
         aiReplies={usageRow?.ai_replies ?? 0}
-        planId={active ? ((sub?.plan_id ?? null) as PlanId | null) : null}
+        planId={active || paymentPending ? ((sub?.plan_id ?? null) as PlanId | null) : null}
         managed={managed}
         includedIn={includedIn}
         currency={currency}
@@ -155,7 +172,7 @@ export default async function FacturacionPage({
         />
       )}
 
-      {!active && <OnboardingHelpCard currency={currency} />}
+      {!active && !paymentPending && <OnboardingHelpCard currency={currency} />}
     </Page>
   )
 }

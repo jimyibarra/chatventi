@@ -5,7 +5,9 @@ import { getStripe, STRIPE_WEBHOOK_SECRET, describeSubscriptionItems } from '@/l
 import { createServiceClient } from '@/lib/supabase/service'
 import { planById, monthlyTotal, monthlyTotalUsd, periodPrice, fmtAmount, currencyCode, type PlanId, type Currency } from '@/features/billing/plans'
 import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
-import { subscriptionActiveEmail } from '@/features/emails/templates'
+import { paymentFailedEmail, subscriptionActiveEmail } from '@/features/emails/templates'
+import { PAYMENT_GRACE_DAYS } from '@/features/billing/gating'
+import { notifyOrgOwners } from '@/features/notifications/send'
 import { registerReferralPayment, settlePendingRewards } from '@/features/billing/referrals'
 
 const SITE = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
@@ -136,9 +138,11 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
   const currency: Currency = sub.currency === 'mxn' ? 'mxn' : 'usd'
   const { data: existingRow } = await admin
     .from('subscriptions')
-    .select('stripe_subscription_id, subscription_email_sent_at')
+    .select('stripe_subscription_id, subscription_email_sent_at, status')
     .eq('organization_id', orgId)
     .maybeSingle()
+  // El cobro de la renovación acaba de fallar (entra a 'past_due' en este evento).
+  const paymentJustFailed = status === 'past_due' && existingRow?.status !== 'past_due'
   const trackedId = existingRow?.stripe_subscription_id as string | null | undefined
   if (trackedId && trackedId !== sub.id && !incomingLive) {
     console.log(`[stripe] ignora evento de sub duplicada ${sub.id} (org sigue ${trackedId})`)
@@ -180,6 +184,30 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     await settlePendingRewards(admin, getStripe(), orgId).catch((e) =>
       console.error('[stripe] recompensas pendientes', e)
     )
+  }
+
+  // Cobro fallido: aviso al dueño por correo y en su teléfono, una sola vez por
+  // episodio (solo en la transición a 'past_due'). La gracia la fecha la base.
+  if (paymentJustFailed) {
+    after(async () => {
+      const deadline = new Date(Date.now() + PAYMENT_GRACE_DAYS * 86_400_000)
+      const deadlineLabel = new Intl.DateTimeFormat('es-MX', {
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'America/Mexico_City',
+      }).format(deadline)
+      await notifyOrgOwners(orgId, {
+        title: 'No pudimos cobrar tu plan',
+        body: `Todo sigue funcionando hasta el ${deadlineLabel}. Paga o cambia tu tarjeta antes.`,
+        tag: 'cobro',
+        data: { url: '/dashboard/facturacion#pagos' },
+      })
+      if (!emailsEnabled()) return
+      const { data: org } = await admin.from('organizations').select('name, contact_email').eq('id', orgId).maybeSingle()
+      if (!org?.contact_email) return
+      const { subject, html } = paymentFailedEmail({ orgName: org.name, deadlineLabel, siteUrl: SITE })
+      await sendEmail({ to: org.contact_email, subject, html })
+    })
   }
 
   // Correo de "suscripción activa" (una vez, al activarse el plan). Marcamos el

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
-import { getAdminOrganizations, getPartnerOrigins, orgMonthlyUsd } from '@/features/admin/service'
-import { planById, planFromLegacyTier } from '@/features/billing/plans'
+import { getAdminOrganizations, getOrgBilling, getPartnerOrigins, orgMonthly, orgPlanId, paysChatVenti } from '@/features/admin/service'
+import { planById } from '@/features/billing/plans'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
 import { EmptyState, Page, PageHeader } from '@/shared/components/ui'
@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: 'Super Admin · Organizaciones' }
 export const dynamic = 'force-dynamic'
 
 export default async function AdminOrganizationsPage() {
-  const [orgs, origins] = await Promise.all([getAdminOrganizations(), getPartnerOrigins()])
+  const [orgs, origins, billing] = await Promise.all([getAdminOrganizations(), getPartnerOrigins(), getOrgBilling()])
 
   return (
     <Page width="wide">
@@ -37,7 +37,7 @@ export default async function AdminOrganizationsPage() {
                 Suscripción
               </th>
               <th scope="col" className={`${TH} ${NUM}`}>
-                USD al mes
+                Al mes
               </th>
               <th scope="col" className={`${TH} ${NUM}`}>
                 Usuarios
@@ -60,6 +60,8 @@ export default async function AdminOrganizationsPage() {
             {orgs.map((o) => {
               const origin = origins.get(o.id)
               const includedIn = origin?.internal ? origin.name : undefined
+              const bill = billing.get(o.id)
+              const monthly = orgMonthly(o, bill)
               return (
               <tr key={o.id} className={TR}>
                 <th scope="row" className={`${TD} ${STICKY} max-w-[15rem] text-left font-normal`}>
@@ -75,7 +77,8 @@ export default async function AdminOrganizationsPage() {
                 <td className={TD}>
                   <OrgStatusBadge status={o.sub_status} includedIn={includedIn} />
                   <p className="mt-1 whitespace-nowrap text-[13px] text-ink-muted">
-                    {`Plan ${planById(planFromLegacyTier(o.ai_tier)).name}`}
+                    {`Plan ${planById(orgPlanId(o, bill)).name}`}
+                    {bill?.billing_interval === 'year' && ' · anual'}
                     {o.has_domain && ' · dominio'}
                     {o.team_seats > 0 && ` · ${fmtInt(o.team_seats)} extra`}
                     {origin && !origin.internal && ` · vía ${origin.name}`}
@@ -85,8 +88,14 @@ export default async function AdminOrganizationsPage() {
                   {includedIn ? (
                     // Lo cobra la otra plataforma: no es ingreso de ChatVenti.
                     <span className="font-normal text-ink-muted">Incluido</span>
+                  ) : o.sub_status === 'active' && !paysChatVenti(bill, origin) ? (
+                    // Cuenta propia sin cobro (demo, «ChatVenti Ventas»).
+                    <span className="font-normal text-ink-muted">Sin cobro</span>
                   ) : o.sub_status === 'active' ? (
-                    fmtMoney(orgMonthlyUsd(o))
+                    <>
+                      {fmtMoney(monthly.amount)}{' '}
+                      <span className="text-[12px] font-semibold text-ink-muted">{monthly.currency.toUpperCase()}</span>
+                    </>
                   ) : (
                     <span className="font-normal text-ink-faint">—</span>
                   )}

@@ -2,9 +2,12 @@ import 'server-only'
 import { createClient } from '@/lib/supabase/server'
 import {
   ADDON_DOMAIN_USD,
-  ADDON_SEAT_USD,
+  monthlyTotal,
+  periodPrice,
   planById,
   planFromLegacyTier,
+  type Currency,
+  type PlanId,
 } from '@/features/billing/plans'
 
 // Estadísticas globales de la plataforma (una fila, calculada en Postgres).
@@ -48,29 +51,94 @@ export interface AdminOrg {
   last_activity: string | null
 }
 
-/**
- * Precio mensual (USD) según el catálogo 2026-08. La RPC admin_list_organizations
- * todavía expone ai_tier (legado): se traduce al plan equivalente. Cuando la RPC
- * devuelva plan_id directamente (fase contract), usarlo aquí.
- */
-export function orgMonthlyUsd(org: Pick<AdminOrg, 'ai_tier' | 'has_domain' | 'team_seats'>): number {
-  const plan = planById(planFromLegacyTier(org.ai_tier))
-  return (
-    plan.priceUsd +
-    (org.has_domain && !plan.includesDomain ? ADDON_DOMAIN_USD : 0) +
-    org.team_seats * ADDON_SEAT_USD
-  )
+/** «Aclarar este pago» de los negocios: abiertas y resueltas en los últimos 30 días. */
+export type BillingInquiry = {
+  id: string
+  organization: string
+  contact_email: string | null
+  invoice_number: string | null
+  stripe_invoice_id: string
+  amount: number | null
+  currency: string | null
+  reason: 'duplicado' | 'no_reconozco' | 'monto' | 'otro'
+  message: string
+  status: 'open' | 'resolved'
+  created_at: string
+}
+
+export async function getBillingInquiries(): Promise<BillingInquiry[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('admin_list_billing_inquiries')
+  if (error) throw error
+  return (data ?? []) as unknown as BillingInquiry[]
+}
+
+/** Plan, periodicidad y moneda REALES de cada negocio (admin_org_billing). */
+export type OrgBilling = {
+  plan_id: string | null
+  billing_interval: string | null
+  currency: string | null
+  status: string
+  stripe: boolean
+}
+
+export async function getOrgBilling(): Promise<Map<string, OrgBilling>> {
+  const supabase = await createClient()
+  const { data, error } = await supabase.rpc('admin_org_billing')
+  if (error) throw error
+  const rows = (data ?? []) as unknown as (OrgBilling & { organization_id: string })[]
+  return new Map(rows.map((r) => [r.organization_id, r]))
 }
 
 /**
- * MRR = suma del valor mensual de las suscripciones activas (paga confirmada).
- * Los negocios de un socio interno (PASEN) no cuentan: ese ingreso es de la
- * otra plataforma, que es quien le cobra al cliente.
+ * ¿Le entra dinero a ChatVenti por este negocio? Sí si paga con Stripe o si
+ * lo factura un socio EXTERNO. No si es de un socio interno (PASEN) ni si es
+ * una cuenta propia sin cobro (la demo, «ChatVenti Ventas»).
  */
-export function computeMrrUsd(orgs: AdminOrg[], internal: ReadonlySet<string> = new Set()): number {
-  return orgs
-    .filter((o) => o.sub_status === 'active' && !internal.has(o.id))
-    .reduce((sum, o) => sum + orgMonthlyUsd(o), 0)
+export function paysChatVenti(billing: OrgBilling | undefined, origin: PartnerOrigin | undefined): boolean {
+  return Boolean(billing?.stripe) || origin?.internal === false
+}
+
+/** Plan del negocio: el del catálogo actual; si no tiene, el equivalente del legado. */
+export function orgPlanId(org: Pick<AdminOrg, 'ai_tier'>, billing?: OrgBilling): PlanId {
+  return billing?.plan_id ? (billing.plan_id as PlanId) : planFromLegacyTier(org.ai_tier)
+}
+
+/**
+ * Lo que paga al mes, en SU moneda y SIN IVA (el IVA no es ingreso). El anual
+ * se reparte entre 12. Los negocios de un socio externo se valúan a precio de
+ * lista (se les factura con su descuento: es una aproximación por arriba).
+ */
+export function orgMonthly(
+  org: Pick<AdminOrg, 'ai_tier' | 'has_domain' | 'team_seats'>,
+  billing?: OrgBilling
+): { amount: number; currency: Currency } {
+  const currency: Currency = billing?.currency === 'mxn' ? 'mxn' : 'usd'
+  const plan = orgPlanId(org, billing)
+  const base =
+    monthlyTotal({ plan, extraSeats: org.team_seats, currency }) +
+    (currency === 'usd' && org.has_domain && !planById(plan).includesDomain ? ADDON_DOMAIN_USD : 0)
+  const monthly = billing?.billing_interval === 'year' ? periodPrice(base, 'year') / 12 : base
+  return { amount: Math.round(monthly * 100) / 100, currency }
+}
+
+/**
+ * MRR separado por moneda (sin convertir: cada cifra es exacta). Los negocios
+ * de un socio interno (PASEN) no cuentan: ese ingreso es de la otra
+ * plataforma, que es quien le cobra al cliente.
+ */
+export function computeMrr(
+  orgs: AdminOrg[],
+  billing: Map<string, OrgBilling>,
+  origins: Map<string, PartnerOrigin>
+): { usd: number; mxn: number } {
+  const out = { usd: 0, mxn: 0 }
+  for (const o of orgs) {
+    if (o.sub_status !== 'active' || !paysChatVenti(billing.get(o.id), origins.get(o.id))) continue
+    const m = orgMonthly(o, billing.get(o.id))
+    out[m.currency] += m.amount
+  }
+  return { usd: Math.round(out.usd * 100) / 100, mxn: Math.round(out.mxn * 100) / 100 }
 }
 
 /** Negocio que llegó por un socio: nombre del socio y si es interno (Grupo ELRI). */

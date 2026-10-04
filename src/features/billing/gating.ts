@@ -24,9 +24,18 @@ export interface OrgSubscription {
   cancel_at_period_end: boolean
   stripe_customer_id: string | null
   billing_interval?: string | null
+  /** Desde cuándo está pendiente el pago (lo fecha un disparador en la base). */
+  past_due_since?: string | null
 }
 
 const ACTIVE_STATES = new Set(['trialing', 'active'])
+
+/**
+ * Días de gracia con el pago pendiente: el panel y la recepcionista siguen
+ * mientras Stripe reintenta el cobro. 🔴 El mismo número está en las guardas
+ * de la base (migración 20261007120000): si se cambia aquí, se cambia allá.
+ */
+export const PAYMENT_GRACE_DAYS = 7
 
 /** Lee la suscripción de la org del usuario autenticado (por RLS). */
 export async function getMySubscription(): Promise<OrgSubscription | null> {
@@ -34,15 +43,33 @@ export async function getMySubscription(): Promise<OrgSubscription | null> {
   const { data } = await supabase
     .from('subscriptions')
     .select(
-      'status, plan_id, ai_tier, has_domain, team_seats, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, billing_interval, currency'
+      'status, plan_id, ai_tier, has_domain, team_seats, current_period_end, trial_end, cancel_at_period_end, stripe_customer_id, billing_interval, currency, past_due_since'
     )
     .maybeSingle()
   return (data as unknown as OrgSubscription | null) ?? null
 }
 
-/** ¿La suscripción da acceso vigente (trial o activa)? */
+/** Fin de la gracia de un pago pendiente, o null si no hay pago pendiente. */
+export function graceEndsAt(sub: OrgSubscription | null): Date | null {
+  if (sub?.status !== 'past_due' || !sub.past_due_since) return null
+  return new Date(new Date(sub.past_due_since).getTime() + PAYMENT_GRACE_DAYS * 86_400_000)
+}
+
+/**
+ * Problema de cobro que el dueño debe atender: 'grace' = sigue todo
+ * funcionando hasta `until`; 'blocked' = se acabó la gracia o Stripe ya la
+ * dio por no pagada.
+ */
+export function paymentIssue(sub: OrgSubscription | null): { state: 'grace' | 'blocked'; until: Date | null } | null {
+  if (sub?.status === 'unpaid') return { state: 'blocked', until: null }
+  const until = graceEndsAt(sub)
+  if (!until && sub?.status !== 'past_due') return null
+  return until && until > new Date() ? { state: 'grace', until } : { state: 'blocked', until }
+}
+
+/** ¿La suscripción da acceso vigente (trial, activa o pago pendiente en gracia)? */
 export function subIsActive(sub: OrgSubscription | null): boolean {
-  return !!sub && ACTIVE_STATES.has(sub.status)
+  return !!sub && (ACTIVE_STATES.has(sub.status) || paymentIssue(sub)?.state === 'grace')
 }
 
 /**

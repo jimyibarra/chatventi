@@ -5,6 +5,8 @@ import { LogoutButton } from '@/features/auth/components/logout-button'
 import { DashboardNav } from '@/shared/components/dashboard-nav'
 import { PushNotificationPrompt } from '@/features/notifications/components/push-notification-prompt'
 import { dayRangeUtc, ymdInTz } from '@/features/agenda/datetime'
+import { getMySubscription, paymentIssue } from '@/features/billing/gating'
+import { PaymentIssueBanner } from '@/features/billing/components/payment-issue-banner'
 import '@/shared/components/ui/panel.css'
 
 // Tipografía del diseño «Líneas». Solo se carga dentro del panel.
@@ -51,7 +53,7 @@ export default async function MainLayout({
   const { data: branch } = await supabase.from('branches').select('timezone').order('created_at').limit(1).maybeSingle()
   const now = new Date()
   const endOfDay = dayRangeUtc(ymdInTz(now, branch?.timezone ?? 'America/Mexico_City'), branch?.timezone ?? 'America/Mexico_City').to
-  const [unconfirmed, passed] = await Promise.all([
+  const [unconfirmed, passed, sub] = await Promise.all([
     supabase
       .from('appointments')
       .select('id', { count: 'exact', head: true })
@@ -59,7 +61,11 @@ export default async function MainLayout({
       .gte('starts_at', now.toISOString())
       .lt('starts_at', endOfDay),
     supabase.from('ai_approvals').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    // Solo dueño y gerente leen la suscripción (RLS): el aviso de cobro les
+    // llega a quienes pueden pagar; al personal no.
+    getMySubscription(),
   ])
+  const issue = paymentIssue(sub)
 
   return (
     <div className={`${rubik.variable} cv-panel min-h-screen bg-surface font-sans text-ink`}>
@@ -77,6 +83,7 @@ export default async function MainLayout({
             <LogoutButton className="rounded-[11px] border border-white/60 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/15 md:border-line md:text-ink-muted md:hover:bg-white" />
           </div>
         </header>
+        {issue && <PaymentIssueBanner state={issue.state} until={issue.until} />}
         <main className="min-w-0">{children}</main>
       </div>
       <PushNotificationPrompt />

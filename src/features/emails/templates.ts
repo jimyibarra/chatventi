@@ -198,6 +198,23 @@ export function trialEndingEmail(o: {
   }
 }
 
+/** El cobro de la renovación falló: días de gracia para pagar o cambiar de tarjeta. */
+export function paymentFailedEmail(o: { orgName: string; deadlineLabel: string; siteUrl: string }): Built {
+  const body = `
+    <p style="margin:0 0 14px">Hola <strong>${o.orgName}</strong>, tu banco rechazó el cobro de la renovación de ChatVenti.</p>
+    <p style="margin:0 0 14px">Todo sigue funcionando hasta el <strong>${o.deadlineLabel}</strong>. Antes de esa fecha, paga la factura pendiente o cambia tu tarjeta para que tu recepcionista no se detenga.</p>
+    <p style="margin:0 0 14px">Stripe volverá a intentar el cobro en los próximos días. Si ya cambiaste tu tarjeta, no tienes que hacer nada más.</p>`
+  return {
+    subject: 'No pudimos cobrar tu plan de ChatVenti',
+    html: layout({
+      title: 'No pudimos cobrar tu plan',
+      bodyHtml: body,
+      cta: { label: 'Pagar o cambiar tarjeta →', href: `${o.siteUrl}/dashboard/facturacion#pagos` },
+      note: 'Tus datos, tu agenda y tus conversaciones están a salvo.',
+    }),
+  }
+}
+
 /** Al terminar la prueba (acceso bloqueado). Suscríbete o pierdes tus datos. */
 export function trialEndedEmail(o: {
   orgName: string
