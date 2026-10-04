@@ -3,7 +3,9 @@
 //   Uso: node --env-file=.env.local scripts/stripe-promo-setup.mjs
 //   Cupón: 30% OFF durante 3 meses.  Código: BIENVENIDO30
 //   El checkout ya tiene allow_promotion_codes:true, así que el cliente lo
-//   escribe al suscribirse. Debe coincidir con PROMO_CODE en plans.ts.
+//   escribe al suscribirse.
+//   OBSOLETO desde 2026-10-04: la promoción se crea y cambia desde
+//   /admin/promocion (src/features/admin/promo-actions.ts). Usar eso.
 // =====================================================================
 import Stripe from 'stripe'
 

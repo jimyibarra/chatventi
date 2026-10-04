@@ -147,7 +147,8 @@ export function onboardingEmail(o: { orgName: string; siteUrl: string }): Built 
 export function subscriptionActiveEmail(o: {
   orgName: string
   planLine: string
-  totalUsd: number
+  /** Lo que se cobra, ya con moneda y periodo: «$799 MXN / mes, más IVA». */
+  priceLine: string
   trialEndLabel: string | null
   siteUrl: string
 }): Built {
@@ -159,7 +160,7 @@ export function subscriptionActiveEmail(o: {
     <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin:0 0 14px">
       <p style="margin:0;font-size:13px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Tu plan</p>
       <p style="margin:4px 0 0;font-size:15px;font-weight:bold;color:#111827">${o.planLine}</p>
-      <p style="margin:6px 0 0;font-size:14px;color:#374151">$${o.totalUsd} USD / mes</p>
+      <p style="margin:6px 0 0;font-size:14px;color:#374151">${o.priceLine}</p>
     </div>
     ${trialNote}
     <p style="margin:0">Desde tu panel puedes conectar WhatsApp, configurar tu Recepcionista IA y administrar tu suscripción cuando lo necesites.</p>`

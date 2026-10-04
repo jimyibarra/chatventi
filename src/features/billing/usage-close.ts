@@ -1,8 +1,8 @@
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
-import { getStripe } from '@/lib/stripe'
-import { planById, usageOverage, type PlanId } from './plans'
+import { getStripe, ivaTaxRateId } from '@/lib/stripe'
+import { planById, usageOverage, type Currency, type PlanId } from './plans'
 
 // =====================================================================
 // Cierre mensual del consumo de IA.
@@ -28,6 +28,8 @@ type Service = SupabaseClient<Database>
 
 // Stripe no admite cargos menores de 50 centavos.
 const MIN_CHARGE_USD = 0.5
+/** Mínimo para cargar un excedente en pesos (Stripe no cobra montos menores a $10 MXN). */
+const MIN_CHARGE_MXN = 10
 const LIVE = new Set(['active', 'trialing', 'past_due'])
 const PARTNER_INVOICE_DAYS = 15
 
@@ -123,7 +125,7 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
       const [{ data: sub }, { data: org }] = await Promise.all([
         service
           .from('subscriptions')
-          .select('plan_id, status, stripe_customer_id, billing_interval')
+          .select('plan_id, status, stripe_customer_id, billing_interval, currency')
           .eq('organization_id', period.organization_id)
           .maybeSingle(),
         service
@@ -134,7 +136,9 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
       ])
 
       const planId = (sub?.plan_id ?? null) as PlanId | null
-      const usage = planId ? usageOverage(planId, period.ai_replies) : null
+      // Los socios pagan en dólares; un negocio directo, en la moneda de su suscripción.
+      const currency: Currency = !org?.partner_id && sub?.currency === 'mxn' ? 'mxn' : 'usd'
+      const usage = planId ? usageOverage(planId, period.ai_replies, currency) : null
       const idem = `usage-${period.organization_id}-${period.period_start}`
       const label = monthLabel(period.period_start)
       let chargeUsd = 0
@@ -153,7 +157,7 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
         const partner = partners.get(org.partner_id)
         if (partner) {
           const planFee = Number((planById(planId).priceUsd * (1 - partner.discount_pct / 100)).toFixed(2))
-          chargeUsd = Number((planFee + usage.chargeUsd).toFixed(2))
+          chargeUsd = Number((planFee + usage.charge).toFixed(2))
           if (chargeUsd > 0) {
             const stripe = getStripe()
             customer = await partnerCustomer(service, stripe, partner)
@@ -164,7 +168,7 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
                 currency: 'usd',
                 description: `${org.name} · ChatVenti ${planById(planId).name} · ${label} (plan $${planFee.toFixed(
                   2
-                )}${usage.extra > 0 ? ` + ${usage.extra.toLocaleString('en-US')} respuestas de IA adicionales $${usage.chargeUsd.toFixed(2)}` : ''})`,
+                )}${usage.extra > 0 ? ` + ${usage.extra.toLocaleString('en-US')} respuestas de IA adicionales $${usage.charge.toFixed(2)}` : ''})`,
                 metadata: { organization_id: period.organization_id, period_start: period.period_start },
               },
               { idempotencyKey: idem }
@@ -178,18 +182,20 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
         usage &&
         sub?.stripe_customer_id &&
         LIVE.has(sub.status) &&
-        usage.chargeUsd >= MIN_CHARGE_USD &&
+        usage.charge >= (currency === 'mxn' ? MIN_CHARGE_MXN : MIN_CHARGE_USD) &&
         stripeReady
       ) {
         // ---- Negocio directo: solo el excedente, a su propia tarjeta.
         const stripe = getStripe()
         customer = sub.stripe_customer_id
-        chargeUsd = usage.chargeUsd
+        chargeUsd = usage.charge
         const item = await stripe.invoiceItems.create(
           {
             customer,
             amount: Math.round(chargeUsd * 100),
-            currency: 'usd',
+            currency,
+            // En pesos se suma el IVA, igual que en la suscripción.
+            tax_rates: currency === 'mxn' ? [await ivaTaxRateId()] : undefined,
             description: `Uso de IA por encima de lo incluido en el plan ${planById(planId).name} · ${label} · ${usage.extra.toLocaleString(
               'en-US'
             )} respuestas adicionales`,
@@ -215,6 +221,7 @@ export async function runUsageClose(service: Service): Promise<UsageCloseSummary
           included_replies: usage?.included ?? null,
           extra_replies: usage?.extra ?? null,
           charge_usd: itemId ? chargeUsd : 0,
+          charge_currency: currency,
           billed_customer: itemId ? customer : null,
           stripe_invoice_item_id: itemId,
           closed_at: new Date().toISOString(),

@@ -1517,6 +1517,7 @@ export type Database = {
           billing_interval: string
           cancel_at_period_end: boolean
           created_at: string
+          currency: string | null
           current_period_end: string | null
           has_domain: boolean
           id: string
@@ -1537,6 +1538,7 @@ export type Database = {
           billing_interval?: string
           cancel_at_period_end?: boolean
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           has_domain?: boolean
           id?: string
@@ -1557,6 +1559,7 @@ export type Database = {
           billing_interval?: string
           cancel_at_period_end?: boolean
           created_at?: string
+          currency?: string | null
           current_period_end?: string | null
           has_domain?: boolean
           id?: string
@@ -1685,6 +1688,7 @@ export type Database = {
         Row: {
           ai_replies: number
           billed_customer: string | null
+          charge_currency: string
           charge_usd: number | null
           closed_at: string | null
           extra_replies: number | null
@@ -1698,6 +1702,7 @@ export type Database = {
         Insert: {
           ai_replies?: number
           billed_customer?: string | null
+          charge_currency?: string
           charge_usd?: number | null
           closed_at?: string | null
           extra_replies?: number | null
@@ -1711,6 +1716,7 @@ export type Database = {
         Update: {
           ai_replies?: number
           billed_customer?: string | null
+          charge_currency?: string
           charge_usd?: number | null
           closed_at?: string | null
           extra_replies?: number | null

@@ -16,10 +16,13 @@ import {
   PLANS,
   TRIAL_DAYS,
   ADDON_SEAT_USD,
+  ADDON_SEAT_MXN,
   ANNUAL_MONTHS_FREE,
   EXTRA_REPLY_PRICE_USD,
-  STARTER_PRICE_USD,
+  EXTRA_REPLY_PRICE_MXN,
   aiRepliesIncluded,
+  fmtAmount,
+  type Currency,
 } from '@/features/billing/plans'
 
 export type SalesTurn = { role: 'user' | 'assistant'; content: string }
@@ -34,7 +37,9 @@ const SIGNUP_URL = 'https://www.chatventi.com/signup'
 const GUIDE_URL = 'https://www.chatventi.com/ayuda/facebook-instagram'
 
 // Datos verificables del catálogo, en un bloque que el modelo cita tal cual.
-function pricingFacts(channel: SalesChannel): string {
+// `currency`: la moneda de quien escribe si se sabe (la web la sabe por la
+// ubicación); en Messenger e Instagram no se sabe y se asume México.
+function pricingFacts(channel: SalesChannel, currency: Currency | null): string {
   const planLines = PLANS.map((p) => {
     const resources =
       p.maxResources === null ? 'profesionales ilimitados' : `hasta ${p.maxResources} profesional(es)`
@@ -45,16 +50,21 @@ function pricingFacts(channel: SalesChannel): string {
     ]
       .filter(Boolean)
       .join('; ')
-    return `- ${p.name}: $${p.priceUsd} USD/mes${p.popular ? ' (EL MÁS POPULAR)' : ''}. ${p.tagline} Canales del agente: ${canales}. ${resources}, ${seats}. Incluye ${aiRepliesIncluded(p.id).toLocaleString('en-US')} respuestas de IA al mes.${extra ? ' Incluye también: ' + extra + '.' : ''}`
+    return `- ${p.name}: ${fmtAmount(p.priceMxn)} MXN/mes más IVA en México, o $${p.priceUsd} USD/mes fuera de México${p.popular ? ' (EL MÁS POPULAR)' : ''}. ${p.tagline} Canales del agente: ${canales}. ${resources}, ${seats}. Incluye ${aiRepliesIncluded(p.id).toLocaleString('en-US')} respuestas de IA al mes.${extra ? ' Incluye también: ' + extra + '.' : ''}`
   }).join('\n')
 
   return [
-    `PLANES (precios en USD al mes, desde $${STARTER_PRICE_USD}):`,
+    'PLANES (precios FIJOS por mes; en México se cobran en pesos más IVA, fuera de México en dólares. No son conversiones: son los precios oficiales):',
     planLines,
     '',
-    'COMPLEMENTO (opcional, USD/mes): acceso de equipo adicional $' + ADDON_SEAT_USD + '.',
+    currency === 'mxn'
+      ? 'MONEDA: la persona está en México. Da SIEMPRE los precios en pesos y di «más IVA».'
+      : currency === 'usd'
+        ? 'MONEDA: la persona está fuera de México. Da los precios en dólares (USD), sin IVA.'
+        : 'MONEDA: no sabes dónde está. Da los precios en pesos más IVA (casi todos nuestros clientes son de México) y aclara que fuera de México se cobra en dólares.',
+    `COMPLEMENTO (opcional, al mes): acceso de equipo adicional ${fmtAmount(ADDON_SEAT_MXN)} MXN más IVA, o $${ADDON_SEAT_USD} USD fuera de México.`,
     `PAGO ANUAL: se pagan 10 meses y se usan 12 (${ANNUAL_MONTHS_FREE} meses de regalo). Se elige al activar el plan.`,
-    `SI SE REBASA LO INCLUIDO: el servicio NO se corta. Cada 1,000 respuestas de IA adicionales cuestan $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD y se suman a la siguiente factura. El consumo se ve en el panel.`,
+    `SI SE REBASA LO INCLUIDO: el servicio NO se corta. Cada 1,000 respuestas de IA adicionales cuestan ${fmtAmount(Number((EXTRA_REPLY_PRICE_MXN * 1000).toFixed(2)))} MXN más IVA en México, o $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD fuera, y se suman a la siguiente factura. El consumo se ve en el panel.`,
     `COSTO DE LOS MENSAJES (lo cobra Meta, nunca ChatVenti):
 - Instagram y Messenger: SIN costo por mensaje. Meta no los cobra y vienen incluidos en TODOS los planes.
 - WhatsApp: Meta lo cobra directo a la cuenta de WhatsApp Business del negocio. Cada número tiene ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} mensajes de servicio GRATIS al mes (las respuestas a quien escribe primero); a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta por mensaje; en México, alrededor de ${META_RATE_USD.MX} USD cada uno. En otros países depende de la tarifa de Meta: no inventes cifras.
@@ -86,13 +96,13 @@ REQUISITOS que hay que decir siempre que pregunten por WhatsApp:
   ].join('\n')
 }
 
-function systemPrompt(channel: SalesChannel): string {
+function systemPrompt(channel: SalesChannel, currency: Currency | null): string {
   return [
     'Eres el asesor de ventas de ChatVenti. Tu trabajo es resolver dudas de negocios interesados y ayudarles a empezar su prueba gratis. NO agendas citas ni atiendes a clientes finales: eso lo hace el producto una vez que el negocio se registra.',
     '',
     'QUÉ ES CHATVENTI: un recepcionista con inteligencia artificial que atiende por WhatsApp, Instagram, Messenger, Telegram y un widget en la web del negocio. Contesta al instante 24/7, agenda y confirma citas, evita dobles reservas, manda recordatorios y lleva un CRM de clientes. Está hecho para negocios que viven de su agenda: peluquerías, barberías, dentistas, veterinarias, spas, estéticas y consultorios. No hay que instalar nada ni saber de tecnología; queda listo en minutos.',
     '',
-    pricingFacts(channel),
+    pricingFacts(channel, currency),
     '',
     'REGLAS:',
     '- Responde en español, cálido, cercano y BREVE (2-4 frases). Es un chat. Haz UNA sola pregunta por mensaje.',
@@ -115,7 +125,11 @@ function systemPrompt(channel: SalesChannel): string {
  * es Q&A + conversión, no un motor de reservas. Devuelve null si no hay clave
  * o si el modelo falla (quien llama muestra un fallback amable).
  */
-export async function salesReply(history: SalesTurn[], channel: SalesChannel = 'web'): Promise<string | null> {
+export async function salesReply(
+  history: SalesTurn[],
+  channel: SalesChannel = 'web',
+  currency: Currency | null = null
+): Promise<string | null> {
   const apiKey = process.env.OPENROUTER_API_KEY
   if (!apiKey) return null
 
@@ -128,7 +142,7 @@ export async function salesReply(history: SalesTurn[], channel: SalesChannel = '
     const model = openrouter('openai/gpt-4o-mini')
     const result = await generateText({
       model,
-      system: systemPrompt(channel),
+      system: systemPrompt(channel, currency),
       messages,
     })
     const text = result.text?.trim()

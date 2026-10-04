@@ -33,12 +33,15 @@ export function TeamManager({
   seats,
   resources,
   myId,
+  seatLabel,
 }: {
   members: Member[]
   invitations: TeamInvitation[]
   seats: Seats
   resources: ResourceOpt[]
   myId: string
+  /** Precio de un acceso extra ya formateado: «$399 MXN/mes más IVA». */
+  seatLabel: string
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -103,7 +106,7 @@ export function TeamManager({
               </ButtonLink>
             }
           >
-            Cada acceso extra cuesta $19/mes.
+            Cada acceso extra cuesta {seatLabel}.
           </Notice>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_auto] lg:items-end">

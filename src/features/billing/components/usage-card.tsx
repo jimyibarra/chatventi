@@ -1,4 +1,4 @@
-import { EXTRA_REPLY_PRICE_USD, planById, usageOverage, type PlanId } from '@/features/billing/plans'
+import { currencyCode, extraReplyPrice, fmtAmount, planById, usageOverage, type Currency, type PlanId } from '@/features/billing/plans'
 import { Section } from '@/shared/components/ui/card'
 
 const n = (v: number) => v.toLocaleString('en-US')
@@ -12,16 +12,21 @@ export function UsageCard({
   aiReplies,
   planId,
   managed = false,
+  currency = 'usd',
 }: {
   aiReplies: number
   planId: PlanId | null
+  /** Moneda en que se cobra el excedente (la de la suscripción). */
+  currency?: Currency
   /** Plan administrado por un socio: el negocio no le paga nada a ChatVenti. */
   managed?: boolean
 }) {
   const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(new Date())
-  const usage = planId ? usageOverage(planId, aiReplies) : null
+  const usage = planId ? usageOverage(planId, aiReplies, currency) : null
   const pct = usage ? Math.min(100, Math.round((aiReplies / Math.max(1, usage.included)) * 100)) : 0
-  const per1000 = (EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)
+  const code = currencyCode(currency)
+  const tax = currency === 'mxn' ? ' más IVA' : ''
+  const per1000 = fmtAmount(Number((extraReplyPrice(currency) * 1000).toFixed(2)))
 
   return (
     <Section className="mt-4" data-testid="usage-card" title={`Uso de tu recepcionista en ${month}`}>
@@ -55,13 +60,13 @@ export function UsageCard({
           ) : usage.extra > 0 ? (
             <p className="mt-3 max-w-[65ch] text-[14.5px] leading-snug text-ink-muted">
               Llevas <strong className="text-ink">{n(usage.extra)}</strong> respuestas por encima de lo incluido en el plan{' '}
-              {planById(planId).name}: <strong className="text-ink">${usage.chargeUsd.toFixed(2)} USD</strong> que se suman a tu
+              {planById(planId).name}: <strong className="text-ink">{fmtAmount(usage.charge)} {code}{tax}</strong> que se suman a tu
               siguiente factura. Tu recepcionista sigue atendiendo sin interrupciones.
             </p>
           ) : (
             <p className="mt-3 max-w-[65ch] text-[14.5px] leading-snug text-ink-muted">
               Vas dentro de lo incluido en tu plan. Si algún mes lo rebasas, tu recepcionista no se
-              detiene: cada 1,000 respuestas adicionales cuestan ${per1000} USD y se suman a tu
+              detiene: cada 1,000 respuestas adicionales cuestan {per1000} {code}{tax} y se suman a tu
               siguiente factura.
             </p>
           )}

@@ -51,6 +51,12 @@ export interface Plan {
   id: PlanId
   name: string
   priceUsd: number
+  /**
+   * Precio FIJO en pesos mexicanos, más IVA (decisión de Juan, 2026-10-04).
+   * No es una conversión: es el precio para negocios de México. Debe coincidir
+   * con el currency_options.mxn de los precios de Stripe.
+   */
+  priceMxn: number
   /** Frase de una línea para la tarjeta de precios. */
   tagline: string
   /**
@@ -94,6 +100,7 @@ export interface Plan {
 export const PLANS: Plan[] = [
   {
     id: 'arranque',
+    priceMxn: 399,
     name: 'Arranque',
     priceUsd: 19,
     tagline: 'Para quien trabaja solo y no quiere perder ni una cita.',
@@ -115,6 +122,7 @@ export const PLANS: Plan[] = [
   },
   {
     id: 'negocio',
+    priceMxn: 799,
     name: 'Negocio',
     priceUsd: 39,
     tagline: 'Para un equipo pequeño que ya no da abasto contestando.',
@@ -136,6 +144,7 @@ export const PLANS: Plan[] = [
   },
   {
     id: 'profesional',
+    priceMxn: 1499,
     name: 'Profesional',
     priceUsd: 79,
     tagline: 'Para clínicas y estéticas con varios profesionales.',
@@ -156,6 +165,7 @@ export const PLANS: Plan[] = [
   },
   {
     id: 'multisede',
+    priceMxn: 2999,
     name: 'Multi-sede',
     priceUsd: 149,
     tagline: 'Para equipos grandes que atienden mucho volumen.',
@@ -192,6 +202,8 @@ export const ADDON_PWA_USD = 19
 export const ADDON_DOMAIN_USD = 8
 /** Acceso de equipo ADICIONAL a los que ya trae el plan. */
 export const ADDON_SEAT_USD = 19
+/** El mismo acceso adicional para negocios de México, en pesos más IVA. */
+export const ADDON_SEAT_MXN = 399
 
 /**
  * Precio de entrada, para el copy de las landings ("Desde $19 USD/mes").
@@ -276,6 +288,8 @@ export function aiRepliesIncluded(planId: PlanId): number {
 
 /** Precio de cada respuesta adicional (costo + recargo), en USD. */
 export const EXTRA_REPLY_PRICE_USD = AI_TURN_COST_USD * (1 + USAGE_COMMISSION_PCT)
+/** Precio FIJO de cada respuesta adicional en pesos (1,000 = $37 MXN más IVA). */
+export const EXTRA_REPLY_PRICE_MXN = 0.037
 
 /**
  * Excedente de un mes. Una sola fórmula para el panel del cliente y para el
@@ -283,11 +297,12 @@ export const EXTRA_REPLY_PRICE_USD = AI_TURN_COST_USD * (1 + USAGE_COMMISSION_PC
  */
 export function usageOverage(
   planId: PlanId,
-  aiReplies: number
-): { included: number; extra: number; chargeUsd: number } {
+  aiReplies: number,
+  currency: Currency = 'usd'
+): { included: number; extra: number; charge: number } {
   const included = aiRepliesIncluded(planId)
   const extra = Math.max(0, aiReplies - included)
-  return { included, extra, chargeUsd: Number((extra * EXTRA_REPLY_PRICE_USD).toFixed(2)) }
+  return { included, extra, charge: Number((extra * extraReplyPrice(currency)).toFixed(2)) }
 }
 
 // ---------------------------------------------------------------------
@@ -298,10 +313,12 @@ export type BillingInterval = 'month' | 'year'
 export const ANNUAL_MONTHS_CHARGED = 10
 export const ANNUAL_MONTHS_FREE = 12 - ANNUAL_MONTHS_CHARGED
 
-/** Importe del periodo (mes o año) para un precio mensual dado. */
-export function periodPriceUsd(monthlyUsd: number, interval: BillingInterval): number {
-  return interval === 'year' ? monthlyUsd * ANNUAL_MONTHS_CHARGED : monthlyUsd
+/** Importe del periodo (mes o año) para un precio mensual dado, en cualquier moneda. */
+export function periodPrice(monthly: number, interval: BillingInterval): number {
+  return interval === 'year' ? monthly * ANNUAL_MONTHS_CHARGED : monthly
 }
+/** Alias histórico (los importes en dólares se calculaban con este nombre). */
+export const periodPriceUsd = periodPrice
 
 // ---------------------------------------------------------------------
 // Total mensual y margen
@@ -387,3 +404,55 @@ export const STATUS_LABELS: Record<string, string> = {
   canceled: 'Cancelada',
   incomplete: 'Incompleta',
 }
+
+// ---------------------------------------------------------------------
+// Moneda: dólares por defecto; pesos mexicanos (más IVA) para México.
+//   La página pública decide por la ubicación de la visita; el cobro, por el
+//   país del negocio registrado (ver features/billing/currency.ts). Quien ya
+//   paga en una moneda sigue en ella: Stripe no deja cambiar la de un cliente.
+// ---------------------------------------------------------------------
+
+export type Currency = 'usd' | 'mxn'
+
+/** IVA de México. Los precios en pesos se anuncian «más IVA» y Stripe lo suma. */
+export const IVA_MX_PCT = 16
+
+export function planPrice(plan: Plan | PlanId, currency: Currency): number {
+  const p = typeof plan === 'string' ? planById(plan) : plan
+  return currency === 'mxn' ? p.priceMxn : p.priceUsd
+}
+
+export function seatPrice(currency: Currency): number {
+  return currency === 'mxn' ? ADDON_SEAT_MXN : ADDON_SEAT_USD
+}
+
+export function extraReplyPrice(currency: Currency): number {
+  return currency === 'mxn' ? EXTRA_REPLY_PRICE_MXN : EXTRA_REPLY_PRICE_USD
+}
+
+/** Total mensual en la moneda dada (plan + accesos extra). «Tu App» y dominio no se venden en pesos. */
+export function monthlyTotal(opts: { plan: PlanId; extraSeats?: number; currency: Currency }): number {
+  if (opts.currency === 'usd') return monthlyTotalUsd({ plan: opts.plan, extraSeats: opts.extraSeats })
+  return planById(opts.plan).priceMxn + (opts.extraSeats ?? 0) * ADDON_SEAT_MXN
+}
+
+/** El importe con IVA incluido (para mostrar el total que se paga en pesos). */
+export function withIva(amount: number): number {
+  return Number((amount * (1 + IVA_MX_PCT / 100)).toFixed(2))
+}
+
+export function currencyCode(currency: Currency): 'MXN' | 'USD' {
+  return currency === 'mxn' ? 'MXN' : 'USD'
+}
+
+/** «$1,499» / «$37.50» (miles con coma, como en México). */
+export function fmtAmount(amount: number): string {
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: Number.isInteger(amount) ? 0 : 2, maximumFractionDigits: 2 })}`
+}
+
+/** El país del negocio es México (el alta guarda «México»; los socios, «MX»). */
+export function isMexico(country: string | null | undefined): boolean {
+  const c = (country ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase()
+  return c === 'mexico' || c === 'mx'
+}
+

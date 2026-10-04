@@ -5,7 +5,8 @@ import Link from 'next/link'
 import { Inter, Manrope } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
 import { pageMetadata } from '@/shared/lib/seo'
-import { STARTER_PRICE_USD } from '@/features/billing/plans'
+import { currencyCode, fmtAmount, planPrice, PLANS } from '@/features/billing/plans'
+import { visitorCurrency } from '@/features/billing/currency'
 import { FEATURES, FOUNDERS, PRICING, PROOF, TRIAL_DAYS } from '@/features/landing/data'
 import { Icon } from '@/features/landing/icons'
 import { SalesWidget } from '@/features/landing/sales-widget'
@@ -40,6 +41,11 @@ const H3: CSSProperties = { fontFamily: 'var(--font-manrope), sans-serif', fontW
 const BODY_MUTED: CSSProperties = { color: '#5F5A75', fontSize: 15.5, lineHeight: 1.6, margin: 0 }
 
 export default async function VerticalPage({ params }: { params: Promise<{ giro: string }> }) {
+  // Pesos más IVA para quien visita desde México; dólares para el resto.
+  const currency = await visitorCurrency()
+  const code = currencyCode(currency)
+  const tax = currency === 'mxn' ? ' más IVA' : ''
+  const fromPrice = fmtAmount(Math.min(...PLANS.map((p) => planPrice(p, currency))))
   const { giro } = await params
   const vertical = verticalBySlug(giro)
   const content = verticalContent(giro)
@@ -232,9 +238,9 @@ export default async function VerticalPage({ params }: { params: Promise<{ giro:
           <div className="cv-container" style={{ padding: '64px 24px', textAlign: 'center' }}>
             <div className="cv-section-head">
               <p className="cv-eyebrow">Precios</p>
-              <h2 className="cv-h2">Desde ${STARTER_PRICE_USD} USD al mes</h2>
+              <h2 className="cv-h2">Desde {fromPrice} {code} al mes{tax}</h2>
               <p className="cv-lead">
-                {PRICING.popular.name} por ${PRICING.popular.price} USD/mes. Empieza con {TRIAL_DAYS} días
+                {PRICING.popular.name} por {fmtAmount(planPrice(PRICING.popular.plan, currency))} {code}/mes{tax}. Empieza con {TRIAL_DAYS} días
                 de prueba gratis, sin tarjeta de crédito.
               </p>
             </div>

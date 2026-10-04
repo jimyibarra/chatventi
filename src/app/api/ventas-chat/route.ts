@@ -59,6 +59,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     })
   }
 
-  const reply = await salesReply(history)
+  // Moneda por la ubicación de la visita (la misma regla que la página).
+  const chosen = request.cookies.get('cv_moneda')?.value
+  const currency =
+    chosen === 'mxn' || chosen === 'usd' ? chosen : request.headers.get('x-vercel-ip-country') === 'MX' ? 'mxn' : 'usd'
+  const reply = await salesReply(history, 'web', currency)
   return NextResponse.json({ reply: reply ?? FALLBACK })
 }

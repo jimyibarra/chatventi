@@ -3,10 +3,15 @@
 import { useMemo, useState, useTransition } from 'react'
 import {
   PLANS,
-  ADDON_SEAT_USD,
   ANNUAL_MONTHS_FREE,
-  monthlyTotalUsd,
-  periodPriceUsd,
+  monthlyTotal,
+  periodPrice,
+  planPrice,
+  seatPrice,
+  currencyCode,
+  withIva,
+  fmtAmount,
+  type Currency,
   planById,
   STATUS_LABELS,
   type BillingInterval,
@@ -26,6 +31,8 @@ type Promo = { code: string; label: string } | null
 
 interface Props {
   promo: Promo
+  /** Moneda de cobro del negocio (pesos más IVA en México; dólares fuera). */
+  currency: Currency
   sub: {
     status: string
     plan_id: string | null
@@ -40,9 +47,7 @@ interface Props {
   managed?: boolean
 }
 
-function money(usd: number): string {
-  return `$${usd.toLocaleString('en-US')}`
-}
+const money = fmtAmount
 
 // Quiz de 1 pregunta: el tamaño del negocio recomienda un plan.
 const SIZE_OPTIONS: { key: string; label: string; hint: string; plan: PlanId }[] = [
@@ -85,7 +90,7 @@ const OPTION ='flex w-full items-center gap-3 rounded-[16px] px-4 py-3 text-left
 const optionState = (on: boolean) =>
   on ? 'bg-brand-50 shadow-[inset_0_0_0_2px_#2a1a5e]' : 'bg-surface hover:shadow-[inset_0_0_0_2px_#c4bff5]'
 
-export function BillingClient({ sub, active, businessType, managed, promo }: Props) {
+export function BillingClient({ sub, active, businessType, managed, promo, currency }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
@@ -95,8 +100,8 @@ export function BillingClient({ sub, active, businessType, managed, promo }: Pro
 
   const planDef = planById(plan)
   const total = useMemo(
-    () => periodPriceUsd(monthlyTotalUsd({ plan, extraSeats }), interval),
-    [plan, extraSeats, interval]
+    () => periodPrice(monthlyTotal({ plan, extraSeats, currency }), interval),
+    [plan, extraSeats, interval, currency]
   )
 
   function goCheckout() {
@@ -257,8 +262,11 @@ export function BillingClient({ sub, active, businessType, managed, promo }: Pro
                   <span className="block text-[13.5px] text-ink-muted">{p.tagline}</span>
                 </span>
                 <span className="flex-none text-right text-[17px] font-bold tabular-nums text-ink">
-                  {money(periodPriceUsd(p.priceUsd, interval))}
-                  <span className="text-[13px] font-semibold text-ink-muted">/{interval === 'year' ? 'año' : 'mes'}</span>
+                  {money(periodPrice(planPrice(p, currency), interval))}
+                  <span className="text-[13px] font-semibold text-ink-muted">
+                    {' '}
+                    {currencyCode(currency)}/{interval === 'year' ? 'año' : 'mes'}
+                  </span>
                 </span>
               </button>
             )
@@ -283,7 +291,7 @@ export function BillingClient({ sub, active, businessType, managed, promo }: Pro
             <span className="text-[13.5px] text-ink-muted">
               {planDef.maxSeats === null
                 ? 'Accesos ilimitados en tu plan'
-                : `${planDef.maxSeats} incluido${planDef.maxSeats === 1 ? '' : 's'} · ${money(ADDON_SEAT_USD)} por acceso adicional`}
+                : `${planDef.maxSeats} incluido${planDef.maxSeats === 1 ? '' : 's'} · ${money(seatPrice(currency))} ${currencyCode(currency)} por acceso adicional`}
             </span>
           </span>
           <span className="flex items-center gap-1 rounded-[14px] bg-white p-1 shadow-[0_1px_0_#dde2f0]">
@@ -324,9 +332,14 @@ export function BillingClient({ sub, active, businessType, managed, promo }: Pro
               {money(total)}
               <span className="text-[15px] font-semibold text-[#cfc9f5]">
                 {' '}
-                /{interval === 'year' ? 'año' : 'mes'}
+                {currencyCode(currency)}/{interval === 'year' ? 'año' : 'mes'}
               </span>
             </p>
+            {currency === 'mxn' && (
+              <p className="text-[13px] font-semibold text-[#cfc9f5] tabular-nums" data-testid="total-iva">
+                Más IVA · {money(withIva(total))} en total
+              </p>
+            )}
             <p className="mt-1 hidden max-w-[52ch] text-[13px] leading-snug text-[#dcd8f7] md:block">
               <FinePrint interval={interval} planName={planDef.name} promo={promo} />
             </p>

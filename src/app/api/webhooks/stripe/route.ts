@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type Stripe from 'stripe'
 import { getStripe, STRIPE_WEBHOOK_SECRET, describeSubscriptionItems } from '@/lib/stripe'
 import { createServiceClient } from '@/lib/supabase/service'
-import { planById, monthlyTotalUsd, type PlanId } from '@/features/billing/plans'
+import { planById, monthlyTotal, monthlyTotalUsd, periodPrice, fmtAmount, currencyCode, type PlanId, type Currency } from '@/features/billing/plans'
 import { sendEmail, emailsEnabled } from '@/features/emails/mailer'
 import { subscriptionActiveEmail } from '@/features/emails/templates'
 import { registerReferralPayment, settlePendingRewards } from '@/features/billing/referrals'
@@ -77,6 +77,7 @@ export async function POST(request: NextRequest) {
 interface SubShape {
   id: string
   customer: string
+  currency?: string
   status: string
   cancel_at_period_end: boolean
   current_period_end?: number
@@ -132,6 +133,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
   // Evita que la cancelación de una suscripción duplicada pise a la activa
   // (la fila se indexa por organization_id, así que el último evento ganaría).
   const incomingLive = status === 'active' || status === 'trialing'
+  const currency: Currency = sub.currency === 'mxn' ? 'mxn' : 'usd'
   const { data: existingRow } = await admin
     .from('subscriptions')
     .select('stripe_subscription_id, subscription_email_sent_at')
@@ -160,6 +162,7 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
     current_period_end: unixToIso(periodEnd),
     trial_end: unixToIso(sub.trial_end),
     cancel_at_period_end: sub.cancel_at_period_end,
+    currency,
     updated_at: new Date().toISOString(),
   }
   const { error } = await admin
@@ -204,13 +207,25 @@ async function syncSubscription(subscription: Stripe.Subscription): Promise<void
       const { subject, html } = subscriptionActiveEmail({
         orgName: org.name,
         planLine: planLine(planId, { pwa: hasPwa, domain: hasDomain, seats: extraSeats }),
-        totalUsd: planId
-          ? monthlyTotalUsd({ plan: planId, pwa: hasPwa, domain: hasDomain, extraSeats })
-          : 0,
+        priceLine: planId ? priceLine(planId, { pwa: hasPwa, domain: hasDomain, extraSeats, currency, interval }) : '',
         trialEndLabel,
         siteUrl: SITE,
       })
       await sendEmail({ to: org.contact_email, subject, html })
     })
   }
+}
+
+/** «$799 MXN / mes, más IVA» o «$390 USD / año»: lo que realmente se cobra. */
+function priceLine(
+  planId: PlanId,
+  o: { pwa: boolean; domain: boolean; extraSeats: number; currency: Currency; interval: 'month' | 'year' }
+): string {
+  const monthly =
+    o.currency === 'usd'
+      ? monthlyTotalUsd({ plan: planId, pwa: o.pwa, domain: o.domain, extraSeats: o.extraSeats })
+      : monthlyTotal({ plan: planId, extraSeats: o.extraSeats, currency: o.currency })
+  const amount = periodPrice(monthly, o.interval)
+  const tax = o.currency === 'mxn' ? ', más IVA' : ''
+  return `${fmtAmount(amount)} ${currencyCode(o.currency)} / ${o.interval === 'year' ? 'año' : 'mes'}${tax}`
 }

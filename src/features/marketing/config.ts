@@ -14,6 +14,8 @@ export const CALL_URL =
 // coherente con el resto del catálogo. El cobro/agenda es manual por ahora: el
 // CTA lleva a CALL_URL para coordinar. Ajusta el precio aquí.
 export const ONBOARDING_HELP_PRICE_USD = 39
+/** El mismo servicio para negocios de México, en pesos más IVA. */
+export const ONBOARDING_HELP_PRICE_MXN = 799
 
 // Etiqueta legible del negocio por rubro, para personalizar el copy del quiz.
 // Deriva del catálogo único de verticales: era la 4ª copia de la taxonomía y

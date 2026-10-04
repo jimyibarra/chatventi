@@ -10,6 +10,7 @@ import { BillingClient } from '@/features/billing/components/billing-client'
 import { PostCheckoutSuccess } from '@/features/billing/components/post-checkout'
 import { TrialEndedBanner } from '@/features/billing/components/subscription-required'
 import { getActiveTrialPromo } from '@/features/billing/promo'
+import { billingCurrency } from '@/features/billing/currency'
 import { OnboardingHelpCard } from '@/features/marketing/components/onboarding-help-card'
 import { DATA_RETENTION_DAYS, type PlanId } from '@/features/billing/plans'
 import { UsageCard } from '@/features/billing/components/usage-card'
@@ -41,7 +42,7 @@ export default async function FacturacionPage({
   const { data: org } = orgId
     ? await supabase
         .from('organizations')
-        .select('business_type, referral_code, partner_id')
+        .select('business_type, referral_code, partner_id, country')
         .eq('id', orgId)
         .maybeSingle()
     : { data: null }
@@ -92,6 +93,9 @@ export default async function FacturacionPage({
       )
     : null
 
+  // Moneda de cobro: la de su suscripción si ya paga; si no, la del país del negocio.
+  const currency = await billingCurrency({ country: org?.country, subscriptionCurrency: sub?.currency })
+
   // La promoción se lee de Stripe (con caché); a quien ya paga no se le anuncia.
   const live = active ? null : await getActiveTrialPromo()
   const promo = live && { code: live.code, label: live.label }
@@ -128,12 +132,14 @@ export default async function FacturacionPage({
         businessType={org?.business_type ?? null}
         managed={managed}
         promo={promo}
+        currency={currency}
       />
 
       <UsageCard
         aiReplies={usageRow?.ai_replies ?? 0}
         planId={active ? ((sub?.plan_id ?? null) as PlanId | null) : null}
         managed={managed}
+        currency={currency}
       />
       {org?.referral_code && !managed && (
         <ReferralCard
@@ -143,7 +149,7 @@ export default async function FacturacionPage({
         />
       )}
 
-      {!active && <OnboardingHelpCard />}
+      {!active && <OnboardingHelpCard currency={currency} />}
     </Page>
   )
 }

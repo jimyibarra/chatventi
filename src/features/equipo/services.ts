@@ -44,7 +44,7 @@ export async function getPendingInvitations(supabase: ServerClient): Promise<Tea
 }
 
 // "X de N accesos en uso". El plan base incluye al dueño; team_seats son
-// accesos ADICIONALES ($19/mes cada uno).
+// accesos ADICIONALES (precio en plans.ts: seatPrice, en dólares o en pesos).
 export async function getSeats(supabase: ServerClient): Promise<Seats> {
   const { data: orgId } = await supabase.rpc('get_my_org')
   if (!orgId) return { used: 0, allowed: 1, enforced: isBillingEnforced() }

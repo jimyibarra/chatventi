@@ -17,6 +17,31 @@ export function getStripe(): Stripe {
   return stripeSingleton
 }
 
+/**
+ * Tasa de IVA de México (16 %, se suma al precio: «más IVA»). Se busca por
+ * metadata y se crea si falta, así funciona igual en modo prueba y en real.
+ */
+let ivaCache: string | null = null
+export async function ivaTaxRateId(): Promise<string> {
+  if (ivaCache) return ivaCache
+  const stripe = getStripe()
+  const rates = await stripe.taxRates.list({ active: true, limit: 100 })
+  const found = rates.data.find((r) => r.metadata?.chatventi === 'iva_mx')
+  const rate =
+    found ??
+    (await stripe.taxRates.create({
+      display_name: 'IVA',
+      description: 'IVA México 16 %',
+      percentage: 16,
+      inclusive: false,
+      country: 'MX',
+      jurisdiction: 'MX',
+      metadata: { chatventi: 'iva_mx' },
+    }))
+  ivaCache = rate.id
+  return rate.id
+}
+
 /** Secreto para verificar la firma del webhook. .trim() obligatorio. */
 export const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET?.trim() ?? ''
 

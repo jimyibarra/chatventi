@@ -6,11 +6,15 @@
 // =====================================================================
 import {
   ADDON_SEAT_USD,
+  ADDON_SEAT_MXN,
   ANNUAL_MONTHS_FREE,
   EXTRA_REPLY_PRICE_USD,
+  EXTRA_REPLY_PRICE_MXN,
   TRIAL_DAYS,
   aiRepliesIncluded,
+  fmtAmount,
   planById,
+  type Currency,
 } from '@/features/billing/plans'
 
 export { TRIAL_DAYS }
@@ -234,14 +238,14 @@ export const PRICING = {
   starter: {
     name: `${ARRANQUE.name} · Para quien trabaja solo`,
     desc: ARRANQUE.tagline,
-    price: ARRANQUE.priceUsd,
+    plan: ARRANQUE.id,
     items: ARRANQUE.features,
     cta: 'Empezar prueba gratis',
   },
   popular: {
     name: `${NEGOCIO.name} · Para equipos pequeños`,
     desc: NEGOCIO.tagline,
-    price: NEGOCIO.priceUsd,
+    plan: NEGOCIO.id,
     items: [
       'Todo lo del plan Arranque',
       `Hasta ${NEGOCIO.maxResources} profesionales · ${NEGOCIO.maxSeats} accesos`,
@@ -256,7 +260,7 @@ export const PRICING = {
   volume: {
     name: `${PROFESIONAL.name} · Clínicas y estéticas`,
     desc: PROFESIONAL.tagline,
-    price: PROFESIONAL.priceUsd,
+    plan: PROFESIONAL.id,
     items: [
       'Todo lo del plan Negocio',
       `Hasta ${PROFESIONAL.maxResources} profesionales · ${PROFESIONAL.maxSeats} accesos`,
@@ -268,7 +272,7 @@ export const PRICING = {
   multisede: {
     name: `${MULTISEDE.name} · Equipos grandes`,
     desc: MULTISEDE.tagline,
-    price: MULTISEDE.priceUsd,
+    plan: MULTISEDE.id,
     items: [
       'Todo lo del plan Profesional',
       `Profesionales ilimitados · ${MULTISEDE.maxSeats} accesos`,
@@ -278,7 +282,13 @@ export const PRICING = {
     cta: 'Empezar prueba gratis',
   },
   annual: `Paga el año completo y te regalamos ${ANNUAL_MONTHS_FREE} meses: 12 por el precio de 10.`,
-  footnote: `Acceso de equipo adicional: +$${ADDON_SEAT_USD}/mes. Precios en USD · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`,
+}
+
+/** Letra pequeña de precios en la moneda de quien visita. */
+export function pricingFootnote(currency: Currency): string {
+  const seat = currency === 'mxn' ? `+${fmtAmount(ADDON_SEAT_MXN)} MXN/mes más IVA` : `+$${ADDON_SEAT_USD} USD/mes`
+  const cur = currency === 'mxn' ? 'Precios en pesos mexicanos, más IVA' : 'Precios en dólares (USD)'
+  return `Acceso de equipo adicional: ${seat}. ${cur} · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`
 }
 
 // ---------------------------------------------------------------------
@@ -320,7 +330,7 @@ export const FAQS = [
   },
   {
     q: '¿Qué pasa si mi recepcionista atiende más de lo que incluye mi plan?',
-    a: `Nunca se detiene. El plan Arranque incluye ${aiRepliesIncluded('arranque').toLocaleString('en-US')} respuestas de IA al mes y el plan Negocio ${aiRepliesIncluded('negocio').toLocaleString('en-US')}: mucho más de lo que usa un negocio normal. Si un mes lo rebasas, cada 1,000 respuestas adicionales cuestan $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD y se suman a tu siguiente factura. Tu consumo lo ves en tiempo real en tu panel.`,
+    a: `Nunca se detiene. El plan Arranque incluye ${aiRepliesIncluded('arranque').toLocaleString('en-US')} respuestas de IA al mes y el plan Negocio ${aiRepliesIncluded('negocio').toLocaleString('en-US')}: mucho más de lo que usa un negocio normal. Si un mes lo rebasas, cada 1,000 respuestas adicionales cuestan ${fmtAmount(Number((EXTRA_REPLY_PRICE_MXN * 1000).toFixed(2)))} MXN más IVA en México (o $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD fuera de México) y se suman a tu siguiente factura. Tu consumo lo ves en tiempo real en tu panel.`,
   },
   {
     q: '¿Hay descuento si pago el año completo?',

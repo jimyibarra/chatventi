@@ -3,7 +3,8 @@
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { annualLookupKey, annualPriceIds, getStripe, planPriceId, PRICE_SEAT } from '@/lib/stripe'
+import { annualLookupKey, annualPriceIds, getStripe, ivaTaxRateId, planPriceId, PRICE_SEAT } from '@/lib/stripe'
+import { billingCurrency } from './currency'
 
 export type CheckoutResult =
   | { ok: true; url: string }
@@ -108,16 +109,27 @@ export async function createCheckoutSession(raw: unknown): Promise<CheckoutResul
       }
     }
 
+    // Moneda: la del cliente en Stripe si ya pagó antes (no se puede cambiar);
+    // si no, la del país del negocio. En pesos se suma el IVA (16 %).
+    const [{ data: org }, customer] = await Promise.all([
+      admin.from('organizations').select('country').eq('id', orgId).maybeSingle(),
+      stripe.customers.retrieve(customerId),
+    ])
+    const customerCurrency = 'deleted' in customer ? null : customer.currency
+    const currency = await billingCurrency({ country: org?.country, subscriptionCurrency: customerCurrency })
+    const taxRates = currency === 'mxn' ? [await ivaTaxRateId()] : undefined
+
     // Líneas del checkout: el plan + accesos extra. "Tu App" y el dominio
     // propio no se cobran: todavía no existen.
-    const lineItems: { price: string; quantity: number }[] = [
-      { price: planPrice, quantity: 1 },
+    const lineItems: { price: string; quantity: number; tax_rates?: string[] }[] = [
+      { price: planPrice, quantity: 1, tax_rates: taxRates },
     ]
-    if (extraSeats > 0 && seatPrice) lineItems.push({ price: seatPrice, quantity: extraSeats })
+    if (extraSeats > 0 && seatPrice) lineItems.push({ price: seatPrice, quantity: extraSeats, tax_rates: taxRates })
 
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
+      currency,
       line_items: lineItems,
       // El código de promo (30% off 3 meses) se aplica aquí. Ya NO hay trial de
       // Stripe: la prueba gratis (sin tarjeta) ocurre a nivel de app antes.

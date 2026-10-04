@@ -1,7 +1,7 @@
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
-import { planById } from './plans'
+import { planPrice, withIva, type Currency, type PlanId } from './plans'
 
 // =====================================================================
 // "Recomienda y gana un mes".
@@ -75,7 +75,7 @@ export async function settlePendingRewards(
 ): Promise<number> {
   const { data: sub } = await admin
     .from('subscriptions')
-    .select('stripe_customer_id, status, plan_id')
+    .select('stripe_customer_id, status, plan_id, currency')
     .eq('organization_id', referrerOrg)
     .maybeSingle()
   if (!sub?.stripe_customer_id || !sub.plan_id || !LIVE.has(sub.status)) return 0
@@ -88,7 +88,11 @@ export async function settlePendingRewards(
     .eq('status', 'pending')
     .select('id')
 
-  const amountCents = planById(sub.plan_id).priceUsd * 100
+  // Un mes de su plan, en la moneda en que paga. En pesos, con el IVA incluido:
+  // el saldo a favor se descuenta del total de la factura, que ya lleva IVA.
+  const currency: Currency = sub.currency === 'mxn' ? 'mxn' : 'usd'
+  const monthly = planPrice(sub.plan_id as PlanId, currency)
+  const amountCents = Math.round((currency === 'mxn' ? withIva(monthly) : monthly) * 100)
   let credited = 0
   for (const reward of claimed ?? []) {
     try {
@@ -96,7 +100,7 @@ export async function settlePendingRewards(
         sub.stripe_customer_id,
         {
           amount: -amountCents, // negativo = saldo a favor del cliente
-          currency: 'usd',
+          currency,
           description: 'Recomienda y gana: un mes de regalo por tu recomendación',
         },
         { idempotencyKey: `referral-${reward.id}` }

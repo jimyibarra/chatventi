@@ -258,7 +258,7 @@ export async function getPartnerOrganization(
       includedReplies: over.included,
       extraReplies: over.extra,
       extraReplyPriceUsd: Number(EXTRA_REPLY_PRICE_USD.toFixed(5)),
-      overageUsd: over.chargeUsd,
+      overageUsd: over.charge,
       closed: usageRow ? usageRow.status !== 'open' : false,
     },
     activity: { appointmentsCreated: appts.count ?? 0, conversationsActive: convs.count ?? 0 },

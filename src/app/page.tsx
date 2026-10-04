@@ -5,13 +5,16 @@ import Link from 'next/link'
 import { Inter, Manrope } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
 import { pageMetadata } from '@/shared/lib/seo'
-import { STARTER_PRICE_USD } from '@/features/billing/plans'
+import { STARTER_PRICE_USD, planPrice, fmtAmount, currencyCode, type Currency, type PlanId } from '@/features/billing/plans'
+import { visitorCurrency } from '@/features/billing/currency'
+import { CurrencySwitch } from '@/features/landing/currency-switch'
 import {
   FAQS,
   FEATURES,
   FOUNDERS,
   INDUSTRIES,
   PRICING,
+  pricingFootnote,
   PROBLEMS,
   PROOF,
   STEPS,
@@ -80,7 +83,18 @@ const DEMO_ROWS = [
 const H3: CSSProperties = { fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 20, margin: '0 0 10px' }
 const BODY_MUTED: CSSProperties = { color: '#5F5A75', fontSize: 15.5, lineHeight: 1.6, margin: 0 }
 
-export default function Home() {
+/** «$799» en la moneda de la visita. */
+function priceOf(plan: PlanId, currency: Currency): string {
+  return fmtAmount(planPrice(plan, currency))
+}
+/** « MXN/mes + IVA» o « USD/mes». */
+function unitOf(currency: Currency): string {
+  return ` ${currencyCode(currency)}/mes${currency === 'mxn' ? ' + IVA' : ''}`
+}
+
+export default async function Home() {
+  // Pesos para quien visita desde México; dólares para el resto (o lo que elija en el selector).
+  const currency = await visitorCurrency()
   return (
     <div className={`${manrope.variable} ${inter.variable} cv-landing`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_LD) }} />
@@ -401,13 +415,14 @@ export default function Home() {
           <div data-reveal className="cv-section-head">
             <p className="cv-eyebrow">Precios</p>
             <h2 id="precios-titulo" className="cv-h2">Cuatro planes. La recepcionista con IA va en todos</h2>
-            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito. Elige según el tamaño de tu equipo y cámbialo cuando quieras. Precios en USD.</p>
+            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito. Elige según el tamaño de tu equipo y cámbialo cuando quieras. {currency === 'mxn' ? 'Precios en pesos mexicanos, más IVA.' : 'Precios en dólares (USD).'}</p>
+            <div style={{ marginTop: 16 }}><CurrencySwitch currency={currency} /></div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, alignItems: 'stretch' }}>
             <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.starter.name}</h3>
               <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.starter.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>${PRICING.starter.price}</span><span style={{ color: '#7A758F', fontSize: 15 }}> USD/mes</span></p>
+              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.starter.plan, currency)}</span><span style={{ color: '#7A758F', fontSize: 15 }}>{unitOf(currency)}</span></p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
                 {PRICING.starter.items.map((it) => (
                   <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
@@ -420,7 +435,7 @@ export default function Home() {
               <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#25D366', color: '#0B3D22', fontSize: 12.5, fontWeight: 800, padding: '7px 18px', borderRadius: 999, whiteSpace: 'nowrap' }}>{PRICING.popular.badge}</span>
               <h3 style={{ ...H3, margin: '6px 0' }}>{PRICING.popular.name}</h3>
               <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.popular.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>${PRICING.popular.price}</span><span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15 }}> USD/mes</span></p>
+              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.popular.plan, currency)}</span><span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15 }}>{unitOf(currency)}</span></p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15 }}>
                 {PRICING.popular.items.map((it) => (
                   <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#25D366', fontWeight: 800 }}>✓</span> {it}</li>
@@ -433,7 +448,7 @@ export default function Home() {
             <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.volume.name}</h3>
               <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.volume.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>${PRICING.volume.price}</span><span style={{ color: '#7A758F', fontSize: 15 }}> USD/mes</span></p>
+              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.volume.plan, currency)}</span><span style={{ color: '#7A758F', fontSize: 15 }}>{unitOf(currency)}</span></p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
                 {PRICING.volume.items.map((it) => (
                   <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
@@ -445,7 +460,7 @@ export default function Home() {
             <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.multisede.name}</h3>
               <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.multisede.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>${PRICING.multisede.price}</span><span style={{ color: '#7A758F', fontSize: 15 }}> USD/mes</span></p>
+              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.multisede.plan, currency)}</span><span style={{ color: '#7A758F', fontSize: 15 }}>{unitOf(currency)}</span></p>
               <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
                 {PRICING.multisede.items.map((it) => (
                   <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
@@ -457,7 +472,7 @@ export default function Home() {
           <p data-reveal style={{ textAlign: 'center', margin: '32px auto 0', maxWidth: 760 }}>
             <span style={{ display: 'inline-block', background: '#E9F9EF', color: '#128C4A', fontWeight: 800, fontSize: 15, padding: '10px 20px', borderRadius: 999 }}>{PRICING.annual}</span>
           </p>
-          <p data-reveal style={{ textAlign: 'center', margin: '16px auto 0', maxWidth: 760, fontSize: 14, color: '#7A758F', lineHeight: 1.65 }}>{PRICING.footnote}</p>
+          <p data-reveal style={{ textAlign: 'center', margin: '16px auto 0', maxWidth: 760, fontSize: 14, color: '#7A758F', lineHeight: 1.65 }}>{pricingFootnote(currency)}</p>
         </section>
 
         {/* ============ FAQ ============ */}
