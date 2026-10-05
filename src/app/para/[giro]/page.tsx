@@ -2,20 +2,24 @@ import type { CSSProperties } from 'react'
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Inter, Manrope } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
 import { pageMetadata } from '@/shared/lib/seo'
-import { currencyCode, fmtAmount, planPrice, PLANS } from '@/features/billing/plans'
 import { visitorCurrency } from '@/features/billing/currency'
-import { FEATURES, FOUNDERS, PRICING, PROOF, TRIAL_DAYS } from '@/features/landing/data'
-import { Icon } from '@/features/landing/icons'
+import { FARES, FEATURES, FOUNDERS, PROOF, TRIAL_DAYS } from '@/features/landing/data'
+import { foundersTaken } from '@/features/landing/founders'
+import { AllIn, CTA, Close, Footer, Founders, GIROS, Giros, Picto, TopBar, lxFont } from '@/features/landing/chrome'
+import { LiveSections } from '@/features/landing/hero-scene'
+import { Fares } from '@/features/landing/fares'
+import { FaqList } from '@/features/landing/faq-list'
 import { SalesWidget } from '@/features/landing/sales-widget'
+import { Check } from '@/features/landing/check'
 import { VERTICALS, verticalBySlug } from '@/features/verticales/data'
-import { verticalContent } from '@/features/verticales/content'
-import '@/features/landing/landing.css'
+import { verticalContent, type VerticalContent } from '@/features/verticales/content'
+import '@/features/landing/lineas-landing.css'
 
-const manrope = Manrope({ subsets: ['latin'], weight: ['500', '700', '800'], variable: '--font-manrope' })
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+// Landing por giro en «Líneas», con las mismas piezas que la home (barra, pie,
+// tarifa, fundadores, cierre). El color de la página es la línea de su giro.
+// Respaldo del diseño anterior: etiqueta git `respaldo-para-diseno-anterior`.
 
 // Estáticas: son 5 páginas de marketing que solo cambian al editar el copy.
 export const dynamicParams = false
@@ -30,279 +34,161 @@ export async function generateMetadata({ params }: { params: Promise<{ giro: str
   if (!content) return {}
   // pageMetadata() y no un objeto a mano: Next NO hace deep-merge de
   // openGraph/twitter y se perderían los defaults del layout.
-  return pageMetadata({
-    title: content.metaTitle,
-    description: content.metaDescription,
-    path: `/para/${giro}`,
-  })
+  return pageMetadata({ title: content.metaTitle, description: content.metaDescription, path: `/para/${giro}` })
 }
 
-const H3: CSSProperties = { fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 20, margin: '0 0 10px' }
-const BODY_MUTED: CSSProperties = { color: '#5F5A75', fontSize: 15.5, lineHeight: 1.6, margin: 0 }
-
 export default async function VerticalPage({ params }: { params: Promise<{ giro: string }> }) {
-  // Pesos más IVA para quien visita desde México; dólares para el resto.
-  const currency = await visitorCurrency()
-  const code = currencyCode(currency)
-  const tax = currency === 'mxn' ? ' más IVA' : ''
-  const fromPrice = fmtAmount(Math.min(...PLANS.map((p) => planPrice(p, currency))))
   const { giro } = await params
   const vertical = verticalBySlug(giro)
   const content = verticalContent(giro)
   // dynamicParams=false ya devuelve 404 para slugs fuera de generateStaticParams;
   // esto cubre el caso de un slug en el catálogo al que le falte el copy.
   if (!vertical || !content) notFound()
+  // Pesos más IVA para quien visita desde México; dólares para el resto.
+  const [currency, taken] = await Promise.all([visitorCurrency(), foundersTaken()])
 
   // El giro viaja al registro para llegar preseleccionado a /bienvenida.
   const signupHref = `/signup?giro=${vertical.slug}`
+  const color = GIROS.find((g) => g.slug === vertical.slug)?.color ?? '#5b4fe0'
+  const label = vertical.label.toLowerCase()
 
   // FAQ propias del giro. No se mezclan con las de la home: dos FAQPage
   // distintas compitiendo en la misma URL confunden a Google.
   const faqLd = {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
-    mainEntity: content.faqs.map((f) => ({
-      '@type': 'Question',
-      name: f.q,
-      acceptedAnswer: { '@type': 'Answer', text: f.a },
-    })),
+    mainEntity: content.faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
   }
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: 'Inicio', item: LEGAL.siteUrl },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: vertical.label,
-        item: `${LEGAL.siteUrl}/para/${vertical.slug}`,
-      },
+      { '@type': 'ListItem', position: 2, name: vertical.label, item: `${LEGAL.siteUrl}/para/${vertical.slug}` },
     ],
   }
 
   return (
-    <div className={`${manrope.variable} ${inter.variable} cv-landing`}>
+    <div className={`${lxFont.variable} lx`} style={{ '--c': color } as CSSProperties}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-
-      {/* ============ HEADER ============ */}
-      <header className="cv-header">
-        <div className="cv-container" style={{ padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-          <Link href="/" aria-label="ChatVenti — inicio" style={{ display: 'flex', alignItems: 'center' }}>
-            <Image src="/brand/chatventi-logo.png" alt="ChatVenti" width={168} height={62} priority style={{ height: 38, width: 'auto' }} />
-          </Link>
-          <nav aria-label="Navegación principal" style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginLeft: 'auto', alignItems: 'center' }}>
-            <Link className="cv-navlink" href="/#funciones">Funciones</Link>
-            <Link className="cv-navlink" href="/#precios">Precios</Link>
-            <Link className="cv-navlink" href="/login">Entrar</Link>
-          </nav>
-          <Link href={signupHref} className="cv-btn-primary" style={{ padding: '11px 22px', fontSize: 15 }}>Prueba gratis</Link>
-        </div>
-      </header>
-
-      <main>
-        {/* ============ HERO ============ */}
-        <section aria-label={`ChatVenti para ${vertical.label}`} style={{ background: 'linear-gradient(180deg, #F4F2FE 0%, #FBFAF6 78%)' }}>
-          <div className="cv-container" style={{ padding: '72px 24px 56px', display: 'flex', gap: 48, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 420px', minWidth: 300 }}>
-              <p style={{ display: 'inline-flex', alignItems: 'center', gap: 8, margin: '0 0 22px', background: '#EFEDFB', color: '#4A3FC4', fontSize: 14, fontWeight: 600, padding: '8px 16px', borderRadius: 999 }}>
-                <span aria-hidden>{vertical.emoji}</span> Hecho para {vertical.label.toLowerCase()}
+      <TopBar base="/" signupHref={signupHref} />
+      <main id="top">
+        <section className="hero vhero" aria-label={`ChatVenti para ${label}`}>
+          <div className="wrap">
+            <div>
+              <p className="vchip">
+                <span className="vpicto"><Picto slug={vertical.slug} size={20} /></span>
+                Hecho para {label}
               </p>
-              <h1 className="cv-h1" style={{ fontSize: 'clamp(32px, 4.2vw, 48px)', lineHeight: 1.1, margin: '0 0 20px' }}>
-                {content.h1}
-              </h1>
-              <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', lineHeight: 1.6, color: '#5F5A75', margin: '0 0 30px' }}>
-                {content.subtitle}
-              </p>
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-                <Link href={signupHref} className="cv-btn-primary" style={{ padding: '16px 34px', fontSize: 17 }}>
-                  Empezar prueba gratis
-                </Link>
-                <Link href="/#demo" className="cv-btn-ghost" style={{ padding: '15px 24px', fontSize: 16 }}>Ver el producto</Link>
+              <h1>{content.h1}</h1>
+              <p className="lede">{content.subtitle}</p>
+              <div className="cta-row">
+                <Link className="btn btn-primary" href={signupHref}>{CTA}</Link>
+                <a className="btn btn-ghost" href="#precios">Ver precios</a>
               </div>
-              <p style={{ fontSize: 14, color: '#7A758F', margin: 0, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
-              </p>
+              <ul className="facts">
+                {['Sin tarjeta de crédito', 'Lista en minutos', 'API oficial de Meta'].map((t) => <li key={t}><Check />{t}</li>)}
+              </ul>
             </div>
-
             {/* Foto del giro. `priority` porque es el LCP de esta página. */}
-            <div style={{ flex: '1 1 380px', minWidth: 280 }}>
-              <Image
-                src={`/verticales/${vertical.slug}.webp`}
-                alt={content.imageAlt}
-                width={1024}
-                height={1024}
-                priority
-                sizes="(max-width: 900px) 100vw, 45vw"
-                style={{
-                  width: '100%',
-                  height: 'auto',
-                  maxHeight: 420,
-                  objectFit: 'cover',
-                  borderRadius: 20,
-                  boxShadow: '0 18px 44px rgba(32,27,54,0.16)',
-                }}
-              />
+            <figure className="vphoto">
+              <Image src={`/verticales/${vertical.slug}.webp`} alt={content.imageAlt} width={1024} height={1024} priority sizes="(max-width: 920px) 100vw, 46vw" />
+              <figcaption><i />Contesta por WhatsApp, Instagram y Messenger</figcaption>
+            </figure>
+          </div>
+        </section>
+        <Pains content={content} />
+        <Benefits content={content} label={label} />
+        <Included />
+        <section className="s" aria-labelledby="prueba-t">
+          <div className="wrap">
+            <div className="s-head">
+              <h2 id="prueba-t">No nos creas: pruébalo</h2>
+              <p>Solo lo que puedes comprobar hoy, sin testimonios inventados.</p>
+            </div>
+            <div className="callouts">
+              {PROOF.map((p) => <div key={p.title}><b>{p.title}</b><p>{p.body}</p></div>)}
             </div>
           </div>
         </section>
-
-        {/* ============ DOLORES ============ */}
-        <section style={{ background: '#fff', borderTop: '1px solid #ECE9F5' }}>
-          <div className="cv-container" style={{ padding: '64px 24px' }}>
-            <div className="cv-section-head">
-              <p className="cv-eyebrow">El problema</p>
-              <h2 className="cv-h2">Lo que te pasa hoy</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
-              {content.pains.map((p) => (
-                <div key={p.title} className="cv-card" style={{ padding: 26 }}>
-                  <h3 style={H3}>{p.title}</h3>
-                  <p style={BODY_MUTED}>{p.body}</p>
-                </div>
-              ))}
-            </div>
+        <Founders taken={taken} href={`${FOUNDERS.href}&giro=${vertical.slug}`} />
+        <section className="s prices" id="precios" aria-labelledby="precios-t">
+          <div className="wrap">
+            <Fares fares={FARES} initial={currency} trialDays={TRIAL_DAYS} signupHref={signupHref} title={`Precios para ${label}`} />
+            <AllIn />
           </div>
         </section>
-
-        {/* ============ BENEFICIOS DEL GIRO ============ */}
-        <section style={{ background: '#FBFAF6' }}>
-          <div className="cv-container" style={{ padding: '64px 24px' }}>
-            <div className="cv-section-head">
-              <p className="cv-eyebrow">La solución</p>
-              <h2 className="cv-h2">ChatVenti para {vertical.label.toLowerCase()}</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
-              {content.benefits.map((b) => (
-                <div key={b.title} className="cv-card" style={{ padding: 26 }}>
-                  <h3 style={H3}>{b.title}</h3>
-                  <p style={BODY_MUTED}>{b.body}</p>
-                </div>
-              ))}
-            </div>
+        <section className="s" id="preguntas" aria-labelledby="faq-t">
+          <div className="wrap">
+            <div className="s-head"><h2 id="faq-t">Dudas de {label}</h2></div>
+            <FaqList faqs={content.faqs} />
           </div>
         </section>
-
-        {/* ============ FUNCIONES (compartidas) ============ */}
-        <section style={{ background: '#fff', borderTop: '1px solid #ECE9F5' }}>
-          <div className="cv-container" style={{ padding: '64px 24px' }}>
-            <div className="cv-section-head">
-              <p className="cv-eyebrow">Funciones</p>
-              <h2 className="cv-h2">Todo lo que incluye</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
-              {FEATURES.map((f) => (
-                <div key={f.title} className="cv-card" style={{ padding: 26 }}>
-                  <span aria-hidden style={{ display: 'inline-flex', width: 44, height: 44, borderRadius: 12, background: f.tint, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                    <Icon name={f.icon} stroke={f.stroke} />
-                  </span>
-                  <h3 style={H3}>{f.title}</h3>
-                  <p style={BODY_MUTED}>{f.body}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ============ PRUEBA VERIFICABLE (compartida) ============
-            Sustituye a los testimonios ilustrativos: solo lo comprobable. */}
-        <section style={{ background: '#FBFAF6' }}>
-          <div className="cv-container" style={{ padding: '64px 24px' }}>
-            <div className="cv-section-head">
-              <p className="cv-eyebrow">Compruébalo tú</p>
-              <h2 className="cv-h2">No nos creas: pruébalo</h2>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
-              {PROOF.map((p) => (
-                <div key={p.title} className="cv-card" style={{ padding: 26 }}>
-                  <span aria-hidden style={{ display: 'inline-flex', width: 44, height: 44, borderRadius: 12, background: p.tint, alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
-                    <Icon name={p.icon} stroke={p.stroke} />
-                  </span>
-                  <h3 style={H3}>{p.title}</h3>
-                  <p style={BODY_MUTED}>{p.body}</p>
-                </div>
-              ))}
-            </div>
-            <p style={{ margin: '28px 0 0', textAlign: 'center', fontSize: 15.5, color: '#5F5A75' }}>
-              {FOUNDERS.title}: {FOUNDERS.seats} lugares con puesta en marcha hecha por nosotros.{' '}
-              <Link href={`${FOUNDERS.href}&giro=${vertical.slug}`} className="cv-navlink" style={{ fontWeight: 700 }}>
-                {FOUNDERS.cta} →
-              </Link>
-            </p>
-          </div>
-        </section>
-
-        {/* ============ PRECIO ============ */}
-        <section style={{ background: '#fff', borderTop: '1px solid #ECE9F5' }}>
-          <div className="cv-container" style={{ padding: '64px 24px', textAlign: 'center' }}>
-            <div className="cv-section-head">
-              <p className="cv-eyebrow">Precios</p>
-              <h2 className="cv-h2">Desde {fromPrice} {code} al mes{tax}</h2>
-              <p className="cv-lead">
-                {PRICING.popular.name} por {fmtAmount(planPrice(PRICING.popular.plan, currency))} {code}/mes{tax}. Empieza con {TRIAL_DAYS} días
-                de prueba gratis, sin tarjeta de crédito.
-              </p>
-            </div>
-            <Link href={signupHref} className="cv-btn-primary" style={{ padding: '16px 34px', fontSize: 17 }}>
-              Empezar prueba gratis
-            </Link>
-            <p style={{ marginTop: 14, fontSize: 14, color: '#7A758F' }}>
-              <Link href="/#precios" className="cv-navlink">Ver todos los planes →</Link>
-            </p>
-          </div>
-        </section>
-
-        {/* ============ FAQ DEL GIRO ============ */}
-        <section style={{ background: '#FBFAF6' }}>
-          <div className="cv-container" style={{ padding: '64px 24px', maxWidth: 820 }}>
-            <div className="cv-section-head">
-              <p className="cv-eyebrow">Preguntas</p>
-              <h2 className="cv-h2">Dudas de {vertical.label.toLowerCase()}</h2>
-            </div>
-            <div style={{ display: 'grid', gap: 14 }}>
-              {content.faqs.map((f) => (
-                <details key={f.q} className="cv-card" style={{ padding: '20px 24px' }}>
-                  <summary style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 700, fontSize: 17, cursor: 'pointer' }}>
-                    {f.q}
-                  </summary>
-                  <p style={{ ...BODY_MUTED, marginTop: 12 }}>{f.a}</p>
-                </details>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ============ OTROS GIROS (enlazado interno) ============ */}
-        <section style={{ background: '#fff', borderTop: '1px solid #ECE9F5' }}>
-          <div className="cv-container" style={{ padding: '48px 24px', textAlign: 'center' }}>
-            <p style={{ margin: '0 0 16px', fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9B96B0' }}>
-              ChatVenti también sirve para
-            </p>
-            <div style={{ display: 'flex', gap: '12px 28px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {VERTICALS.filter((v) => v.slug !== vertical.slug).map((v) => (
-                <Link key={v.slug} href={`/para/${v.slug}`} className="cv-navlink" style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 700, fontSize: 16 }}>
-                  {v.emoji} {v.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
+        <Giros exclude={vertical.slug} title="ChatVenti también sirve para" lead="Cada giro con su propia forma de agendar." />
+        <Close signupHref={signupHref} />
       </main>
-
-      <footer style={{ background: '#201B36', color: '#C9C4DC' }}>
-        <div className="cv-container" style={{ padding: '36px 24px', display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', fontSize: 14 }}>
-          <span>© {new Date().getFullYear()} {LEGAL.brand}</span>
-          <span style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
-            <Link href="/" className="cv-navlink">Inicio</Link>
-            <Link href="/privacy" className="cv-navlink">Privacidad</Link>
-            <Link href="/terms" className="cv-navlink">Términos</Link>
-          </span>
-        </div>
-      </footer>
-
+      <Footer base="/" />
+      <LiveSections />
       {/* Mismo asistente de ventas que la home: es la prueba en vivo. */}
       <SalesWidget />
     </div>
+  )
+}
+
+/** Lo que se pierde hoy: estaciones de «No llegó» (aro rojo con equis). */
+function Pains({ content }: { content: VerticalContent }) {
+  return (
+    <section className="s day" aria-labelledby="dolor-t">
+      <div className="wrap">
+        <div className="s-head"><h2 id="dolor-t">Lo que te pasa hoy</h2></div>
+        <ul className="pains">
+          {content.pains.map((p) => (
+            <li key={p.title}>
+              <span className="x" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="m7 7 10 10M17 7 7 17" /></svg>
+              </span>
+              <h3>{p.title}</h3>
+              <p>{p.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}
+
+/** Lo que cambia: una línea del color del giro, una estación por beneficio. */
+function Benefits({ content, label }: { content: VerticalContent; label: string }) {
+  return (
+    <section className="s" aria-labelledby="benef-t">
+      <div className="wrap">
+        <div className="s-head"><h2 id="benef-t">ChatVenti para {label}</h2></div>
+        <ol className="vroute">
+          {content.benefits.map((b) => (
+            <li key={b.title}><span className="dot" aria-hidden="true"><Check /></span><h3>{b.title}</h3><p>{b.body}</p></li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  )
+}
+
+/** Todo lo que incluye, en lista: lo mismo en todos los giros. */
+function Included() {
+  return (
+    <section className="s day" aria-labelledby="incl-t">
+      <div className="wrap">
+        <div className="s-head">
+          <h2 id="incl-t">Todo lo que incluye</h2>
+          <p>Lo mismo que usan los demás giros, con la configuración del tuyo.</p>
+        </div>
+        <ul className="incl">
+          {FEATURES.map((f) => (
+            <li key={f.title}><Check /><span><b>{f.title}</b>{f.body}</span></li>
+          ))}
+        </ul>
+      </div>
+    </section>
   )
 }

@@ -21,5 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })),
     { url: `${base}/privacy`, changeFrequency: 'yearly' as const, priority: 0.3 },
     { url: `${base}/terms`, changeFrequency: 'yearly' as const, priority: 0.3 },
+    { url: `${base}/ayuda/whatsapp`, changeFrequency: 'monthly' as const, priority: 0.5 },
+    { url: `${base}/ayuda/facebook-instagram`, changeFrequency: 'monthly' as const, priority: 0.5 },
   ]
 }

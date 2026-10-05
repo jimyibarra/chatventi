@@ -48,6 +48,8 @@ interface Props {
   managed?: boolean
   /** Socio interno (otra plataforma de Grupo ELRI) cuyo paquete incluye el plan. */
   includedIn?: string | null
+  /** Cuenta de cortesía de ChatVenti (sin Stripe ni socio): vigente hasta una fecha, sin renovación. */
+  courtesy?: boolean
 }
 
 const money = fmtAmount
@@ -93,7 +95,7 @@ const OPTION ='flex w-full items-center gap-3 rounded-[16px] px-4 py-3 text-left
 const optionState = (on: boolean) =>
   on ? 'bg-brand-50 shadow-[inset_0_0_0_2px_#2a1a5e]' : 'bg-surface hover:shadow-[inset_0_0_0_2px_#c4bff5]'
 
-export function BillingClient({ sub, active, businessType, managed, includedIn, promo, currency }: Props) {
+export function BillingClient({ sub, active, businessType, managed, courtesy = false, includedIn, promo, currency }: Props) {
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
@@ -162,7 +164,7 @@ export function BillingClient({ sub, active, businessType, managed, includedIn, 
         </p>
         {sub.current_period_end && (
           <p className="mt-1 text-[15px] text-ink-muted">
-            Próxima renovación: <span className="tabular-nums">{new Date(sub.current_period_end).toLocaleDateString('es-MX')}</span>
+            {courtesy ? 'Vigente hasta' : 'Próxima renovación'}: <span className="tabular-nums">{new Date(sub.current_period_end).toLocaleDateString('es-MX')}</span>
           </p>
         )}
         {error && <p className="mt-3 text-sm text-[#a51b18]" role="alert">{error}</p>}
@@ -170,7 +172,9 @@ export function BillingClient({ sub, active, businessType, managed, includedIn, 
           <p className="mt-4 max-w-[62ch] text-[14.5px] text-ink-muted" data-testid="managed-plan">
             {includedIn
               ? `Tu plan está incluido en tu suscripción de ${includedIn}. Para cambiarlo o darlo de baja, hazlo en ${includedIn}: aquí no tienes nada que pagar.`
-              : 'Tu plan lo administra el proveedor con el que contrataste. Para cambiarlo o darlo de baja, escríbele a él: aquí no tienes nada que pagar.'}
+              : courtesy
+                ? 'Es una cuenta de cortesía de ChatVenti: no tiene costo ni se renueva sola. Si quieres seguir al terminar, aquí mismo podrás elegir un plan.'
+                : 'Tu plan lo administra el proveedor con el que contrataste. Para cambiarlo o darlo de baja, escríbele a él: aquí no tienes nada que pagar.'}
           </p>
         ) : (
           <>

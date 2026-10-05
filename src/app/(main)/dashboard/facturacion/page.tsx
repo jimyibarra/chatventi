@@ -69,6 +69,8 @@ export default async function FacturacionPage({
   const managed = active && !sub?.stripe_customer_id
   // Socio interno (PASEN): se nombra la plataforma en vez de «tu proveedor».
   const includedIn = org?.partner_id ? await internalPartnerName(org.partner_id) : null
+  // Sin Stripe y sin socio: cuenta de cortesía que ChatVenti activó a mano (demo, cuentas propias).
+  const courtesy = managed && !org?.partner_id
 
   // Negocio de socio con el acceso en pausa: NO se le ofrece contratar
   // directo con ChatVenti (sería saltarse a quien se lo vendió).
@@ -148,6 +150,7 @@ export default async function FacturacionPage({
         active={active}
         businessType={org?.business_type ?? null}
         managed={managed}
+        courtesy={courtesy}
         includedIn={includedIn}
         promo={promo}
         currency={currency}
@@ -161,6 +164,7 @@ export default async function FacturacionPage({
         aiReplies={usageRow?.ai_replies ?? 0}
         planId={active || paymentPending ? ((sub?.plan_id ?? null) as PlanId | null) : null}
         managed={managed}
+        courtesy={courtesy}
         includedIn={includedIn}
         currency={currency}
       />

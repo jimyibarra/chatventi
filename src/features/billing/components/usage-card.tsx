@@ -13,6 +13,7 @@ export function UsageCard({
   planId,
   managed = false,
   includedIn = null,
+  courtesy = false,
   currency = 'usd',
 }: {
   aiReplies: number
@@ -23,8 +24,15 @@ export function UsageCard({
   managed?: boolean
   /** Socio interno (PASEN): el uso adicional se cobra en su suscripción de esa plataforma. */
   includedIn?: string | null
+  /** Cuenta de cortesía de ChatVenti: el uso no tiene costo. */
+  courtesy?: boolean
 }) {
-  const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(new Date())
+  const now = new Date()
+  const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(now)
+  // El contador es por mes calendario (usage_periods.period_start = día 1, UTC).
+  const next = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1))
+  const nextLabel = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(next)
+  const daysLeft = Math.max(1, Math.round((next.getTime() - now.getTime()) / 86_400_000))
   const usage = planId ? usageOverage(planId, aiReplies, currency) : null
   const pct = usage ? Math.min(100, Math.round((aiReplies / Math.max(1, usage.included)) * 100)) : 0
   const code = currencyCode(currency)
@@ -36,9 +44,14 @@ export function UsageCard({
       <p className="text-[2rem] font-bold leading-tight tabular-nums text-ink">
         {n(aiReplies)}
         <span className="ml-2 text-[15px] font-semibold text-ink-muted">
-          {usage ? `de ${n(usage.included)} respuestas incluidas` : 'respuestas de IA'}
+          {usage ? `de ${n(usage.included)} respuestas incluidas este mes` : 'respuestas de IA'}
         </span>
       </p>
+      {usage && (
+        <p className="mt-1 max-w-[65ch] text-[14px] text-ink-muted" data-testid="usage-reset">
+          El contador vuelve a cero el {nextLabel} ({daysLeft === 1 ? 'mañana' : `en ${daysLeft} días`}). Lo incluido es por mes: lo que no uses no se acumula para el siguiente.
+        </p>
+      )}
 
       {usage && planId && (
         <>
@@ -60,7 +73,9 @@ export function UsageCard({
             <p className="mt-3 max-w-[65ch] text-[14.5px] leading-snug text-ink-muted">
               {includedIn
                 ? `Tu recepcionista atiende sin interrupciones. Si un mes pasas de lo incluido, el uso adicional se cobra en tu suscripción de ${includedIn}.`
-                : 'Tu recepcionista atiende sin interrupciones. El plan y el uso los cubre tu proveedor.'}
+                : courtesy
+                  ? 'Tu recepcionista atiende sin interrupciones. En tu cuenta de cortesía el uso no tiene costo.'
+                  : 'Tu recepcionista atiende sin interrupciones. El plan y el uso los cubre tu proveedor.'}
             </p>
           ) : usage.extra > 0 ? (
             <p className="mt-3 max-w-[65ch] text-[14.5px] leading-snug text-ink-muted">

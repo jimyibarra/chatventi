@@ -5,7 +5,6 @@
 //   pausa de IA, anti-solapamiento, portal de facturación, trial 14 días).
 // =====================================================================
 import {
-  ANNUAL_MONTHS_FREE,
   EXTRA_REPLY_PRICE_USD,
   EXTRA_REPLY_PRICE_MXN,
   PLANS,
@@ -24,51 +23,30 @@ export { TRIAL_DAYS }
 // ---------------------------------------------------------------------
 export const FEATURES = [
   {
-    icon: 'bulb' as const,
-    tint: '#EFEDFB',
-    stroke: '#5B4FE0',
     title: 'Recepcionista IA',
     body: 'Responde dudas de precios, horarios y servicios con lenguaje natural, acotada a tu negocio y con el tono que tú configures.',
   },
   {
-    icon: 'calendar-check' as const,
-    tint: '#EFEDFB',
-    stroke: '#5B4FE0',
     title: 'Agenda inteligente',
     body: 'Solo ofrece horarios realmente libres: respeta duraciones, horarios por miembro del equipo, descansos y ausencias. Adiós dobles reservas.',
   },
   {
-    icon: 'chat' as const,
-    tint: '#E9F9EF',
-    stroke: '#1DA851',
     title: 'WhatsApp, Instagram, Messenger, Telegram y web',
     body: 'Te escriban por donde te escriban, todo cae en la misma agenda y el mismo historial. Instagram y Messenger, incluidos en todos los planes y sin costo por mensaje.',
   },
   {
-    icon: 'bell' as const,
-    tint: '#E9F9EF',
-    stroke: '#1DA851',
     title: 'Recordatorios automáticos',
     body: 'Recordatorio 24 h y 2 h antes de cada cita, y recordatorios recurrentes para invitar a volver ("tu próximo corte", "limpieza cada 6 meses"). Menos inasistencias y más clientes que regresan, sin que muevas un dedo.',
   },
   {
-    icon: 'refresh' as const,
-    tint: '#EFEDFB',
-    stroke: '#5B4FE0',
     title: 'Seguimiento post-cita',
     body: 'Después de cada cita, ChatVenti da seguimiento automático e invita a tu cliente a reservar de nuevo. Clientes que regresan solos.',
   },
   {
-    icon: 'globe' as const,
-    tint: '#EFEDFB',
-    stroke: '#5B4FE0',
     title: 'Página de reservas con tu marca',
     body: 'Un link elegante con tus servicios y tu tienda para tu bio de Instagram o Google Maps, más un widget para incrustar en tu sitio.',
   },
   {
-    icon: 'grid' as const,
-    tint: '#EFEDFB',
-    stroke: '#5B4FE0',
     title: 'Panel de control + CRM',
     body: 'Tu día de un vistazo, y tus clientes ordenados solos: segmentados en Nuevos, Regulares y VIP, con expediente, archivos y quién lleva tiempo sin volver para reactivarlo. Interviene en cualquier chat cuando quieras.',
   },
@@ -82,23 +60,14 @@ export const FEATURES = [
 // ---------------------------------------------------------------------
 export const PROOF = [
   {
-    icon: 'chat' as const,
-    tint: '#E9F9EF',
-    stroke: '#1DA851',
     title: 'Pruébala antes de registrarte',
     body: 'El asistente de esta página es la misma IA que atenderá a tus clientes. Escríbele ahora, pregúntale lo que quieras y juzga tú cómo responde.',
   },
   {
-    icon: 'calendar-check' as const,
-    tint: '#EFEDFB',
-    stroke: '#5B4FE0',
     title: 'Conexión oficial con Meta',
     body: 'ChatVenti pasó la revisión de Meta para usar la API oficial de WhatsApp, Instagram y Messenger. Sin aplicaciones piratas ni riesgo de que te bloqueen el número.',
   },
   {
-    icon: 'bell' as const,
-    tint: '#FFF4E3',
-    stroke: '#B8791A',
     title: `${TRIAL_DAYS} días con todo, sin tarjeta`,
     body: 'Usas el producto completo con tus clientes reales antes de pagar. Si no te convence, no hay nada que cancelar: simplemente no te suscribes.',
   },
@@ -121,64 +90,12 @@ export const FOUNDERS = {
 }
 
 // ---------------------------------------------------------------------
-// Precios — derivados del catálogo REAL de billing (USD, trial 14 días).
-//   Catálogo 2026-08: Arranque $19 · Negocio $39 (popular) · Profesional $79
-//   · Multi-sede $149. WhatsApp con IA en TODOS — es la promesa de la home.
+// Precios — derivados del catálogo REAL de billing (plans.ts).
 // ---------------------------------------------------------------------
 const ARRANQUE = planById('arranque')
 const NEGOCIO = planById('negocio')
 const PROFESIONAL = planById('profesional')
 const MULTISEDE = planById('multisede')
-
-export const PRICING = {
-  starter: {
-    name: `${ARRANQUE.name} · Para quien trabaja solo`,
-    desc: ARRANQUE.tagline,
-    plan: ARRANQUE.id,
-    items: ARRANQUE.features,
-    cta: 'Empezar prueba gratis',
-  },
-  popular: {
-    name: `${NEGOCIO.name} · Para equipos pequeños`,
-    desc: NEGOCIO.tagline,
-    plan: NEGOCIO.id,
-    items: [
-      'Todo lo del plan Arranque',
-      `Hasta ${NEGOCIO.maxResources} profesionales · ${NEGOCIO.maxSeats} accesos`,
-      'Superpoderes: lee comprobantes y escucha notas de voz',
-      'Rescata interesados que no cerraron cita',
-      'Resumen diario de tu negocio',
-    ],
-    cta: `Probar gratis ${TRIAL_DAYS} días`,
-    badge: 'EL MÁS ELEGIDO',
-    foot: 'Cancela cuando quieras, desde tu panel',
-  },
-  volume: {
-    name: `${PROFESIONAL.name} · Clínicas y estéticas`,
-    desc: PROFESIONAL.tagline,
-    plan: PROFESIONAL.id,
-    items: [
-      'Todo lo del plan Negocio',
-      `Hasta ${PROFESIONAL.maxResources} profesionales · ${PROFESIONAL.maxSeats} accesos`,
-      'Expediente del cliente con archivos y recordatorios',
-      'El doble de uso de IA incluido que en Negocio',
-    ],
-    cta: 'Empezar prueba gratis',
-  },
-  multisede: {
-    name: `${MULTISEDE.name} · Equipos grandes`,
-    desc: MULTISEDE.tagline,
-    plan: MULTISEDE.id,
-    items: [
-      'Todo lo del plan Profesional',
-      `Profesionales ilimitados · ${MULTISEDE.maxSeats} accesos`,
-      'El mayor uso de IA incluido y soporte prioritario',
-      'Varias sucursales en una cuenta: próximamente',
-    ],
-    cta: 'Empezar prueba gratis',
-  },
-  annual: `Paga el año completo y te regalamos ${ANNUAL_MONTHS_FREE} meses: 12 por el precio de 10.`,
-}
 
 // Tarifa de la home («Líneas»): tres renglones por plan, lo que más distingue a
 // cada uno. Nombre, precios y frase salen del catálogo; el color es su línea.

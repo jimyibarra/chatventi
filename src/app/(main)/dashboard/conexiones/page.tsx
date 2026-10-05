@@ -92,6 +92,12 @@ export default async function ConexionesPage() {
           title="WhatsApp"
           badge={whatsapp.some((c) => c.status === 'active') ? <StatusChip tone="ok" size="md">Conectado</StatusChip> : undefined}
           description="Con el inicio de sesión de Meta eliges (o creas) tu cuenta de WhatsApp Business y tu número. Los mensajes los cobra Meta directamente a esa cuenta."
+          actions={
+            <ButtonLink href="/ayuda/whatsapp" variant="secondary" size="sm" target="_blank" data-testid="guia-whatsapp">
+              <Icon name="book" className="h-4 w-4" />
+              Guía paso a paso
+            </ButtonLink>
+          }
         >
           <ChannelList
             rows={whatsapp}

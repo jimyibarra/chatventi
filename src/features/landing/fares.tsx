@@ -27,7 +27,19 @@ export type Fare = {
 // Tarifa de la home: mensual/anual y pesos/dólares cambian aquí mismo, sin
 // recargar. La moneda inicial la decide el servidor por la ubicación de la
 // visita; la elección se guarda en la misma cookie que lee `visitorCurrency`.
-export function Fares({ fares, initial, trialDays }: { fares: Fare[]; initial: Currency; trialDays: number }) {
+export function Fares({
+  fares,
+  initial,
+  trialDays,
+  signupHref = '/signup',
+  title = 'Cuatro planes. La recepcionista va en todos.',
+}: {
+  fares: Fare[]
+  initial: Currency
+  trialDays: number
+  signupHref?: string
+  title?: string
+}) {
   const [cur, setCur] = useState<Currency>(initial)
   const [year, setYear] = useState(false)
   // El precio solo «rueda» tras un cambio, nunca al cargar.
@@ -47,7 +59,7 @@ export function Fares({ fares, initial, trialDays }: { fares: Fare[]; initial: C
   return (
     <>
       <div className="s-head">
-        <h2 id="precios-t">Cuatro planes. La recepcionista va en todos.</h2>
+        <h2 id="precios-t">{title}</h2>
         <p>
           Elige por el tamaño de tu equipo. Empiezas con {trialDays} días gratis y sin tarjeta.{' '}
           {mxn ? 'Precios en pesos mexicanos, más IVA.' : 'Precios en dólares (USD).'}
@@ -85,7 +97,7 @@ export function Fares({ fares, initial, trialDays }: { fares: Fare[]; initial: C
               <ul>
                 {f.items.map((it) => <li key={it}><Check />{it}</li>)}
               </ul>
-              <Link className={f.popular ? 'btn btn-amber' : 'btn btn-ghost'} href="/signup">
+              <Link className={f.popular ? 'btn btn-amber' : 'btn btn-ghost'} href={signupHref}>
                 {f.popular ? `Probar gratis ${trialDays} días` : 'Probar gratis'}
               </Link>
             </article>
