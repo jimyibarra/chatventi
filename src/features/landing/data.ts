@@ -5,68 +5,19 @@
 //   pausa de IA, anti-solapamiento, portal de facturación, trial 14 días).
 // =====================================================================
 import {
-  ADDON_SEAT_USD,
-  ADDON_SEAT_MXN,
   ANNUAL_MONTHS_FREE,
   EXTRA_REPLY_PRICE_USD,
   EXTRA_REPLY_PRICE_MXN,
+  PLANS,
   TRIAL_DAYS,
   aiRepliesIncluded,
   fmtAmount,
   planById,
-  type Currency,
+  type PlanId,
 } from '@/features/billing/plans'
+import type { Fare } from './fares'
 
 export { TRIAL_DAYS }
-
-// ---------------------------------------------------------------------
-// El problema (3 tarjetas)
-// ---------------------------------------------------------------------
-export const PROBLEMS = [
-  {
-    icon: 'phone-x' as const,
-    tint: '#FDECEC',
-    title: 'Llamadas y mensajes perdidos',
-    body: 'Estás cortando, atendiendo o con las manos ocupadas. El teléfono suena, el WhatsApp se acumula… y esa persona ya reservó en otro lado.',
-  },
-  {
-    icon: 'calendar-x' as const,
-    tint: '#FFF4E3',
-    title: 'Dobles reservas y agenda en caos',
-    body: 'Citas en la libreta, en la cabeza y en tres chats distintos. Dos clientas a la misma hora, huecos vacíos entre citas y disculpas incómodas.',
-  },
-  {
-    icon: 'user-x' as const,
-    tint: '#EFEDFB',
-    title: 'Clientes que se van a la competencia',
-    body: 'Quien escribe para agendar le escribe a varios negocios a la vez, y se queda con el primero que le contesta. Si respondes hasta la noche, ya llegaste tarde.',
-  },
-]
-
-// ---------------------------------------------------------------------
-// Cómo funciona (3 pasos) — sin "QR": la conexión real es con el inicio
-// de sesión de Meta (Embedded Signup, API oficial de WhatsApp Business).
-// ---------------------------------------------------------------------
-export const STEPS = [
-  {
-    title: 'Conecta tus canales',
-    body: 'Vincula el WhatsApp de tu negocio con el inicio de sesión seguro de Meta (API oficial), y activa Telegram y tu página de reservas web si quieres.',
-    badge: '⏱ Unos minutos',
-    badgeStyle: 'green' as const,
-  },
-  {
-    title: 'Configura tus servicios',
-    body: 'Captura servicios, precios, duraciones y horarios de tu equipo desde el panel. La agenda queda lista para ofrecer solo horarios libres.',
-    badge: '⏱ Unos minutos',
-    badgeStyle: 'green' as const,
-  },
-  {
-    title: 'La IA agenda sola',
-    body: 'Activa a tu recepcionista: cada mensaje se contesta al instante y cada cita cae en tu agenda — de día, de noche y en domingo.',
-    badge: '✨ Para siempre',
-    badgeStyle: 'purple' as const,
-  },
-]
 
 // ---------------------------------------------------------------------
 // Funciones (todas existen en el producto) — sin Google Calendar.
@@ -120,61 +71,6 @@ export const FEATURES = [
     stroke: '#5B4FE0',
     title: 'Panel de control + CRM',
     body: 'Tu día de un vistazo, y tus clientes ordenados solos: segmentados en Nuevos, Regulares y VIP, con expediente, archivos y quién lleva tiempo sin volver para reactivarlo. Interviene en cualquier chat cuando quieras.',
-  },
-]
-
-// ---------------------------------------------------------------------
-// Industrias (tarjetas de la home).
-//   `vertical` enlaza cada tarjeta con su landing /para/<slug> del catálogo
-//   único (features/verticales/data.ts). Ojo: NO es 1:1 — "Clínicas estéticas"
-//   y "Spas y masajes" son dos ángulos de copy del mismo giro (`spa`), porque
-//   `spa_unas` es una sola plantilla de agente. El catálogo manda.
-// ---------------------------------------------------------------------
-export const INDUSTRIES = [
-  {
-    vertical: 'barberia',
-    emoji: '✂️',
-    title: 'Peluquerías y barberías',
-    body: 'Agenda por estilista, servicios con duraciones distintas y clientas que reservan a las 11 de la noche sin molestarte.',
-    stat: '↑ Más citas fuera de horario',
-  },
-  {
-    vertical: 'dentista',
-    emoji: '🦷',
-    title: 'Dentistas y clínicas dentales',
-    body: 'Primera consulta, limpieza o urgencia: la IA responde, agenda en el horario correcto y el sistema confirma antes de la cita.',
-    stat: '↓ Menos inasistencias',
-  },
-  {
-    vertical: 'spa',
-    emoji: '✨',
-    title: 'Clínicas estéticas',
-    body: 'Responde dudas de tratamientos y precios al momento — justo cuando la clienta está decidida — y cierra la cita ahí mismo.',
-    stat: '↑ Más consultas de valoración',
-  },
-  {
-    vertical: 'veterinaria',
-    emoji: '🐾',
-    title: 'Veterinarias',
-    body: 'Consultas, vacunas y baño en una sola agenda. La IA pregunta por la mascota, agenda con el veterinario correcto y recuerda la próxima vacuna.',
-    stat: '↑ Más consultas recurrentes',
-  },
-  {
-    vertical: 'spa',
-    emoji: '💆',
-    title: 'Spas y masajes',
-    body: 'Cabinas y terapeutas coordinados en una sola agenda, con recordatorios y seguimiento que rellenan los huecos de última hora.',
-    stat: '↑ Mayor ocupación de cabinas',
-  },
-  // Cada giro con landing propia necesita su tarjeta aquí: es el único
-  // enlace desde el cuerpo de la home. Sin ella, /para/consultorio-medico
-  // solo entraba por el footer.
-  {
-    vertical: 'consultorio-medico',
-    emoji: '🩺',
-    title: 'Consultorios médicos',
-    body: 'Atiende y agenda consultas 24/7 por WhatsApp, con confirmación automática antes de la cita. Sin dar nunca consejo médico.',
-    stat: '↓ Menos ausencias en consulta',
   },
 ]
 
@@ -284,29 +180,70 @@ export const PRICING = {
   annual: `Paga el año completo y te regalamos ${ANNUAL_MONTHS_FREE} meses: 12 por el precio de 10.`,
 }
 
-/** Letra pequeña de precios en la moneda de quien visita. */
-export function pricingFootnote(currency: Currency): string {
-  const seat = currency === 'mxn' ? `+${fmtAmount(ADDON_SEAT_MXN)} MXN/mes más IVA` : `+$${ADDON_SEAT_USD} USD/mes`
-  const cur = currency === 'mxn' ? 'Precios en pesos mexicanos, más IVA' : 'Precios en dólares (USD)'
-  return `Acceso de equipo adicional: ${seat}. ${cur} · ${TRIAL_DAYS} días de prueba gratis en todos los planes · cambia o cancela cuando quieras.`
+// Tarifa de la home («Líneas»): tres renglones por plan, lo que más distingue a
+// cada uno. Nombre, precios y frase salen del catálogo; el color es su línea.
+const FARE_COPY: Record<PlanId, { color: string; items: string[] }> = {
+  arranque: {
+    color: '#0b5bd3',
+    items: ['Recepcionista IA en todos los canales', 'Agenda, reservas web y recordatorios', `${ARRANQUE.maxResources} profesional · ${ARRANQUE.maxSeats} acceso`],
+  },
+  negocio: {
+    color: '#5b4fe0',
+    items: [`Hasta ${NEGOCIO.maxResources} profesionales · ${NEGOCIO.maxSeats} accesos`, 'Lee comprobantes y oye notas de voz', 'Rescata interesados y te manda un resumen diario'],
+  },
+  profesional: {
+    color: '#00a35c',
+    items: [`Hasta ${PROFESIONAL.maxResources} profesionales · ${PROFESIONAL.maxSeats} accesos`, 'Expediente del cliente con archivos', 'El doble de uso de IA que Negocio'],
+  },
+  multisede: {
+    color: '#f08c00',
+    items: [`Profesionales ilimitados · ${MULTISEDE.maxSeats} accesos`, 'El mayor uso de IA incluido', 'Soporte prioritario'],
+  },
 }
+
+export const FARES: Fare[] = PLANS.map((p) => ({
+  id: p.id,
+  name: p.name,
+  who: p.tagline,
+  usd: p.priceUsd,
+  mxn: p.priceMxn,
+  popular: p.popular,
+  ...FARE_COPY[p.id],
+}))
 
 // ---------------------------------------------------------------------
 // FAQ — sincronizado con las capacidades reales (también alimenta el
 // JSON-LD FAQPage de la página).
 // ---------------------------------------------------------------------
+// Las 6 primeras se ven en la home; el resto, tras «Ver 6 preguntas más».
 export const FAQS = [
   {
     q: '¿Necesito saber programar para usar ChatVenti?',
     a: 'No. Creas tu cuenta, conectas tu WhatsApp con el inicio de sesión seguro de Meta, capturas tus servicios y horarios en el panel y activas la IA. Todo desde el navegador, sin instalar nada.',
   },
   {
-    q: '¿Cómo se conecta ChatVenti a WhatsApp?',
-    a: 'Con la API oficial de WhatsApp Business (Meta), la misma tecnología que usan las grandes marcas. Nada de aplicaciones no oficiales ni celulares que deban quedarse prendidos: conectas la cuenta de WhatsApp Business de tu negocio desde el panel. También puedes activar Telegram y tu página de reservas web.',
+    q: '¿Qué necesito para conectar mi WhatsApp?',
+    a: 'Una cuenta de Facebook (o una cuenta de Meta para empresas), un número que pueda recibir un SMS o una llamada para verificarlo y que no esté activo en la app de WhatsApp, y el nombre que verán tus clientes. Lo conectas desde tu panel en Conexiones, en unos minutos. Mientras tanto puedes atender por Instagram, Messenger, Telegram y tu página de reservas.',
+  },
+  {
+    q: '¿Cuánto cuestan los mensajes de WhatsApp, Instagram y Messenger?',
+    a: 'Instagram y Messenger no tienen costo por mensaje: Meta no los cobra y vienen incluidos en todos los planes. WhatsApp sí lo cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe), así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
   },
   {
     q: '¿Qué pasa si la IA no sabe responder algo?',
     a: 'La IA está acotada a tu negocio: si algo se sale de lo configurado, escala la conversación a una persona y te avisa. Además puedes activar el modo aprobación, donde la IA te propone la respuesta y tú la apruebas con un botón antes de que se envíe.',
+  },
+  {
+    q: '¿Puedo cancelar cuando quiera?',
+    a: `Sí. No hay contratos forzosos ni penalizaciones: administras tu suscripción, cambias de plan o cancelas desde el portal de facturación de tu panel. Y empiezas con ${TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito.`,
+  },
+  {
+    q: '¿Cuánto tarda la configuración?',
+    a: 'Unos minutos: conectas tu canal, capturas servicios, precios y horarios, y activas a tu recepcionista. Si necesitas ayuda, te acompañamos por correo en soporte@chatventi.com.',
+  },
+  {
+    q: '¿Cómo se conecta ChatVenti a WhatsApp?',
+    a: 'Con la API oficial de WhatsApp Business (Meta), la misma tecnología que usan las grandes marcas. Nada de aplicaciones no oficiales ni celulares que deban quedarse prendidos: conectas la cuenta de WhatsApp Business de tu negocio desde el panel. También puedes activar Telegram y tu página de reservas web.',
   },
   {
     q: '¿Puedo intervenir en una conversación cuando quiera?',
@@ -318,15 +255,7 @@ export const FAQS = [
   },
   {
     q: '¿En qué se diferencian los cuatro planes?',
-    a: 'La recepcionista con IA por WhatsApp, web y Telegram va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
-  },
-  {
-    q: '¿Cuánto cuestan los mensajes de WhatsApp, Instagram y Messenger?',
-    a: 'Instagram y Messenger no tienen costo por mensaje: Meta no los cobra y vienen incluidos en todos los planes. WhatsApp sí lo cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe), así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
-  },
-  {
-    q: '¿Qué necesito para conectar mi WhatsApp?',
-    a: 'Una cuenta de Facebook (o una cuenta de Meta para empresas), un número que pueda recibir un SMS o una llamada para verificarlo y que no esté activo en la app de WhatsApp, y el nombre que verán tus clientes. Lo conectas desde tu panel en Conexiones, en unos minutos. Mientras tanto puedes atender por Instagram, Messenger, Telegram y tu página de reservas.',
+    a: 'La recepcionista con IA por WhatsApp, Instagram, Messenger, Telegram y tu página de reservas va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
   },
   {
     q: '¿Qué pasa si mi recepcionista atiende más de lo que incluye mi plan?',
@@ -335,13 +264,5 @@ export const FAQS = [
   {
     q: '¿Hay descuento si pago el año completo?',
     a: `Sí: pagas 10 meses y usas 12. Eliges pago mensual o anual al activar tu plan, después de tus ${TRIAL_DAYS} días de prueba.`,
-  },
-  {
-    q: '¿Puedo cancelar cuando quiera?',
-    a: `Sí. No hay contratos forzosos ni penalizaciones: administras tu suscripción, cambias de plan o cancelas desde el portal de facturación de tu panel. Y empiezas con ${TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito.`,
-  },
-  {
-    q: '¿Cuánto tarda la configuración?',
-    a: 'Unos minutos: conectas tu canal, capturas servicios, precios y horarios, y activas a tu recepcionista. Si necesitas ayuda, te acompañamos por correo en soporte@chatventi.com.',
   },
 ]

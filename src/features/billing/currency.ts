@@ -1,6 +1,6 @@
 import 'server-only'
 import { cookies, headers } from 'next/headers'
-import { isMexico, type Currency } from './plans'
+import { CURRENCY_COOKIE, isMexico, type Currency } from './plans'
 
 // Moneda en que se le muestran los precios a alguien (decisión de Juan, 2026-10-04):
 //   · Página pública → ubicación de la visita (Vercel manda el país en
@@ -9,8 +9,6 @@ import { isMexico, type Currency } from './plans'
 //     VPN o si el dueño está de viaje; el país del negocio, no.
 //   · Quien ya paga sigue en la moneda de su suscripción: Stripe no deja cambiar
 //     la moneda de un cliente que ya tiene facturas.
-
-export const CURRENCY_COOKIE = 'cv_moneda'
 
 function asCurrency(v: string | null | undefined): Currency | null {
   return v === 'mxn' || v === 'usd' ? v : null

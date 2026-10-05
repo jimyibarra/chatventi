@@ -414,6 +414,9 @@ export const STATUS_LABELS: Record<string, string> = {
 
 export type Currency = 'usd' | 'mxn'
 
+/** Cookie con la moneda que eligió la visita en la página pública (la escribe el selector de precios). */
+export const CURRENCY_COOKIE = 'cv_moneda'
+
 /** IVA de México. Los precios en pesos se anuncian «más IVA» y Stripe lo suma. */
 export const IVA_MX_PCT = 16
 

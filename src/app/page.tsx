@@ -1,43 +1,32 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Inter, Manrope } from 'next/font/google'
+import { Rubik } from 'next/font/google'
 import { LEGAL } from '@/shared/constants/legal'
 import { pageMetadata } from '@/shared/lib/seo'
-import { STARTER_PRICE_USD, planPrice, fmtAmount, currencyCode, type Currency, type PlanId } from '@/features/billing/plans'
+import { createServiceClient } from '@/lib/supabase/service'
+import { STARTER_PRICE_USD } from '@/features/billing/plans'
 import { visitorCurrency } from '@/features/billing/currency'
-import { CurrencySwitch } from '@/features/landing/currency-switch'
-import {
-  FAQS,
-  FEATURES,
-  FOUNDERS,
-  INDUSTRIES,
-  PRICING,
-  pricingFootnote,
-  PROBLEMS,
-  PROOF,
-  STEPS,
-  TRIAL_DAYS,
-} from '@/features/landing/data'
-import { TRUST_LABELS, VERTICALS } from '@/features/verticales/data'
-import { Icon, PhoneIcon } from '@/features/landing/icons'
-import { SalesWidget } from '@/features/landing/sales-widget'
-import { LandingEffects } from '@/features/landing/effects'
+import { FAQS, FARES, FOUNDERS, TRIAL_DAYS } from '@/features/landing/data'
+import { VERTICALS } from '@/features/verticales/data'
+import { HeroScene, LiveSections } from '@/features/landing/hero-scene'
+import { Fares } from '@/features/landing/fares'
+import { FaqList } from '@/features/landing/faq-list'
 import { DemoChat } from '@/features/landing/demo-chat'
-import '@/features/landing/landing.css'
+import { SalesWidget } from '@/features/landing/sales-widget'
+import { Check } from '@/features/landing/check'
+import '@/features/landing/lineas-landing.css'
 
-const manrope = Manrope({ subsets: ['latin'], weight: ['500', '700', '800'], variable: '--font-manrope' })
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+// Home «Líneas»: la página es una línea del Metro. El mensaje del cliente se
+// vuelve estación en la agenda (héroe vivo), el día se cuenta por horas y cada
+// giro es una estación. Estilos en lineas-landing.css, todos bajo `.lx`.
+const rubik = Rubik({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-lx' })
 
 const HOME_TITLE = 'ChatVenti — Recepcionista IA que agenda citas por WhatsApp 24/7'
-const HOME_DESC = `ChatVenti es el recepcionista con IA para agendar citas por WhatsApp, Telegram y web. Contesta al instante, evita dobles reservas y llena tu agenda 24/7. Prueba gratis ${TRIAL_DAYS} días.`
+const HOME_DESC = `ChatVenti es la recepcionista con IA que agenda citas por WhatsApp, Instagram, Messenger y tu página de reservas. Contesta al instante, ofrece solo horarios libres y llena tu agenda 24/7. Prueba gratis ${TRIAL_DAYS} días.`
 
-export const metadata: Metadata = pageMetadata({
-  title: HOME_TITLE,
-  description: HOME_DESC,
-  path: '/',
-})
+export const metadata: Metadata = pageMetadata({ title: HOME_TITLE, description: HOME_DESC, path: '/' })
 
 // JSON-LD: producto (sin ratings inventados) + FAQ sincronizado con la página.
 const APP_LD = {
@@ -48,7 +37,7 @@ const APP_LD = {
   operatingSystem: 'Web',
   url: LEGAL.siteUrl,
   description:
-    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Telegram y web 24/7 para peluquerías, dentistas, veterinarias, spas y consultorios.',
+    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Instagram, Messenger y web 24/7 para barberías, dentistas, veterinarias, spas y consultorios.',
   offers: {
     '@type': 'Offer',
     price: String(STARTER_PRICE_USD),
@@ -59,519 +48,410 @@ const APP_LD = {
 const FAQ_LD = {
   '@context': 'https://schema.org',
   '@type': 'FAQPage',
-  mainEntity: FAQS.map((f) => ({
-    '@type': 'Question',
-    name: f.q,
-    acceptedAnswer: { '@type': 'Answer', text: f.a },
-  })),
+  mainEntity: FAQS.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 }
 
-const CHAT_MSGS = [
-  { me: true, html: 'Hola! Tienen lugar para corte el sábado? 🙏' },
-  { me: false, html: '¡Hola! 😊 Claro que sí. El sábado tengo disponible <strong>11:00 am</strong>, <strong>1:30 pm</strong> y <strong>4:00 pm</strong>. ¿Cuál te queda mejor?' },
-  { me: true, html: 'A las 4 está perfecto' },
-  { me: false, html: '¡Listo! ✅ Te agendé:<br /><strong>Corte de cabello</strong><br />Sábado 11 · 4:00 pm · con Marcela<br /><br />Te mando recordatorio un día antes. ¡Nos vemos!' },
-]
+const CTA = `Prueba gratis ${TRIAL_DAYS} días`
 
-const DEMO_ROWS = [
-  { time: '10:00', who: 'Karla Mendoza — Corte y peinado', via: 'Agendada por IA · WhatsApp', chip: 'Confirmada', live: false },
-  { time: '11:30', who: 'Luis Ortega — Tinte completo', via: 'Agendada por IA · Telegram', chip: 'Confirmada', live: false },
-  { time: '13:00', who: 'Ana Ruiz — Manicure spa', via: '✨ Agendándose ahora mismo…', chip: '', live: true },
-  { time: '16:00', who: 'Sofía Delgado — Corte de cabello', via: 'Reagendada desde el panel · antes 12:00', chip: 'Recordatorio enviado', live: false },
-]
-
-const H3: CSSProperties = { fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 20, margin: '0 0 10px' }
-const BODY_MUTED: CSSProperties = { color: '#5F5A75', fontSize: 15.5, lineHeight: 1.6, margin: 0 }
-
-/** «$799» en la moneda de la visita. */
-function priceOf(plan: PlanId, currency: Currency): string {
-  return fmtAmount(planPrice(plan, currency))
-}
-/** « MXN/mes + IVA» o « USD/mes». */
-function unitOf(currency: Currency): string {
-  return ` ${currencyCode(currency)}/mes${currency === 'mxn' ? ' + IVA' : ''}`
+/** Lugares de fundador ya tomados (altas con ?ref=fundadores). Si falla, se ven libres. */
+async function foundersTaken(): Promise<number> {
+  try {
+    const { count } = await createServiceClient()
+      .from('organizations')
+      .select('id', { count: 'exact', head: true })
+      .eq('signup_ref', 'fundadores')
+    return Math.min(count ?? 0, FOUNDERS.seats)
+  } catch {
+    return 0
+  }
 }
 
 export default async function Home() {
   // Pesos para quien visita desde México; dólares para el resto (o lo que elija en el selector).
-  const currency = await visitorCurrency()
+  const [currency, taken] = await Promise.all([visitorCurrency(), foundersTaken()])
   return (
-    <div className={`${manrope.variable} ${inter.variable} cv-landing`}>
+    <div className={`${rubik.variable} lx`}>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(APP_LD) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_LD) }} />
-      <LandingEffects />
-
-      {/* ============ HEADER ============ */}
-      <header className="cv-header">
-        <div className="cv-container" style={{ padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
-          <a href="#inicio" aria-label="ChatVenti — inicio" style={{ display: 'flex', alignItems: 'center' }}>
-            <Image src="/brand/chatventi-logo.png" alt="ChatVenti" width={168} height={62} priority style={{ height: 38, width: 'auto' }} />
-          </a>
-          <nav aria-label="Navegación principal" style={{ display: 'flex', gap: 22, flexWrap: 'wrap', marginLeft: 'auto', alignItems: 'center' }}>
-            <a className="cv-navlink" href="#como-funciona">Cómo funciona</a>
-            <a className="cv-navlink" href="#funciones">Funciones</a>
-            <a className="cv-navlink" href="#precios">Precios</a>
-            <a className="cv-navlink" href="#faq">Preguntas</a>
-            <Link className="cv-navlink" href="/login">Entrar</Link>
-          </nav>
-          <Link href="/signup" className="cv-btn-primary" style={{ padding: '11px 22px', fontSize: 15 }}>Prueba gratis</Link>
-        </div>
-      </header>
-
-      <main>
-        {/* ============ HERO ============ */}
-        <section id="inicio" aria-label="Presentación de ChatVenti" style={{ position: 'relative', background: 'linear-gradient(180deg, #F4F2FE 0%, #FBFAF6 78%)' }}>
-          <div className="cv-container" style={{ padding: '72px 24px 56px', display: 'flex', gap: 56, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 460px', minWidth: 320 }}>
-              <p style={{ display: 'inline-flex', alignItems: 'center', gap: 8, margin: '0 0 22px', background: '#E9F9EF', color: '#128C4A', fontSize: 14, fontWeight: 600, padding: '8px 16px', borderRadius: 999 }}>
-                <span aria-hidden className="cv-pulse" style={{ width: 8, height: 8, borderRadius: '50%', background: '#25D366' }} />
-                Respondiendo WhatsApps ahora mismo, 24/7
-              </p>
-              <h1 className="cv-h1" style={{ fontSize: 'clamp(38px, 5.2vw, 58px)', lineHeight: 1.08, margin: '0 0 20px' }}>
-                Tu recepcionista con IA que{' '}
-                <span style={{ background: 'linear-gradient(100deg, #5B4FE0, #7C4FE0)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>
-                  agenda citas por WhatsApp
-                </span>
-                , incluso mientras duermes
-              </h1>
-              <p style={{ fontSize: 'clamp(17px, 2vw, 20px)', lineHeight: 1.6, color: '#5F5A75', margin: '0 0 30px', maxWidth: 540 }}>
-                ChatVenti contesta al instante, agenda, confirma y recuerda cada cita por WhatsApp, Telegram y tu web — sin llamadas perdidas ni dobles reservas.
-              </p>
-              <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-                <Link href="/signup" className="cv-btn-primary" style={{ padding: '16px 34px', fontSize: 17 }}>Empezar prueba gratis</Link>
-                <a href="#demo" className="cv-btn-ghost" style={{ padding: '15px 24px', fontSize: 16 }}>
-                  <svg aria-hidden width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M4 2.5v11l9-5.5-9-5.5z" /></svg>
-                  Ver el producto
-                </a>
-              </div>
-              <p style={{ fontSize: 14, color: '#7A758F', margin: '0 0 28px', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <span>✓ {TRIAL_DAYS} días de prueba gratis</span><span>✓ Sin tarjeta de crédito</span><span>✓ Listo en minutos</span>
-              </p>
-              <p style={{ margin: 0, fontSize: 14, color: '#5F5A75', maxWidth: 480 }}>
-                Hecho para <strong style={{ color: '#201B36' }}>peluquerías, barberías, dentistas, veterinarias, spas y consultorios</strong> — cualquier negocio que vive de su agenda.
-              </p>
-            </div>
-
-            {/* Mockup de conversación WhatsApp */}
-            <div style={{ flex: '1 1 360px', minWidth: 300, display: 'flex', justifyContent: 'center' }} role="img" aria-label="Simulación de una conversación de WhatsApp donde la IA de ChatVenti agenda una cita de corte de cabello para el sábado a las 4 de la tarde">
-              <div className="cv-float" style={{ width: '100%', maxWidth: 390, background: '#fff', borderRadius: 32, boxShadow: '0 30px 70px rgba(62,51,181,0.18), 0 4px 16px rgba(32,27,54,0.06)', overflow: 'hidden', border: '1px solid #ECE9F5' }}>
-                <div style={{ background: 'linear-gradient(120deg, #1DA851, #25D366)', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span aria-hidden style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800, fontFamily: 'var(--font-manrope), sans-serif' }}>E</span>
-                  <div>
-                    <p style={{ margin: 0, color: '#fff', fontWeight: 700, fontSize: 15 }}>Estética Marcela</p>
-                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.85)', fontSize: 12.5 }}>en línea · responde al instante</p>
-                  </div>
-                  <PhoneIcon />
-                </div>
-                <div style={{ background: '#F1EFE8', padding: '20px 16px 22px', display: 'flex', flexDirection: 'column', gap: 10, minHeight: 380 }}>
-                  {CHAT_MSGS.map((m, i) => (
-                    <div
-                      key={i}
-                      data-chat-msg
-                      style={{
-                        alignSelf: m.me ? 'flex-end' : 'flex-start',
-                        maxWidth: m.me ? '78%' : '82%',
-                        background: m.me ? '#DCF8C6' : '#fff',
-                        padding: '10px 14px',
-                        borderRadius: m.me ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                        fontSize: 14.5,
-                        lineHeight: 1.45,
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
-                      }}
-                      dangerouslySetInnerHTML={{ __html: m.html }}
-                    />
-                  ))}
-                  <div data-chat-msg style={{ alignSelf: 'center', background: 'rgba(91,79,224,0.1)', color: '#4A3FC4', fontSize: 12.5, fontWeight: 600, padding: '7px 16px', borderRadius: 999, marginTop: 6 }}>
-                    ✨ Cita agendada por ChatVenti en 22 segundos
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ============ BARRA DE CONFIANZA ============ */}
-        <section aria-label="Tipos de negocio para los que está hecho ChatVenti" style={{ borderTop: '1px solid #ECE9F5', borderBottom: '1px solid #ECE9F5', background: '#fff' }}>
-          <div className="cv-container" style={{ padding: '26px 24px', display: 'flex', alignItems: 'center', gap: '12px 34px', flexWrap: 'wrap', justifyContent: 'center' }}>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9B96B0' }}>Hecho para negocios de citas</p>
-            {TRUST_LABELS.map((t) => (
-              <span key={t} style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 17, color: '#6A6580' }}>{t}</span>
-            ))}
-          </div>
-        </section>
-
-        {/* ============ EL PROBLEMA ============ */}
-        <section aria-labelledby="problema-titulo" className="cv-container cv-section">
-          <div data-reveal className="cv-section-head">
-            <p className="cv-eyebrow">El problema</p>
-            <h2 id="problema-titulo" className="cv-h2">Cada mensaje sin contestar es una cita que pierdes</h2>
-            <p className="cv-lead">Tus clientes escriben cuando pueden: en la noche, el domingo, a media comida. Si no respondes en minutos, reservan con alguien más.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {PROBLEMS.map((p) => (
-              <article key={p.title} data-reveal className="cv-card">
-                <span aria-hidden style={{ width: 52, height: 52, borderRadius: 16, background: p.tint, display: 'grid', placeItems: 'center', marginBottom: 18 }}>
-                  <Icon name={p.icon} stroke={p.icon === 'phone-x' ? '#D64545' : p.icon === 'calendar-x' ? '#D48A1E' : '#5B4FE0'} size={26} />
-                </span>
-                <h3 style={H3}>{p.title}</h3>
-                <p style={BODY_MUTED}>{p.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* ============ CÓMO FUNCIONA ============ */}
-        <section id="como-funciona" aria-labelledby="como-titulo" className="cv-container cv-section">
-          <div data-reveal className="cv-section-head">
-            <p className="cv-eyebrow">Cómo funciona</p>
-            <h2 id="como-titulo" className="cv-h2">Listo para agendar en 3 pasos</h2>
-            <p className="cv-lead">Sin instalar nada, sin saber de tecnología. Si sabes usar WhatsApp, sabes usar ChatVenti.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-            {STEPS.map((s, i) => (
-              <div key={s.title} data-reveal className="cv-step-card">
-                <span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 15, color: '#fff', background: 'linear-gradient(120deg, #5B4FE0, #4338CA)', width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center', marginBottom: 20 }}>{i + 1}</span>
-                <h3 style={H3}>{s.title}</h3>
-                <p style={{ ...BODY_MUTED, marginBottom: 18 }}>{s.body}</p>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700, color: s.badgeStyle === 'green' ? '#128C4A' : '#4A3FC4', background: s.badgeStyle === 'green' ? '#E9F9EF' : '#EFEDFB', padding: '6px 14px', borderRadius: 999 }}>{s.badge}</span>
-              </div>
-            ))}
-          </div>
-          <div data-reveal style={{ textAlign: 'center', marginTop: 40 }}>
-            <Link href="/signup" className="cv-btn-primary" style={{ padding: '15px 32px', fontSize: 16 }}>Empezar prueba gratis — listo en minutos</Link>
-          </div>
-        </section>
-
-        {/* ============ FUNCIONES ============ */}
-        <section id="funciones" aria-labelledby="funciones-titulo" className="cv-container cv-section">
-          <div data-reveal className="cv-section-head" style={{ maxWidth: 680 }}>
-            <p className="cv-eyebrow">Todo lo que hace por ti</p>
-            <h2 id="funciones-titulo" className="cv-h2">Un empleado que nunca pide vacaciones</h2>
-            <p className="cv-lead">ChatVenti no solo responde: agenda, confirma, recuerda, da seguimiento y te mantiene al mando desde un solo panel.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 20 }}>
-            {FEATURES.map((f) => (
-              <article key={f.title} data-reveal className="cv-card-hover">
-                <span aria-hidden className="cv-icon-tile" style={{ background: f.tint }}>
-                  <Icon name={f.icon} stroke={f.stroke} />
-                </span>
-                <h3 style={{ ...H3, fontSize: 18, marginBottom: 8 }}>{f.title}</h3>
-                <p style={{ ...BODY_MUTED, fontSize: 15 }}>{f.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* ============ DEMO / PRODUCTO ============ */}
-        <section id="demo" aria-labelledby="demo-titulo" style={{ background: 'linear-gradient(160deg, #241D52 0%, #3E33B5 60%, #5B4FE0 100%)', marginTop: 88 }}>
-          <div className="cv-container" style={{ padding: '88px 24px', display: 'flex', gap: 56, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div data-reveal style={{ flex: '1 1 400px', minWidth: 300 }}>
-              <p className="cv-eyebrow" style={{ color: '#B7E8CB' }}>El producto en acción</p>
-              <h2 id="demo-titulo" className="cv-h2" style={{ color: '#fff', marginBottom: 18 }}>Tu agenda se llena sola. Tú solo la miras.</h2>
-              <p style={{ color: 'rgba(255,255,255,0.82)', fontSize: 17, lineHeight: 1.65, margin: '0 0 28px', maxWidth: 480 }}>
-                Mientras la IA conversa y agenda, tu panel te muestra el día en orden: quién viene, a qué hora y qué servicio. Todo sincronizado, sin libreta y sin memorizar nada.
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 32px', display: 'grid', gap: 12, color: 'rgba(255,255,255,0.92)', fontSize: 15.5 }}>
-                {['Cada cita agendada por la IA aparece al instante', 'Toma el control de cualquier conversación — la IA se pausa sola', 'Funciona desde tu celular o computadora'].map((t) => (
-                  <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}><span style={{ color: '#25D366', fontWeight: 800 }}>✓</span> {t}</li>
-                ))}
-              </ul>
-              <Link href="/signup" className="cv-btn-green" style={{ padding: '15px 32px', fontSize: 16 }}>Probarlo gratis ahora</Link>
-            </div>
-            <div data-reveal style={{ flex: '1 1 420px', minWidth: 300 }} role="img" aria-label="Panel de control de ChatVenti mostrando las citas del día agendadas automáticamente por la inteligencia artificial">
-              <div style={{ background: '#fff', borderRadius: 24, boxShadow: '0 30px 70px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
-                <div style={{ padding: '18px 22px', borderBottom: '1px solid #ECE9F5', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <p style={{ margin: 0, fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 16 }}>Hoy, en tu agenda</p>
-                  <span style={{ marginLeft: 'auto', fontSize: 13, fontWeight: 700, color: '#128C4A', background: '#E9F9EF', padding: '5px 12px', borderRadius: 999 }}>8 citas · $3,450</span>
-                </div>
-                <div style={{ padding: '14px 22px', display: 'grid', gap: 10 }}>
-                  {DEMO_ROWS.map((r) => (
-                    <div key={r.time} style={{ display: 'flex', gap: 14, alignItems: 'center', background: r.live ? '#F4F2FE' : '#FBFAF6', border: r.live ? '1.5px solid #C7BFF5' : '1px solid #ECE9F5', borderRadius: 14, padding: '12px 16px' }}>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: '#5B4FE0', minWidth: 62 }}>{r.time}</span>
-                      <div style={{ flex: 1 }}>
-                        <p style={{ margin: 0, fontWeight: 600, fontSize: 14.5 }}>{r.who}</p>
-                        <p style={{ margin: 0, fontSize: 12.5, color: r.live ? '#5B4FE0' : '#7A758F', fontWeight: r.live ? 600 : 400 }}>{r.via}</p>
-                      </div>
-                      {r.live ? (
-                        <span style={{ display: 'inline-flex', gap: 3 }} aria-hidden>
-                          <span className="cv-typing-dot" />
-                          <span className="cv-typing-dot" style={{ animationDelay: '0.2s' }} />
-                          <span className="cv-typing-dot" style={{ animationDelay: '0.4s' }} />
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: r.chip === 'Confirmada' ? '#128C4A' : '#D48A1E', background: r.chip === 'Confirmada' ? '#E9F9EF' : '#FFF4E3', padding: '4px 10px', borderRadius: 999 }}>{r.chip}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div style={{ padding: '14px 22px 18px', borderTop: '1px solid #ECE9F5', display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-                  <p style={{ margin: 0, fontSize: 13, color: '#7A758F' }}><strong style={{ color: '#201B36', fontSize: 16 }}>42</strong> conversaciones hoy</p>
-                  <p style={{ margin: 0, fontSize: 13, color: '#7A758F' }}><strong style={{ color: '#201B36', fontSize: 16 }}>96%</strong> respondidas por IA</p>
-                  <p style={{ margin: 0, fontSize: 13, color: '#7A758F' }}><strong style={{ color: '#201B36', fontSize: 16 }}>18 seg</strong> respuesta promedio</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ============ DEMO EN VIVO ============ */}
-        <section id="demo-en-vivo" aria-labelledby="demo-vivo-titulo" className="cv-container cv-section">
-          <div style={{ display: 'flex', gap: 56, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div data-reveal style={{ flex: '1 1 400px', minWidth: 300 }}>
-              <p className="cv-eyebrow">Pruébalo tú mismo, ahora</p>
-              <h2 id="demo-vivo-titulo" className="cv-h2" style={{ marginBottom: 18 }}>
-                Habla con la IA como si fueras tu cliente
-              </h2>
-              <p style={{ ...BODY_MUTED, fontSize: 17, maxWidth: 480, marginBottom: 24 }}>
-                Esto no es un video ni capturas: es el mismo motor que atenderá a tus clientes,
-                conectado a la agenda de una estética de demostración. Pregúntale precios,
-                pide un horario y mira cómo agenda la cita en segundos.
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 12, color: '#201B36', fontSize: 15.5 }}>
-                {['Respuestas reales generadas por IA, sin guion', 'Consulta disponibilidad y agenda de verdad', 'Así se sentirá para tus clientes en WhatsApp'].map((t) => (
-                  <li key={t} style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
-                    <span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div data-reveal style={{ flex: '1 1 420px', minWidth: 300, display: 'flex', justifyContent: 'center' }}>
-              <DemoChat />
-            </div>
-          </div>
-        </section>
-
-        {/* ============ INDUSTRIAS ============ */}
-        <section id="industrias" aria-labelledby="industrias-titulo" className="cv-container cv-section">
-          <div data-reveal className="cv-section-head">
-            <p className="cv-eyebrow">Hecho para tu negocio</p>
-            <h2 id="industrias-titulo" className="cv-h2">Si vives de las citas, ChatVenti es para ti</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 20 }}>
-            {/* Cada tarjeta ENLAZA a su landing por giro. Antes esas páginas
-                existían solo en el sitemap: ningún enlace interno llevaba a
-                ellas, así que ni las encontraba un visitante ni recibían
-                autoridad de la home. */}
-            {INDUSTRIES.map((ind) => (
-              <Link
-                key={ind.title}
-                href={`/para/${ind.vertical}`}
-                data-reveal
-                className="cv-card-hover"
-                style={{ display: 'block', padding: '30px 26px', textDecoration: 'none', color: 'inherit' }}
-              >
-                <span aria-hidden style={{ fontSize: 30 }}>{ind.emoji}</span>
-                <h3 style={{ ...H3, fontSize: 19, margin: '14px 0 8px' }}>{ind.title}</h3>
-                <p style={{ ...BODY_MUTED, fontSize: 14.5, marginBottom: 16 }}>{ind.body}</p>
-                <p style={{ margin: '0 0 10px', fontSize: 13.5, fontWeight: 700, color: '#128C4A' }}>{ind.stat}</p>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: '#5B4FE0' }}>Ver cómo funciona →</p>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* ============ PRUEBA VERIFICABLE + FUNDADORES ============
-            Aquí hubo testimonios de negocios inventados. Solo se afirma lo que
-            el visitante puede comprobar hoy; los testimonios reales saldrán
-            del programa de fundadores. */}
-        <section aria-labelledby="prueba-titulo" className="cv-container cv-section">
-          <div data-reveal className="cv-section-head">
-            <p className="cv-eyebrow">Compruébalo tú</p>
-            <h2 id="prueba-titulo" className="cv-h2" style={{ margin: 0 }}>No nos creas: pruébalo</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', gap: 24 }}>
-            {PROOF.map((p) => (
-              <article key={p.title} data-reveal className="cv-card">
-                <span aria-hidden style={{ width: 52, height: 52, borderRadius: 16, background: p.tint, display: 'grid', placeItems: 'center', marginBottom: 18 }}>
-                  <Icon name={p.icon} stroke={p.stroke} />
-                </span>
-                <h3 style={{ ...H3, fontSize: 19 }}>{p.title}</h3>
-                <p style={BODY_MUTED}>{p.body}</p>
-              </article>
-            ))}
-          </div>
-
-          <div data-reveal style={{ marginTop: 28, background: 'linear-gradient(140deg, #F4F1FF 0%, #E9F9EF 100%)', border: '1px solid #DCD6F7', borderRadius: 26, padding: 'clamp(28px, 4vw, 44px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 28, alignItems: 'center' }}>
+      <TopBar />
+      <main id="top">
+        <Hero />
+        <Channels />
+        <Steps />
+        <Day />
+        <Panel />
+        <Giros />
+        <section className="s demo" id="demo" aria-labelledby="demo-t">
+          <div className="wrap">
             <div>
-              <p style={{ display: 'inline-block', margin: '0 0 14px', fontSize: 12.5, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#128C4A', background: '#fff', padding: '6px 14px', borderRadius: 999 }}>{FOUNDERS.seats} lugares</p>
-              <h3 style={{ ...H3, fontSize: 'clamp(22px, 3vw, 28px)' }}>{FOUNDERS.title}</h3>
-              <p style={{ ...BODY_MUTED, marginBottom: 22 }}>{FOUNDERS.lead}</p>
-              <Link href={FOUNDERS.href} className="cv-btn-green" style={{ display: 'inline-block', padding: '15px 28px', fontSize: 16 }}>{FOUNDERS.cta}</Link>
+              <div className="s-head">
+                <h2 id="demo-t">Escríbele como si fueras tu cliente</h2>
+                <p>Es el mismo motor que contestará en tu WhatsApp, conectado a la agenda de una estética de prueba. Pregunta un horario, un precio o pide tu cita.</p>
+              </div>
+              <Checks items={['Respuestas reales, no un video grabado', 'Consulta disponibilidad de verdad', 'Así se sentirá para tus clientes']} />
             </div>
-            <div>
-              <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 14.5, color: '#2C2465' }}>Lo que recibes</p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 18px', display: 'grid', gap: 10, fontSize: 15, color: '#37324D' }}>
-                {FOUNDERS.gives.map((g) => (
-                  <li key={g} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#128C4A', fontWeight: 800 }}>✓</span> {g}</li>
-                ))}
-              </ul>
-              <p style={{ margin: 0, fontSize: 14.5, color: '#5F5A75', lineHeight: 1.6 }}><strong style={{ color: '#2C2465' }}>Lo que pedimos:</strong> {FOUNDERS.asks}</p>
+            <DemoChat />
+          </div>
+        </section>
+        <section className="s prices" id="precios" aria-labelledby="precios-t">
+          <div className="wrap">
+            <Fares fares={FARES} initial={currency} trialDays={TRIAL_DAYS} />
+            <div className="allin">
+              <div><b>En todos los planes:</b> WhatsApp, Instagram, Messenger, Telegram, tu página de reservas, recordatorios y la ficha de cada cliente.</div>
+              <div><b>Sobre WhatsApp:</b> Meta cobra sus mensajes aparte y regala 1,000 de servicio al mes por número. Tu tarjeta la pones en Meta, no en ChatVenti. Instagram y Messenger no tienen costo por mensaje.</div>
             </div>
           </div>
         </section>
-
-        {/* ============ PRECIOS (catálogo real de billing) ============ */}
-        <section id="precios" aria-labelledby="precios-titulo" className="cv-container cv-section">
-          <div data-reveal className="cv-section-head">
-            <p className="cv-eyebrow">Precios</p>
-            <h2 id="precios-titulo" className="cv-h2">Cuatro planes. La recepcionista con IA va en todos</h2>
-            <p className="cv-lead">Empieza con {TRIAL_DAYS} días de prueba gratis, sin tarjeta de crédito. Elige según el tamaño de tu equipo y cámbialo cuando quieras. {currency === 'mxn' ? 'Precios en pesos mexicanos, más IVA.' : 'Precios en dólares (USD).'}</p>
-            <div style={{ marginTop: 16 }}><CurrencySwitch currency={currency} /></div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24, alignItems: 'stretch' }}>
-            <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.starter.name}</h3>
-              <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.starter.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.starter.plan, currency)}</span><span style={{ color: '#7A758F', fontSize: 15 }}>{unitOf(currency)}</span></p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
-                {PRICING.starter.items.map((it) => (
-                  <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
-                ))}
-              </ul>
-              <Link href="/signup" className="cv-btn-ghost" style={{ marginTop: 'auto', justifyContent: 'center', padding: '14px 24px', fontSize: 15.5, fontWeight: 700 }}>{PRICING.starter.cta}</Link>
-            </article>
-
-            <article data-reveal style={{ position: 'relative', background: 'linear-gradient(165deg, #2C2465, #4338CA)', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column', color: '#fff', boxShadow: '0 24px 56px rgba(62,51,181,0.35)', transform: 'scale(1.02)' }}>
-              <span style={{ position: 'absolute', top: -14, left: '50%', transform: 'translateX(-50%)', background: '#25D366', color: '#0B3D22', fontSize: 12.5, fontWeight: 800, padding: '7px 18px', borderRadius: 999, whiteSpace: 'nowrap' }}>{PRICING.popular.badge}</span>
-              <h3 style={{ ...H3, margin: '6px 0' }}>{PRICING.popular.name}</h3>
-              <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.popular.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.popular.plan, currency)}</span><span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 15 }}>{unitOf(currency)}</span></p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15 }}>
-                {PRICING.popular.items.map((it) => (
-                  <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#25D366', fontWeight: 800 }}>✓</span> {it}</li>
-                ))}
-              </ul>
-              <Link href="/signup" className="cv-btn-green" style={{ marginTop: 'auto', textAlign: 'center', padding: '15px 24px', fontSize: 16 }}>{PRICING.popular.cta}</Link>
-              <p style={{ margin: '12px 0 0', textAlign: 'center', fontSize: 12.5, color: 'rgba(255,255,255,0.65)' }}>{PRICING.popular.foot}</p>
-            </article>
-
-            <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.volume.name}</h3>
-              <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.volume.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.volume.plan, currency)}</span><span style={{ color: '#7A758F', fontSize: 15 }}>{unitOf(currency)}</span></p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
-                {PRICING.volume.items.map((it) => (
-                  <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
-                ))}
-              </ul>
-              <Link href="/signup" className="cv-btn-ghost" style={{ marginTop: 'auto', justifyContent: 'center', padding: '14px 24px', fontSize: 15.5, fontWeight: 700 }}>{PRICING.volume.cta}</Link>
-            </article>
-
-            <article data-reveal style={{ background: '#fff', border: '1px solid #ECE9F5', borderRadius: 26, padding: '36px 30px', display: 'flex', flexDirection: 'column' }}>
-              <h3 style={{ ...H3, marginBottom: 6 }}>{PRICING.multisede.name}</h3>
-              <p style={{ color: '#7A758F', fontSize: 14.5, margin: '0 0 22px' }}>{PRICING.multisede.desc}</p>
-              <p style={{ margin: '0 0 24px' }}><span style={{ fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 46 }}>{priceOf(PRICING.multisede.plan, currency)}</span><span style={{ color: '#7A758F', fontSize: 15 }}>{unitOf(currency)}</span></p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 28px', display: 'grid', gap: 11, fontSize: 15, color: '#37324D' }}>
-                {PRICING.multisede.items.map((it) => (
-                  <li key={it} style={{ display: 'flex', gap: 10 }}><span style={{ color: '#5B4FE0', fontWeight: 800 }}>✓</span> {it}</li>
-                ))}
-              </ul>
-              <Link href="/signup" className="cv-btn-ghost" style={{ marginTop: 'auto', justifyContent: 'center', padding: '14px 24px', fontSize: 15.5, fontWeight: 700 }}>{PRICING.multisede.cta}</Link>
-            </article>
-          </div>
-          <p data-reveal style={{ textAlign: 'center', margin: '32px auto 0', maxWidth: 760 }}>
-            <span style={{ display: 'inline-block', background: '#E9F9EF', color: '#128C4A', fontWeight: 800, fontSize: 15, padding: '10px 20px', borderRadius: 999 }}>{PRICING.annual}</span>
-          </p>
-          <p data-reveal style={{ textAlign: 'center', margin: '16px auto 0', maxWidth: 760, fontSize: 14, color: '#7A758F', lineHeight: 1.65 }}>{pricingFootnote(currency)}</p>
-        </section>
-
-        {/* ============ FAQ ============ */}
-        <section id="faq" aria-labelledby="faq-titulo" style={{ maxWidth: 820, margin: '0 auto', padding: '88px 24px 40px' }}>
-          <div data-reveal style={{ textAlign: 'center', marginBottom: 44 }}>
-            <p className="cv-eyebrow">Preguntas frecuentes</p>
-            <h2 id="faq-titulo" className="cv-h2" style={{ margin: 0 }}>Lo que todos preguntan antes de empezar</h2>
-          </div>
-          <div data-reveal style={{ display: 'grid', gap: 12 }}>
-            {FAQS.map((f) => (
-              <details key={f.q} className="cv-faq">
-                <summary>{f.q}<span aria-hidden className="cv-faq-plus">+</span></summary>
-                <p className="cv-faq-a">{f.a}</p>
-              </details>
-            ))}
+        <Founders taken={taken} />
+        <section className="s" id="preguntas" aria-labelledby="faq-t" style={{ paddingTop: 0 }}>
+          <div className="wrap">
+            <div className="s-head"><h2 id="faq-t">Lo que todos preguntan antes de empezar</h2></div>
+            <FaqList faqs={FAQS} />
           </div>
         </section>
-
-        {/* ============ CTA FINAL ============ */}
-        <section aria-labelledby="cta-titulo" className="cv-container" style={{ padding: '88px 24px' }}>
-          <div data-reveal style={{ position: 'relative', background: 'linear-gradient(140deg, #241D52 0%, #4338CA 55%, #6D4FE0 100%)', borderRadius: 32, padding: 'clamp(48px, 7vw, 84px) clamp(28px, 6vw, 80px)', textAlign: 'center', overflow: 'hidden', boxShadow: '0 30px 70px rgba(62,51,181,0.3)' }}>
-            <span aria-hidden style={{ position: 'absolute', top: -80, right: -60, width: 260, height: 260, borderRadius: '50%', background: 'rgba(37,211,102,0.18)', filter: 'blur(10px)' }} />
-            <span aria-hidden style={{ position: 'absolute', bottom: -100, left: -70, width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', filter: 'blur(6px)' }} />
-            <h2 id="cta-titulo" style={{ position: 'relative', fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 'clamp(30px, 4.5vw, 48px)', lineHeight: 1.12, margin: '0 0 18px', color: '#fff', letterSpacing: '-0.02em' }}>
-              Mientras lees esto, alguien le está escribiendo a tu competencia
-            </h2>
-            <p style={{ position: 'relative', color: 'rgba(255,255,255,0.85)', fontSize: 'clamp(16px, 2vw, 19px)', lineHeight: 1.6, margin: '0 auto 34px', maxWidth: 560 }}>
-              Activa tu recepcionista con IA hoy y no vuelvas a perder una cita por no contestar a tiempo.
-            </p>
-            <div style={{ position: 'relative', display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href="/signup" className="cv-btn-green" style={{ padding: '17px 40px', fontSize: 17.5, boxShadow: '0 10px 28px rgba(0,0,0,0.3)' }}>Empezar prueba gratis</Link>
-            </div>
-            <p style={{ position: 'relative', margin: '18px 0 0', fontSize: 14, color: 'rgba(255,255,255,0.7)' }}>{TRIAL_DAYS} días gratis · Sin tarjeta de crédito · Cancela cuando quieras</p>
-          </div>
-        </section>
+        <Close />
       </main>
-
-      {/* ============ FOOTER ============ */}
-      <footer className="cv-footer" style={{ background: '#17123A', color: '#B9B4D6' }}>
-        <div className="cv-container" style={{ padding: '64px 24px 32px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 40 }}>
-          <div>
-            <p style={{ display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font-manrope), sans-serif', fontWeight: 800, fontSize: 20, color: '#fff', margin: '0 0 14px' }}>
-              <Image src="/brand/chatventi-icon.png" alt="" aria-hidden width={32} height={32} style={{ width: 32, height: 32, borderRadius: 9 }} />
-              {LEGAL.brand}
-            </p>
-            <p style={{ fontSize: 14, lineHeight: 1.65, margin: 0, maxWidth: 260 }}>El recepcionista con IA que agenda citas por WhatsApp, Telegram y web, 24/7, para negocios de citas en Latinoamérica.</p>
-          </div>
-          <nav aria-label="Producto">
-            <p style={{ fontWeight: 700, color: '#fff', fontSize: 14, margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Producto</p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10, fontSize: 14.5 }}>
-              <li><a href="#como-funciona">Cómo funciona</a></li>
-              <li><a href="#funciones">Funciones</a></li>
-              <li><a href="#precios">Precios</a></li>
-              <li><a href="#demo">Demo del producto</a></li>
-            </ul>
-          </nav>
-          <nav aria-label="Industrias">
-            <p style={{ fontWeight: 700, color: '#fff', fontSize: 14, margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Industrias</p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10, fontSize: 14.5 }}>
-              <li><a href="#industrias">Peluquerías y barberías</a></li>
-              <li><a href="#industrias">Dentistas</a></li>
-              <li><a href="#industrias">Clínicas estéticas</a></li>
-              <li><a href="#industrias">Spas</a></li>
-            </ul>
-          </nav>
-          <nav aria-label="Empresa y legal">
-            <p style={{ fontWeight: 700, color: '#fff', fontSize: 14, margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Empresa</p>
-            <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10, fontSize: 14.5 }}>
-              <li><a href={`mailto:${LEGAL.contactEmail}`}>Contacto</a></li>
-              <li><Link href="/privacy">Aviso de privacidad</Link></li>
-              <li><Link href="/terms">Términos y condiciones</Link></li>
-              <li><a href="#faq">Preguntas frecuentes</a></li>
-            </ul>
-          </nav>
-          {/* Enlaces por giro: dan entrada a las landings verticales desde
-              todas las páginas que llevan este footer. */}
-          <nav aria-label="ChatVenti por giro de negocio">
-            <p style={{ fontWeight: 700, color: '#fff', fontSize: 14, margin: '0 0 14px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Por giro</p>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 10, fontSize: 14 }}>
-              {VERTICALS.map((v) => (
-                <li key={v.slug}>
-                  <Link href={`/para/${v.slug}`}>{v.emoji} {v.label}</Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)' }}>
-          <div className="cv-container" style={{ padding: '20px 24px', display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontSize: 13 }}>
-            <p style={{ margin: 0 }}>© 2026 {LEGAL.legalName}. Todos los derechos reservados.</p>
-            <p style={{ margin: '0 0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}><span aria-hidden style={{ width: 8, height: 8, borderRadius: '50%', background: '#25D366' }} /> Hecho en México 🇲🇽</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* Asistente de ventas IA flotante (reemplaza al antiguo botón que
-          aparentaba WhatsApp y llevaba a /signup). Ahora el botón SÍ abre un
-          chat: el producto vendiéndose a sí mismo, 24/7. */}
+      <Footer />
+      <LiveSections />
+      {/* Asistente de ventas IA flotante: el producto vendiéndose a sí mismo, 24/7. */}
       <SalesWidget />
     </div>
+  )
+}
+
+function TopBar() {
+  return (
+    <header className="bar">
+      <div className="wrap">
+        <Logo />
+        <nav aria-label="Secciones">
+          <a href="#dia">Cómo funciona</a>
+          <a href="#panel">Tu panel</a>
+          <a href="#precios">Precios</a>
+          <a href="#preguntas">Preguntas</a>
+          <Link href="/login">Entrar</Link>
+        </nav>
+        <Link className="btn btn-primary" href="/signup">{CTA}</Link>
+      </div>
+    </header>
+  )
+}
+
+function Logo() {
+  return (
+    <a className="logo" href="#top">
+      <Image src="/brand/chatventi-icon.png" alt="" width={34} height={34} priority />
+      ChatVenti
+    </a>
+  )
+}
+
+function Checks({ items }: { items: string[] }) {
+  return <ul className="checks">{items.map((t) => <li key={t}><Check />{t}</li>)}</ul>
+}
+
+function Hero() {
+  return (
+    <section className="hero">
+      <div className="wrap">
+        <div>
+          <p className="display">Tus clientes escriben. <span>ChatVenti agenda.</span></p>
+          <h1>Recepcionista con IA que agenda citas por WhatsApp, Instagram y Messenger</h1>
+          <p className="lede">Contesta al instante, ofrece solo tus horarios libres y deja la cita en tu agenda. A las 11 de la mañana o a las 11:47 de la noche.</p>
+          <div className="cta-row">
+            <Link className="btn btn-primary" href="/signup">{CTA}</Link>
+            <a className="btn btn-ghost" href="#panel">Ver cómo se ve tu día</a>
+          </div>
+          <ul className="facts">
+            {['Sin tarjeta de crédito', 'Lista en minutos', 'API oficial de Meta'].map((t) => <li key={t}><Check />{t}</li>)}
+          </ul>
+        </div>
+        <HeroScene />
+      </div>
+    </section>
+  )
+}
+
+const CHANNELS: { ch?: string; label: string; color: string; free?: boolean }[] = [
+  { ch: 'whatsapp', label: 'WhatsApp', color: '#0b7d47' },
+  { ch: 'instagram', label: 'Instagram', color: '#e0007a', free: true },
+  { ch: 'messenger', label: 'Messenger', color: '#1468d6', free: true },
+  { label: 'Telegram', color: '#2aa3e0' },
+  { label: 'Tu página de reservas', color: '#5b4fe0' },
+]
+
+function Channels() {
+  return (
+    <section className="channels" aria-label="Canales">
+      <div className="wrap">
+        <p>Contesta por</p>
+        <div className="chips">
+          {CHANNELS.map((c) => (
+            <span key={c.label} className={c.ch === 'whatsapp' ? 'chip now' : 'chip'} data-ch={c.ch} style={{ '--c': c.color } as CSSProperties}>
+              <i />{c.label}{c.free && <em>sin costo por mensaje</em>}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Steps() {
+  const steps = [
+    ['Crea tu cuenta', 'Con tu correo. Eliges tu giro y la configuración rápida crea tus servicios, tu horario y tu recepcionista.', '2 minutos'],
+    ['Conecta tus canales', 'WhatsApp con la ventana oficial de Meta. Instagram y Messenger con un botón.', 'Unos minutos'],
+    ['Tu recepcionista contesta', 'Desde ese momento agenda, confirma y recuerda. Tú la ves trabajar en tu panel.', 'De día y de noche'],
+  ]
+  return (
+    <section className="steps3" aria-labelledby="pasos-t">
+      <div className="wrap">
+        <div className="s-head"><h2 id="pasos-t">Empieza en 3 pasos</h2></div>
+        <ol className="route3">
+          {steps.map(([title, body, time], i) => (
+            <li key={title}><span className="n">{i + 1}</span><h3>{title}</h3><p>{body}</p><small>{time}</small></li>
+          ))}
+        </ol>
+        <div className="cta-row"><Link className="btn btn-primary" href="/signup">Empezar prueba gratis</Link></div>
+      </div>
+    </section>
+  )
+}
+
+const DAY: [time: string, title: string, body: string][] = [
+  ['07:10', '«¿Cuánto cuesta el tinte?»', 'Contesta con tus precios y servicios reales, antes de que abras.'],
+  ['09:00', 'Sale el recordatorio', 'Un día antes y dos horas antes. El cliente confirma con un toque.'],
+  ['13:30', 'Alguien no puede venir', 'Mueve su cita desde un enlace y el hueco queda libre para otro.'],
+  ['16:00', 'Cita con anticipo', 'Pide el comprobante, aparta el horario y te avisa cuando llega.'],
+  ['19:20', 'Un caso delicado', 'Te pasa el chat a ti cuando no debe decidir sola.'],
+  ['23:47', 'Tú ya estás dormido', 'Agenda un corte para mañana en un horario libre.'],
+]
+
+function Day() {
+  return (
+    <section className="s day" id="dia" aria-labelledby="dia-t">
+      <div className="wrap">
+        <div className="s-head">
+          <h2 id="dia-t">Un día cualquiera en tu negocio, con ChatVenti en el mostrador</h2>
+          <p>Esto pasa entre que abres y cierras, y sigue pasando cuando ya te fuiste.</p>
+        </div>
+        <ol className="route">
+          {DAY.map(([time, title, body], i) => (
+            <li key={time} className={i === DAY.length - 1 ? 'stop night' : 'stop'}>
+              <span className="t num">{time}</span><span className="dot" /><h3>{title}</h3><p>{body}</p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  )
+}
+
+function Panel() {
+  return (
+    <section className="s" id="panel" data-live aria-labelledby="panel-t">
+      <div className="wrap">
+        <div className="s-head">
+          <h2 id="panel-t">Así se ve tu día: cada profesional es una línea y cada cita, una estación</h2>
+          <p>Lo que la recepcionista agenda aparece aquí al instante. De un vistazo sabes quién está ocupado, dónde hay hueco y qué te toca hacer.</p>
+        </div>
+        <div className="board">
+          <div className="panel-plan">
+            <div className="ph"><b>Hoy, sábado</b><span className="num">13 citas · 2 sin confirmar</span></div>
+            <div className="scroll-x"><DaySvg /></div>
+            <Legend />
+          </div>
+          <div className="side">
+            <div className="avisos">
+              <h3>Avisos</h3>
+              <ul>
+                <li><span>Citas sin confirmar</span><b className="num">2</b></li>
+                <li><span>Chat que te espera</span><b className="num">1</b></li>
+                <li><span>Anticipo por revisar</span><b className="num">1</b></li>
+              </ul>
+            </div>
+            <div className="ia">
+              <h3>Recepcionista IA</h3>
+              <p>Hoy respondió <b className="num">38 mensajes</b>, agendó <b className="num">6 citas</b> y te pasó <b>1 chat</b>.</p>
+              <div className="money num">$18,450</div>
+              <small>en servicios agendados por ella este mes</small>
+            </div>
+          </div>
+        </div>
+        <p className="sample">Datos de ejemplo. Es el mismo panel que recibes al registrarte.</p>
+        <div className="callouts">
+          <div><b>Arriba, lo que pasa ahora</b><p>Quién está atendiendo y quién sigue, por profesional.</p></div>
+          <div><b>En amarillo, lo que te toca</b><p>Solo lo que espera algo de ti: confirmar, contestar, revisar un pago.</p></div>
+          <div><b>Lo que hizo la IA, con hechos</b><p>Cuántos mensajes contestó y cuánto dinero agendó por ti.</p></div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+const PEOPLE: [name: string, y: number, color: string][] = [['Karla', 66, '#e0007a'], ['Luis', 126, '#0b5bd3'], ['Sofía', 186, '#00a35c'], ['Ana', 246, '#f08c00']]
+const HOURS = ['9:00', '11:00', '13:00', '15:00', '17:00', '19:00']
+
+/** Plano de muestra del Panel: cuatro profesionales de 9:00 a 20:00, con cada estado de estación. */
+function DaySvg() {
+  const done: [number, number, string][] = [[145, 66, '#e0007a'], [250, 126, '#0b5bd3'], [180, 186, '#00a35c'], [320, 246, '#f08c00'], [355, 66, '#e0007a']]
+  const confirmed: [number, number, string][] = [[530, 66, '#e0007a'], [600, 186, '#00a35c'], [705, 246, '#f08c00'], [740, 126, '#0b5bd3']]
+  return (
+    <svg viewBox="0 0 900 300" role="img" aria-label="El día en líneas de cuatro profesionales, de 9:00 a 20:00">
+      <g fontSize="12" fill="#584d84">{HOURS.map((h, i) => <text key={h} x={110 + i * 140} y="18" textAnchor="middle">{h}</text>)}</g>
+      <g stroke="#e6e9f4" strokeWidth="1">{HOURS.map((h, i) => <line key={h} x1={110 + i * 140} y1="28" x2={110 + i * 140} y2="286" />)}</g>
+      <g fontSize="13" fontWeight="700">
+        {PEOPLE.map(([name, y, c], i) => (
+          <g key={name}>
+            <circle cx="30" cy={y} r="17" fill={c} />
+            <text x="30" y={y + 4.5} textAnchor="middle" fill="#fff">{i + 1}</text>
+            <text x="54" y={y + 4.5} fill="#2a1a5e">{name}</text>
+          </g>
+        ))}
+      </g>
+      {PEOPLE.map(([name, y, c]) => <line key={name} x1="100" y1={y} x2="880" y2={y} stroke={c} strokeWidth="8" strokeLinecap="round" />)}
+      {/* Ahora: 13:40 */}
+      <line x1="436.7" y1="28" x2="436.7" y2="286" stroke="#2a1a5e" strokeWidth="2" strokeDasharray="4 4" />
+      <rect x="408" y="270" width="58" height="22" rx="11" fill="#2a1a5e" />
+      <text x="437" y="285" textAnchor="middle" fontSize="12" fontWeight="700" fill="#fff">Ahora</text>
+      {/* Atendidas (palomita) */}
+      {done.map(([x, y, c]) => (
+        <g key={`${x}-${y}`}>
+          <circle cx={x} cy={y} r="11" fill="#fff" stroke={c} strokeWidth="4" />
+          <path d={`m${x - 5} ${y} 3.5 3.5 6-7`} fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      ))}
+      {/* En curso */}
+      <circle className="breath" cx="425" cy="126" r="12" fill="none" stroke="#2a1a5e" strokeWidth="3" />
+      <circle cx="425" cy="126" r="12" fill="#2a1a5e" stroke="#fff" strokeWidth="3" />
+      {/* Confirmadas */}
+      <g stroke="#fff" strokeWidth="3">{confirmed.map(([x, y, c]) => <circle key={`${x}-${y}`} cx={x} cy={y} r="11" fill={c} />)}</g>
+      {/* Sin confirmar */}
+      <g className="wait-blink" fill="#fff" stroke="#ffcd2e" strokeWidth="4"><circle cx="670" cy="66" r="11" /><circle cx="810" cy="186" r="11" /></g>
+      {/* No llegó */}
+      <circle cx="215" cy="246" r="11" fill="#fff" stroke="#a51b18" strokeWidth="4" />
+      <path d="m210 241 10 10m0-10-10 10" stroke="#a51b18" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function Legend() {
+  const items: [string, ReactNode][] = [
+    ['Atendida', <><circle cx="8" cy="8" r="6" fill="#fff" stroke="#2a1a5e" strokeWidth="2.5" /><path d="m5.3 8.2 1.8 1.8 3.6-3.9" fill="none" stroke="#2a1a5e" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></>],
+    ['En curso', <circle key="s" cx="8" cy="8" r="7" fill="#2a1a5e" />],
+    ['Confirmada', <circle key="s" cx="8" cy="8" r="7" fill="#0b5bd3" />],
+    ['Sin confirmar', <circle key="s" cx="8" cy="8" r="6" fill="#fff" stroke="#ffcd2e" strokeWidth="2.5" />],
+    ['No llegó', <><circle cx="8" cy="8" r="6" fill="#fff" stroke="#a51b18" strokeWidth="2.5" /><path d="m5.6 5.6 4.8 4.8m0-4.8-4.8 4.8" stroke="#a51b18" strokeWidth="1.8" strokeLinecap="round" /></>],
+  ]
+  return (
+    <div className="legend">
+      {items.map(([label, shape]) => (
+        <span key={label}><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">{shape}</svg>{label}</span>
+      ))}
+    </div>
+  )
+}
+
+/** Pictogramas al estilo de la señalética del Metro, uno por giro con landing propia. */
+const GIROS: { slug: string; title: string; body: string; color: string; picto: ReactNode }[] = [
+  { slug: 'barberia', title: 'Barberías y estéticas', body: 'Cortes, color y peinado con el profesional que el cliente pide.', color: '#e0007a', picto: <><circle cx="13" cy="35" r="6" /><circle cx="35" cy="35" r="6" /><path d="M17.5 31 37 8M30.5 31 11 8" /></> },
+  { slug: 'dentista', title: 'Dentistas', body: 'Primera consulta, limpieza y seguimiento, con su duración real.', color: '#0b5bd3', picto: <path d="M24 11c-3-3-12-4-14 3-1.7 6 2 9 3 14 1 5 1.5 12 5 12 3 0 2.5-9 6-9s3 9 6 9c3.5 0 4-7 5-12 1-5 4.7-8 3-14-2-7-11-6-14-3Z" /> },
+  { slug: 'veterinaria', title: 'Veterinarias', body: 'Consultas, vacunas y baño, con recordatorio para la próxima dosis.', color: '#00a35c', picto: <><ellipse cx="24" cy="32" rx="9" ry="7" /><circle cx="12" cy="20" r="4" /><circle cx="36" cy="20" r="4" /><circle cx="19" cy="11" r="4" /><circle cx="29" cy="11" r="4" /></> },
+  { slug: 'spa', title: 'Spas y uñas', body: 'Paquetes, servicios dobles y huecos que se llenan solos.', color: '#f08c00', picto: <><path d="M24 40c-8-4-12-10-12-17 5 0 9 3 12 8 3-5 7-8 12-8 0 7-4 13-12 17Z" /><path d="M24 31c-2.5-5-2.5-12 0-20 2.5 8 2.5 15 0 20Z" /></> },
+  { slug: 'consultorio-medico', title: 'Consultorios', body: 'Citas de primera vez y de seguimiento, sin choques de horario.', color: '#5b4fe0', picto: <><path d="M13 8v10a8 8 0 0 0 16 0V8" /><path d="M21 26v5a8 8 0 0 0 16 0v-4" /><circle cx="37" cy="23" r="4" /></> },
+]
+
+function Giros() {
+  return (
+    <section className="s giros" data-live aria-labelledby="giros-t">
+      <div className="wrap">
+        <div className="s-head">
+          <h2 id="giros-t">Hecha para negocios que viven de su agenda</h2>
+          <p>Cada giro tiene su propia forma de agendar. La recepcionista ya la conoce.</p>
+        </div>
+        <div className="giro-line">
+          <span className="rail" aria-hidden="true"><span className="train" /></span>
+          {/* Cada estación ENLAZA a su landing por giro: es la entrada a /para/* desde la home. */}
+          {GIROS.map((g) => (
+            <Link key={g.slug} className="giro" href={`/para/${g.slug}`}>
+              <span className="picto" style={{ background: g.color }}>
+                <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{g.picto}</svg>
+              </span>
+              <h3>{g.title}</h3><p>{g.body}</p><span className="go">Ver cómo funciona</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Founders({ taken }: { taken: number }) {
+  return (
+    <section className="s found" aria-labelledby="found-t">
+      <div className="wrap">
+        <div>
+          <div className="s-head">
+            <h2 id="found-t">Buscamos {FOUNDERS.seats} negocios fundadores</h2>
+            <p>Todavía no tenemos testimonios y no te vamos a inventar uno. Por eso buscamos {FOUNDERS.seats} negocios para crecer con ellos.</p>
+          </div>
+          <div className="seats" role="img" aria-label={`${FOUNDERS.seats} lugares para negocios fundadores, ${taken} ocupados`}>
+            {Array.from({ length: FOUNDERS.seats }, (_, i) => <i key={i} className={i < taken ? 'on' : undefined} />)}
+          </div>
+        </div>
+        <div className="give">
+          <h3>Lo que recibes</h3>
+          <Checks items={FOUNDERS.gives} />
+          <p className="ask"><b>Lo que te pedimos:</b> {FOUNDERS.asks.charAt(0).toLowerCase() + FOUNDERS.asks.slice(1)}</p>
+          <Link className="btn btn-primary" href={FOUNDERS.href}>{FOUNDERS.cta}</Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Close() {
+  return (
+    <section className="s close" aria-labelledby="close-t">
+      <svg className="deco" viewBox="0 0 560 300" aria-hidden="true">
+        <path pathLength={1} d="M0 240 C 160 240, 220 150, 360 170 S 520 260, 600 220" stroke="#e0007a" strokeWidth="12" fill="none" strokeLinecap="round" />
+        <path pathLength={1} d="M40 300 C 200 280, 300 230, 420 250 S 560 300, 620 290" stroke="#0b5bd3" strokeWidth="12" fill="none" strokeLinecap="round" />
+        <path pathLength={1} d="M260 0 C 300 80, 380 110, 600 90" stroke="#00a35c" strokeWidth="12" fill="none" strokeLinecap="round" />
+        <circle cx="360" cy="170" r="13" fill="#ffcd2e" stroke="#2a1a5e" strokeWidth="5" />
+        <circle cx="420" cy="250" r="13" fill="#fff" stroke="#0b5bd3" strokeWidth="6" />
+        <circle cx="440" cy="104" r="13" fill="#fff" stroke="#00a35c" strokeWidth="6" />
+      </svg>
+      <div className="wrap">
+        <h2 id="close-t">Mientras lees esto, alguien le escribe a tu competencia.</h2>
+        <p>Pon a tu recepcionista a contestar hoy y no vuelvas a perder una cita por no responder a tiempo.</p>
+        <div className="cta-row">
+          <Link className="btn btn-amber" href="/signup">{CTA}</Link>
+          <a className="btn btn-line" href="#preguntas">Tengo una duda</a>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function Footer() {
+  return (
+    <footer>
+      <div className="wrap">
+        <Logo />
+        <nav aria-label="Pie de página">
+          <a href="#dia">Cómo funciona</a>
+          <a href="#precios">Precios</a>
+          <a href="#preguntas">Preguntas</a>
+          <Link href="/login">Entrar</Link>
+          <a href={`mailto:${LEGAL.contactEmail}`}>Contacto</a>
+          <Link href="/privacy">Privacidad</Link>
+          <Link href="/terms">Términos</Link>
+        </nav>
+        {/* Enlaces por giro: entrada a las landings verticales desde todo el sitio. */}
+        <nav className="giros-nav" aria-label="ChatVenti por giro de negocio">
+          {VERTICALS.map((v) => <Link key={v.slug} href={`/para/${v.slug}`}>{v.label}</Link>)}
+        </nav>
+      </div>
+    </footer>
   )
 }
