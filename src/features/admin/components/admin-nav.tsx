@@ -14,6 +14,7 @@ const ITEMS: { href: string; label: string; icon: IconName }[] = [
   { href: '/admin/socios', label: 'Socios', icon: 'users' },
   { href: '/admin/promocion', label: 'Promoción', icon: 'megaphone' },
   { href: '/admin/conciliacion', label: 'Conciliación', icon: 'card' },
+  { href: '/admin/plantillas', label: 'Plantillas', icon: 'whatsapp' },
 ]
 
 function isActive(pathname: string, href: string): boolean {

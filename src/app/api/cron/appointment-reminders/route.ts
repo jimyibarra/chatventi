@@ -441,7 +441,16 @@ async function runClientReminders(
 
     let extId: string | null = null
     try {
-      extId = await sendToCustomerByChannel(
+      // WhatsApp: plantilla primero. Un recordatorio de «cada 6 meses» siempre
+      // cae fuera de la ventana de 24 h y el texto libre no llegaría.
+      if (item.channel_type === 'whatsapp') {
+        extId = await waSendTemplate(service, item.channel_external_id, item.send_to, 'client_reminder', {
+          clientName: item.client_name,
+          orgName: item.org_name,
+          note: item.message,
+        })
+      }
+      extId ??= await sendToCustomerByChannel(
         service,
         item.channel_type,
         item.channel_external_id,

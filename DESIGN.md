@@ -116,6 +116,9 @@ No es el escritorio encogido: es otra disposición.
 | Color de marca de un negocio: validarlo y decidir qué texto aguanta encima | `src/shared/lib/color.ts` → `safeHex`, `textOn`, `strokeOnWhite` |
 | Armazón de acceso y alta (panel violeta con el plano de muestra + formulario) | `src/features/auth/components/auth-shell.tsx`, `auth-card.tsx`, `lines-showcase.tsx` |
 | Super admin: barra de tinta con sus secciones y tablas densas | `src/features/admin/components/admin-nav.tsx`, `admin-table.tsx` |
+| Home pública «Líneas» (héroe vivo, tarifa, preguntas). Estilos solo bajo `.lx`, Rubik 800 propia (`--font-lx`) | `src/app/page.tsx`, `src/features/landing/lineas-landing.css`, `hero-scene.tsx`, `fares.tsx` |
+| Chat de ventas flotante (home y /para/*) | `src/features/landing/sales-widget.tsx` + `sales-widget.css` |
+| Plantillas de WhatsApp: catálogo, estado en Meta por negocio, «Pedir las que falten» | `src/features/agente-ia/wa-templates.ts`, `src/features/wa-plantillas/` → `/admin/plantillas` y Conexiones |
 | 404, error y error del layout raíz | `src/shared/components/error-screen.tsx` → `src/app/not-found.tsx`, `error.tsx`, `global-error.tsx` |
 
 El día se arma **en el servidor** (`buildDay`): si lo calculara el navegador, «ahora» sería otro

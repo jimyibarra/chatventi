@@ -10,9 +10,10 @@ const DESCRIPTION = 'Agenda + recepcionista IA para tu negocio, por WhatsApp, Te
 // Tipografía del diseño «Líneas» para TODA la app: acceso, alta, super admin,
 // páginas públicas del cliente final y errores. Antes solo la cargaba el panel
 // y fuera de él la variable no existía: la pila `font-sans` quedaba inválida y
-// el navegador caía a su letra por defecto (Times). La home y /para/* fijan su
-// propia letra en `.cv-landing`, así que no la usan: por eso `preload: false`
-// (precargarla ahí sería una descarga que nadie usa y Chrome la marca en consola).
+// el navegador caía a su letra por defecto (Times). La home carga su propia
+// Rubik con el 800 (`--font-lx`) y /para/* fija la suya en `.cv-landing`, así
+// que no usan esta: por eso `preload: false` (precargarla ahí sería una
+// descarga que nadie usa y Chrome la marca en consola).
 const rubik = Rubik({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],

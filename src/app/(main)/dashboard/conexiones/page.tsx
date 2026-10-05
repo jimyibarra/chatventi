@@ -11,6 +11,7 @@ import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
 import { StatusChip, type ChipTone } from '@/shared/components/ui/status-chip'
 import { channelIcon } from '@/shared/components/ui/channel'
+import { MyTemplates } from '@/features/wa-plantillas/components/my-templates'
 
 export const dynamic = 'force-dynamic'
 
@@ -61,13 +62,14 @@ export default async function ConexionesPage() {
   const supabase = await createClient()
 
   // Solo columnas NO secretas (nunca `credentials`, que trae el access_token).
-  const [{ data }, sub] = await Promise.all([
+  const [{ data }, sub, { data: orgId }] = await Promise.all([
     supabase
       .from('channels')
       .select('id, type, external_id, waba_id, display_name, status')
       .in('type', ['whatsapp', 'instagram', 'messenger'])
       .order('created_at', { ascending: false }),
     getMySubscription(),
+    supabase.rpc('get_my_org'),
   ])
   const channels = (data ?? []) as ChannelRow[]
   const whatsapp = channels.filter((c) => c.type === 'whatsapp')
@@ -98,6 +100,8 @@ export default async function ConexionesPage() {
           />
           <EmbeddedSignupButton appId={appId} configId={configId} />
         </Section>
+
+        {orgId && whatsapp.length > 0 && <MyTemplates orgId={orgId as string} />}
 
         <Section
           data-testid="social-channels"

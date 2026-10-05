@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 import { sendToCustomerByChannel } from './senders'
+import { waSendTemplate } from './wa-templates'
 import { sendEmail } from '@/features/emails/mailer'
 import { dailyReportEmail } from '@/features/emails/templates'
 import { AI_SOURCES, sumAiBookings, type AiBookingRow } from '@/features/dashboard/ai-revenue'
@@ -24,11 +25,13 @@ function firstName(name: string | null): string {
  * leads se pierden en silencio: todo el sistema de recordatorios cuelga de
  * `appointments`, así que sin cita no existen.
  *
- * 🔴 El reclamo va ANTES del envío, así que un envío fallido NO se reintenta.
- * Es deliberado: en WhatsApp, fuera de la ventana de 24 h un mensaje
- * free-form puede fallar en silencio (este proyecto aún no tiene plantillas
- * HSM aprobadas), y reintentar cada día acabaría acosando al cliente en
- * cuanto la ventana se reabriera. Un intento por conversación y punto.
+ * En WhatsApp va primero la plantilla `cv_rescate_interes_v1`: tras días de
+ * silencio la ventana de 24 h ya cerró y el texto libre no llega. Si la
+ * plantilla aún no está aprobada, se intenta el texto libre.
+ *
+ * 🔴 El reclamo va ANTES del envío, así que un envío fallido NO se reintenta:
+ * reintentar cada día acabaría acosando al cliente en cuanto la ventana se
+ * reabriera. Un intento por conversación y punto.
  */
 export async function runColdFollowups(service: ServiceClient): Promise<ColdSummary> {
   const out: ColdSummary = { sent: 0, skipped: 0, failed: 0 }
@@ -64,7 +67,13 @@ export async function runColdFollowups(service: ServiceClient): Promise<ColdSumm
 
     let extId: string | null = null
     try {
-      extId = await sendToCustomerByChannel(
+      if (item.channel_type === 'whatsapp') {
+        extId = await waSendTemplate(service, item.channel_external_id, item.send_to, 'cold_followup', {
+          clientName: item.client_name,
+          orgName: item.org_name,
+        })
+      }
+      extId ??= await sendToCustomerByChannel(
         service,
         item.channel_type,
         item.channel_external_id,

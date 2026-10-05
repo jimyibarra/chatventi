@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto'
 import { NextResponse, type NextRequest, after } from 'next/server'
-import { ensureWaTemplates } from '@/features/agente-ia/wa-templates'
+import { ensureWaTemplates, managementTokens } from '@/features/agente-ia/wa-templates'
 import { z } from 'zod'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -259,7 +259,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 9. Plantillas de recordatorio en la cuenta del negocio: Meta tarda unos
   //    minutos en aprobarlas, así que se piden ya, sin retrasar la respuesta.
   after(async () => {
-    await ensureWaTemplates(body.wabaId, mgmtToken).catch((err) =>
+    await ensureWaTemplates(body.wabaId, managementTokens(accessToken)).catch((err) =>
       console.error('[embedded-signup] plantillas', err)
     )
   })
