@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
-import { getAdminOrganizations, getOrgBilling, getPartnerOrigins, orgMonthly, orgPlanId, paysChatVenti } from '@/features/admin/service'
+import { getAdminOrganizations, getOrgBilling, getPartnerOrigins, orgMonthly, orgPlanId } from '@/features/admin/service'
+import { getStripeSnapshot } from '@/features/admin/stripe-reconcile'
 import { planById } from '@/features/billing/plans'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
@@ -10,7 +11,7 @@ export const metadata: Metadata = { title: 'Super Admin · Organizaciones' }
 export const dynamic = 'force-dynamic'
 
 export default async function AdminOrganizationsPage() {
-  const [orgs, origins, billing] = await Promise.all([getAdminOrganizations(), getPartnerOrigins(), getOrgBilling()])
+  const [orgs, origins, billing, stripe] = await Promise.all([getAdminOrganizations(), getPartnerOrigins(), getOrgBilling(), getStripeSnapshot()])
 
   return (
     <Page width="wide">
@@ -61,7 +62,9 @@ export default async function AdminOrganizationsPage() {
               const origin = origins.get(o.id)
               const includedIn = origin?.internal ? origin.name : undefined
               const bill = billing.get(o.id)
-              const monthly = orgMonthly(o, bill)
+              // Lo que paga: el importe real de Stripe; el socio externo, a precio de lista (se le factura aparte).
+              const fromStripe = stripe.monthlyByOrg.get(o.id)
+              const monthly = fromStripe ?? (origin && !origin.internal ? orgMonthly(o, bill) : null)
               return (
               <tr key={o.id} className={TR}>
                 <th scope="row" className={`${TD} ${STICKY} max-w-[15rem] text-left font-normal`}>
@@ -88,10 +91,10 @@ export default async function AdminOrganizationsPage() {
                   {includedIn ? (
                     // Lo cobra la otra plataforma: no es ingreso de ChatVenti.
                     <span className="font-normal text-ink-muted">Incluido</span>
-                  ) : o.sub_status === 'active' && !paysChatVenti(bill, origin) ? (
-                    // Cuenta propia sin cobro (demo, «ChatVenti Ventas»).
+                  ) : o.sub_status === 'active' && !monthly ? (
+                    // Activa sin cobro en Stripe: cuenta propia (demo, «ChatVenti Ventas»).
                     <span className="font-normal text-ink-muted">Sin cobro</span>
-                  ) : o.sub_status === 'active' ? (
+                  ) : monthly ? (
                     <>
                       {fmtMoney(monthly.amount)}{' '}
                       <span className="text-[12px] font-semibold text-ink-muted">{monthly.currency.toUpperCase()}</span>

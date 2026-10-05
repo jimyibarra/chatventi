@@ -1,18 +1,16 @@
 import type { Metadata } from 'next'
 import {
-  computeMrr,
   getAdminGlobalStats,
   getAdminOrganizations,
   getBillingInquiries,
-  getOrgBilling,
   getPartnerOrigins,
   internalOrgIds,
-  paysChatVenti,
 } from '@/features/admin/service'
+import { getStripeSnapshot } from '@/features/admin/stripe-reconcile'
 import { BillingInquiriesPanel } from '@/features/admin/components/billing-inquiries-panel'
 import { OrgStatusBadge } from '@/features/admin/components/org-status-badge'
 import { AdminTable, NUM, STICKY, TD, TH, TR } from '@/features/admin/components/admin-table'
-import { ButtonLink, EmptyState, Icon, KpiCell, Notice, Page, PageHeader } from '@/shared/components/ui'
+import { ButtonLink, EmptyState, Icon, KpiCell, Notice, Page, PageHeader, StatusChip } from '@/shared/components/ui'
 import { fmtInt, fmtMoney } from '@/shared/lib/format'
 
 export const metadata: Metadata = { title: 'Super Admin · Resumen' }
@@ -32,17 +30,20 @@ function GroupTitle({ id, children }: { id: string; children: React.ReactNode })
 }
 
 export default async function AdminOverviewPage() {
-  const [stats, orgs, origins, billing, inquiries] = await Promise.all([
+  const [stats, orgs, origins, inquiries, stripe] = await Promise.all([
     getAdminGlobalStats(),
     getAdminOrganizations(),
     getPartnerOrigins(),
-    getOrgBilling(),
     getBillingInquiries(),
+    getStripeSnapshot(),
   ])
   const internal = internalOrgIds(origins)
-  const mrr = computeMrr(orgs, billing, origins)
+  // El ingreso sale de Stripe (fuente de verdad del cobro), no del catálogo.
+  const mrr = stripe.mrr
+  const differences = stripe.rows.filter((r) => r.issues.length > 0).length
   const includedActive = orgs.filter((o) => o.sub_status === 'active' && internal.has(o.id)).length
-  const paying = orgs.filter((o) => o.sub_status === 'active' && paysChatVenti(billing.get(o.id), origins.get(o.id))).length
+  const paying = stripe.monthlyByOrg.size
+  const month = new Intl.DateTimeFormat('es-MX', { month: 'long', timeZone: 'UTC' }).format(new Date())
   const recent = orgs.slice(0, 8)
   const pastDue = stats.subs_past_due
 
@@ -66,23 +67,43 @@ export default async function AdminOverviewPage() {
         </Notice>
       )}
 
+      {(differences > 0 || stripe.error) && (
+        <Notice
+          tone="action"
+          className="mb-5"
+          title={stripe.error ?? `${plural(differences, 'diferencia', 'diferencias')} entre ChatVenti y Stripe`}
+          action={
+            <ButtonLink href="/admin/conciliacion" variant="secondary" size="sm">
+              Ver conciliación
+            </ButtonLink>
+          }
+        >
+          {stripe.error ? 'El ingreso mensual no se pudo calcular.' : 'Revísalas antes de confiar en las cifras de abajo.'}
+        </Notice>
+      )}
+
       <BillingInquiriesPanel rows={inquiries} />
 
       <section aria-labelledby="kpi-subs" className="mb-6">
-        <GroupTitle id="kpi-subs">Suscripciones</GroupTitle>
+        <div className="flex flex-wrap items-center gap-x-2">
+          <GroupTitle id="kpi-subs">Suscripciones</GroupTitle>
+          {stripe.mode === 'test' && (
+            <StatusChip tone="wait" className="mb-2.5">Stripe en modo prueba: no es dinero real</StatusChip>
+          )}
+        </div>
         <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <KpiCell
             label="Ingreso mensual en pesos"
             value={fmtMoney(mrr.mxn)}
             unit="MXN"
-            hint="Sin IVA; el anual repartido en 12 meses"
+            hint={`Según Stripe, sin IVA · cobrado en ${month}: ${fmtMoney(stripe.paidThisMonth.mxn)}`}
             testId="mrr-mxn"
           />
           <KpiCell
             label="Ingreso mensual en dólares"
             value={fmtMoney(mrr.usd)}
             unit="USD"
-            hint={`${plural(paying, 'negocio que paga', 'negocios que pagan')}${
+            hint={`Cobrado en ${month}: ${fmtMoney(stripe.paidThisMonth.usd)} · ${plural(paying, 'negocio que paga', 'negocios que pagan')}${
               includedActive > 0 ? ` · ${fmtInt(includedActive)} en paquetes de otra plataforma` : ''
             }`}
             testId="mrr-usd"

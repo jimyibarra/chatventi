@@ -6,9 +6,10 @@ export function fmtInt(n: number): string {
   return n.toLocaleString('en-US')
 }
 
-/** "$1,250" o "$99.50". */
+/** "$1,250" o "$99.50" (con centavos, siempre dos: nunca "$105.5"). */
 export function fmtMoney(n: number): string {
-  return `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+  const cents = !Number.isInteger(Math.round(n * 100) / 100)
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 })}`
 }
 
 /** "2 oct 2026, 10:30" en la hora de México. */

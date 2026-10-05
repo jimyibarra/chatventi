@@ -41,7 +41,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <AdminNav />
           <div className="ml-auto flex min-w-0 items-center gap-3">
-            <span className="hidden max-w-[16rem] truncate text-[13.5px] text-[#dcd8f7] lg:inline">{user.email}</span>
+            <span className="hidden max-w-[14rem] truncate text-[13.5px] text-[#dcd8f7] 2xl:inline">{user.email}</span>
             <LogoutButton className={`${buttonClass('inverse', 'sm')} focus-visible:outline-white`} />
           </div>
         </div>

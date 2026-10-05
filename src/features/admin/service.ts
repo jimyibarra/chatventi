@@ -90,15 +90,6 @@ export async function getOrgBilling(): Promise<Map<string, OrgBilling>> {
   return new Map(rows.map((r) => [r.organization_id, r]))
 }
 
-/**
- * ¿Le entra dinero a ChatVenti por este negocio? Sí si paga con Stripe o si
- * lo factura un socio EXTERNO. No si es de un socio interno (PASEN) ni si es
- * una cuenta propia sin cobro (la demo, «ChatVenti Ventas»).
- */
-export function paysChatVenti(billing: OrgBilling | undefined, origin: PartnerOrigin | undefined): boolean {
-  return Boolean(billing?.stripe) || origin?.internal === false
-}
-
 /** Plan del negocio: el del catálogo actual; si no tiene, el equivalente del legado. */
 export function orgPlanId(org: Pick<AdminOrg, 'ai_tier'>, billing?: OrgBilling): PlanId {
   return billing?.plan_id ? (billing.plan_id as PlanId) : planFromLegacyTier(org.ai_tier)
@@ -120,25 +111,6 @@ export function orgMonthly(
     (currency === 'usd' && org.has_domain && !planById(plan).includesDomain ? ADDON_DOMAIN_USD : 0)
   const monthly = billing?.billing_interval === 'year' ? periodPrice(base, 'year') / 12 : base
   return { amount: Math.round(monthly * 100) / 100, currency }
-}
-
-/**
- * MRR separado por moneda (sin convertir: cada cifra es exacta). Los negocios
- * de un socio interno (PASEN) no cuentan: ese ingreso es de la otra
- * plataforma, que es quien le cobra al cliente.
- */
-export function computeMrr(
-  orgs: AdminOrg[],
-  billing: Map<string, OrgBilling>,
-  origins: Map<string, PartnerOrigin>
-): { usd: number; mxn: number } {
-  const out = { usd: 0, mxn: 0 }
-  for (const o of orgs) {
-    if (o.sub_status !== 'active' || !paysChatVenti(billing.get(o.id), origins.get(o.id))) continue
-    const m = orgMonthly(o, billing.get(o.id))
-    out[m.currency] += m.amount
-  }
-  return { usd: Math.round(out.usd * 100) / 100, mxn: Math.round(out.mxn * 100) / 100 }
 }
 
 /** Negocio que llegó por un socio: nombre del socio y si es interno (Grupo ELRI). */

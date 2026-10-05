@@ -13,6 +13,7 @@ const ITEMS: { href: string; label: string; icon: IconName }[] = [
   { href: '/admin/agente', label: 'Agente IA', icon: 'robot' },
   { href: '/admin/socios', label: 'Socios', icon: 'users' },
   { href: '/admin/promocion', label: 'Promoción', icon: 'megaphone' },
+  { href: '/admin/conciliacion', label: 'Conciliación', icon: 'card' },
 ]
 
 function isActive(pathname: string, href: string): boolean {
@@ -38,7 +39,7 @@ export function AdminNav() {
     <nav aria-label="Secciones del super admin" className="order-last -mx-4 min-w-0 basis-[calc(100%+2rem)] md:order-none md:mx-0 md:basis-auto md:flex-1">
       <ul
         ref={listRef}
-        className="flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:overflow-visible md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden"
+        className="flex gap-1 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:px-0 md:pb-0 [&::-webkit-scrollbar]:hidden"
       >
         {ITEMS.map((item) => {
           const active = isActive(pathname, item.href)
