@@ -47,7 +47,7 @@ repositorio. Si se pierde o se filtra, se suspende el socio y se crea otro.
 |---|---|---|
 | `externalId` | sí | Id del negocio en el sistema del socio. **Repetir el alta con el mismo id devuelve el mismo negocio** (`created: false`), así que es seguro reintentar. |
 | `name` | sí | 2–80 caracteres. |
-| `ownerEmail` | sí | Debe ser un correo **sin cuenta previa** en ChatVenti (`409 owner_email_in_use` si ya existe). |
+| `ownerEmail` | sí | Debe ser un correo **sin cuenta previa** en ChatVenti (`409 owner_email_in_use` si ya existe). Se compara sin «+etiqueta» y, en Gmail, sin puntos: `ana+pasen@x.com` cuenta como `ana@x.com`. |
 | `plan` | no | `arranque` (por defecto), `negocio`, `profesional` o `multisede`. |
 | `businessType` | no | Plantilla del agente: `barberia_estetica`, `dental`, `veterinaria`, `spa_unas`, `medico`, `generico`. |
 | `country` | no | Código de dos letras (`MX`, `US`, `ES`…). |
@@ -76,7 +76,7 @@ Respuesta `201`:
 - `bookingUrl` es la misma agenda como página suelta (`chatventi.com/r/…`). Sirve para Instagram o Google cuando el negocio no tiene página; con `siteUrl`, el dueño ya no la ve como principal.
 - `setPasswordUrl` es un enlace **de un solo uso** para que el dueño elija su contraseña y entre a su panel. Solo llega en el alta (`created: true`). Trátalo como una credencial: mándaselo al dueño y no lo guardes.
 
-El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tarjeta.
+El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tarjeta. Nace **listo para agendar**: con los servicios típicos de su giro (`businessType`), horario de lunes a sábado de 9:00 a 19:00, un primer profesional (el dueño) y la recepcionista encendida. El dueño lo ajusta después en su panel; nada de eso se vuelve a sembrar si ya lo cambió.
 
 ## Listado
 
@@ -110,7 +110,7 @@ El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tar
   es `null` (no le paga nada a ChatVenti).
 - `usage.extraReplies` es lo que el socio interno le cobra a su cliente, al precio que él fije
   (referencia: $0.037 MXN por respuesta, $37 por cada 1,000, más IVA). Léelo cuando
-  `usage.closed` sea `true`: el mes ya cerró y la cifra no cambia. `extraReplyPriceUsd` y
+  `usage.closed` sea `true`: el mes ya cerró y la cifra no cambia. Un mes ya terminado sin ninguna respuesta (por ejemplo, anterior al alta) responde `closed: true` con ceros. `extraReplyPriceUsd` y
   `overageUsd` son el precio de ChatVenti a un socio externo, en dólares; un interno los ignora.
 
 ## Suspender, reactivar o cambiar de plan

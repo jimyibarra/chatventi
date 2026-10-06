@@ -1,7 +1,9 @@
 'use server'
 
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import type { Database } from '@/lib/supabase/database.types'
 import { BUSINESS_TEMPLATES } from '@/features/agente-ia/business-templates'
 import { STARTER_HOURS, STARTER_SERVICES } from './starter-data'
 
@@ -35,7 +37,21 @@ export async function runQuickSetup(): Promise<QuickSetupResult> {
   if (!orgId || (profile.role !== 'owner' && profile.role !== 'manager')) {
     return { ok: false, error: 'Solo el dueño o un gerente pueden hacer esto.' }
   }
+  const result = await seedOrganization(supabase, orgId, profile.full_name)
+  if (result.ok) revalidatePath('/dashboard', 'layout')
+  return result
+}
 
+/**
+ * La siembra en sí, con el cliente que se le dé: la sesión del dueño (alta
+ * normal) o service_role (alta por la API de socios, donde nadie ha iniciado
+ * sesión todavía y la agenda debe funcionar desde el primer minuto).
+ */
+export async function seedOrganization(
+  supabase: SupabaseClient<Database>,
+  orgId: string,
+  ownerName: string | null
+): Promise<QuickSetupResult> {
   const [{ data: org }, { data: branch }] = await Promise.all([
     supabase.from('organizations').select('name, business_type').eq('id', orgId).maybeSingle(),
     supabase.from('branches').select('id').eq('organization_id', orgId).order('created_at').limit(1).maybeSingle(),
@@ -44,7 +60,6 @@ export async function runQuickSetup(): Promise<QuickSetupResult> {
   // Copias con tipo firme: dentro de las funciones de abajo TypeScript ya no
   // recuerda que estas dos no son nulas.
   const oid: string = orgId
-  const ownerName = profile.full_name
   const branchId: string = branch.id
 
   const template = BUSINESS_TEMPLATES.find((t) => t.key === org?.business_type) ?? BUSINESS_TEMPLATES.find((t) => t.key === 'generico')
@@ -136,7 +151,5 @@ export async function runQuickSetup(): Promise<QuickSetupResult> {
   const done = (await Promise.all([services(), hours(), professional(), receptionist()])).filter(
     (x): x is string => x !== null
   )
-
-  revalidatePath('/dashboard', 'layout')
   return { ok: true, done }
 }

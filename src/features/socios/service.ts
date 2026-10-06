@@ -1,5 +1,6 @@
 import 'server-only'
 import { createHash, randomBytes } from 'node:crypto'
+import { seedOrganization } from '@/features/onboarding/quick-setup'
 import { NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -102,6 +103,16 @@ export const createOrgSchema = z.object({
   siteUrl: z.string().trim().url().max(300).optional(),
 })
 
+/** Mismo criterio que public.canonical_email: minúsculas, sin +etiqueta y, en Gmail, sin puntos. */
+function canonicalEmail(email: string): string {
+  const e = email.trim().toLowerCase()
+  const at = e.indexOf('@')
+  if (at < 1) return e
+  const local = e.slice(0, at).split('+')[0]
+  const domain = e.slice(at + 1) === 'googlemail.com' ? 'gmail.com' : e.slice(at + 1)
+  return domain === 'gmail.com' ? `${local.replace(/[.]/g, '')}@gmail.com` : `${local}@${domain}`
+}
+
 function slugFor(name: string): string {
   const base = name
     .normalize('NFD')
@@ -157,7 +168,17 @@ export async function createPartnerOrganization(
 
   // El dueño es una cuenta NUEVA. Si el correo ya tiene cuenta en ChatVenti
   // no se le adjunta nada: hacerlo dejaría que un socio "reclamara" la cuenta
-  // de otra persona con solo conocer su correo.
+  // de otra persona con solo conocer su correo. Se compara el correo CANÓNICO
+  // (sin +etiqueta; Gmail sin puntos), que es lo que profiles exige único: así
+  // «ana+pasen@x.com» con «ana@x.com» ya registrada da 409 y no un 500 que el
+  // socio reintentaría para siempre.
+  const { data: dup } = await service
+    .from('profiles')
+    .select('id')
+    .eq('email_canonical', canonicalEmail(input.ownerEmail))
+    .limit(1)
+    .maybeSingle()
+  if (dup) return apiError('owner_email_in_use', 409, 'Ese correo ya tiene una cuenta en ChatVenti. Usa otro correo para el dueño.')
   const { data: created, error: userErr } = await service.auth.admin.createUser({
     email: input.ownerEmail,
     email_confirm: true,
@@ -195,6 +216,10 @@ export async function createPartnerOrganization(
   if (!orgId) {
     // Sin negocio, la cuenta recién creada quedaría huérfana: se retira.
     await service.auth.admin.deleteUser(userId).catch(() => null)
+    // Respaldo del chequeo de arriba (carrera entre dos altas con el mismo correo canónico).
+    if (lastError.includes('profiles_email_canonical_key')) {
+      return apiError('owner_email_in_use', 409, 'Ese correo ya tiene una cuenta en ChatVenti. Usa otro correo para el dueño.')
+    }
     console.error('[socios] alta fallida', lastError)
     // Dos altas simultáneas con el mismo externalId: gana una; la otra lee su resultado.
     const raced = await loadOrg(service, partner.id, { ref: input.externalId })
@@ -203,6 +228,9 @@ export async function createPartnerOrganization(
   }
 
   if (input.siteUrl) await service.from('organizations').update({ site_url: input.siteUrl }).eq('id', orgId)
+  // Servicios, horario, primer profesional y recepcionista del giro: la agenda
+  // del negocio funciona desde el primer minuto, igual que en el alta normal.
+  await seedOrganization(service, orgId, input.ownerName ?? null).catch((err) => console.error('[socios] siembra', err))
 
   // Enlace de un solo uso para que el dueño elija su contraseña.
   const { data: link } = await service.auth.admin.generateLink({ type: 'recovery', email: input.ownerEmail })
@@ -292,7 +320,9 @@ export async function getPartnerOrganization(
       extraReplies: over.extra,
       extraReplyPriceUsd: Number(EXTRA_REPLY_PRICE_USD.toFixed(5)),
       overageUsd: over.charge,
-      closed: usageRow ? usageRow.status !== 'open' : false,
+      // Sin fila no hubo respuestas (la fila la crea el primer uso): un mes ya
+      // terminado se da por cerrado con ceros, también si es anterior al alta.
+      closed: usageRow ? usageRow.status !== 'open' : to <= new Date().toISOString(),
     },
     activity: { appointmentsCreated: appts.count ?? 0, conversationsActive: convs.count ?? 0 },
     // Un socio interno no le paga nada a ChatVenti: no hay precio que mostrarle.
