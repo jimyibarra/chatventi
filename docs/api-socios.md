@@ -38,7 +38,8 @@ repositorio. Si se pierde o se filtra, se suspende el socio y se crea otro.
   "businessType": "spa_unas",
   "country": "MX",
   "city": "Puebla",
-  "phone": "2221234567"
+  "phone": "2221234567",
+  "siteUrl": "https://esteticalumen.pasen.mx"
 }
 ```
 
@@ -51,6 +52,7 @@ repositorio. Si se pierde o se filtra, se suspende el socio y se crea otro.
 | `businessType` | no | Plantilla del agente: `barberia_estetica`, `dental`, `veterinaria`, `spa_unas`, `medico`, `generico`. |
 | `country` | no | Código de dos letras (`MX`, `US`, `ES`…). |
 | `ownerName`, `city`, `phone` | no | |
+| `siteUrl` | no | La página web del negocio en el sistema del socio (`https://…`, máx. 300). Con ella, ChatVenti le dice al dueño que sus reservas viven en esa página y deja de ofrecerle el enlace `chatventi.com/r/…` como principal. |
 
 Respuesta `201`:
 
@@ -61,21 +63,24 @@ Respuesta `201`:
   "name": "Estética Lumen",
   "plan": "negocio",
   "status": "active",
+  "siteUrl": "https://esteticalumen.pasen.mx",
   "bookingUrl": "https://www.chatventi.com/r/estetica-lumen-3fa1",
+  "widgetSnippet": "<script src=\"https://www.chatventi.com/widget.js\" data-slug=\"estetica-lumen-3fa1\" async></script>",
   "dashboardUrl": "https://www.chatventi.com/dashboard",
   "created": true,
   "setPasswordUrl": "https://www.chatventi.com/auth/confirm?token_hash=…&type=recovery"
 }
 ```
 
-- `bookingUrl` es la página de reservas del negocio: sirve para incrustarla o enlazarla desde el sitio que arma el socio.
+- `widgetSnippet` es lo que el socio pega en el sitio del negocio: pone un botón «Reservar cita» que abre la agenda encima de la página, sin que el visitante salga del sitio. Es la forma recomendada: la visita se queda en la página del negocio y la agenda es la misma que usa la recepcionista en WhatsApp (no hay citas dobles). El socio **no** necesita un módulo de citas propio.
+- `bookingUrl` es la misma agenda como página suelta (`chatventi.com/r/…`). Sirve para Instagram o Google cuando el negocio no tiene página; con `siteUrl`, el dueño ya no la ve como principal.
 - `setPasswordUrl` es un enlace **de un solo uso** para que el dueño elija su contraseña y entre a su panel. Solo llega en el alta (`created: true`). Trátalo como una credencial: mándaselo al dueño y no lo guardes.
 
 El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tarjeta.
 
 ## Listado
 
-`GET /organizations` → `{ "organizations": [ { id, externalId, name, plan, status, bookingUrl, dashboardUrl } ] }`
+`GET /organizations` → `{ "organizations": [ { id, externalId, name, plan, status, siteUrl, bookingUrl, widgetSnippet, dashboardUrl } ] }`
 
 ## Estado, consumo y actividad de un negocio
 
@@ -110,7 +115,7 @@ El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tar
 
 ## Suspender, reactivar o cambiar de plan
 
-`PATCH /organizations/{id}` con `{ "status": "suspended" }`, `{ "status": "active" }` o `{ "plan": "profesional" }` (se pueden combinar).
+`PATCH /organizations/{id}` con `{ "status": "suspended" }`, `{ "status": "active" }`, `{ "plan": "profesional" }` o `{ "siteUrl": "https://…" }` (`null` la quita). Se pueden combinar.
 
 Un negocio suspendido pierde el acceso al panel y su recepcionista deja de responder; **sus datos se conservan**. Al dueño se le dice que escriba a su proveedor, no se le ofrece contratar directo con ChatVenti.
 

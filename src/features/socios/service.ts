@@ -98,6 +98,8 @@ export const createOrgSchema = z.object({
   country: z.string().trim().length(2).optional(),
   city: z.string().trim().max(60).optional(),
   phone: z.string().trim().max(20).optional(),
+  /** Página web del negocio en el sistema del socio (p. ej. https://negocio.pasen.mx). */
+  siteUrl: z.string().trim().url().max(300).optional(),
 })
 
 function slugFor(name: string): string {
@@ -111,14 +113,19 @@ function slugFor(name: string): string {
   return `${base || 'negocio'}-${randomBytes(2).toString('hex')}`
 }
 
-function describeOrg(org: { id: string; name: string; web_slug: string | null; partner_ref: string | null }, sub: { status: string; plan_id: string | null } | null) {
+type OrgRow = { id: string; name: string; web_slug: string | null; partner_ref: string | null; site_url: string | null }
+
+function describeOrg(org: OrgRow, sub: { status: string; plan_id: string | null } | null) {
   return {
     id: org.id,
     externalId: org.partner_ref,
     name: org.name,
     plan: sub?.plan_id ?? null,
     status: sub?.status === 'active' ? 'active' : 'suspended',
+    siteUrl: org.site_url,
     bookingUrl: org.web_slug ? `${SITE}/r/${org.web_slug}` : null,
+    // Botón «Reservar cita» para el sitio del socio: abre la agenda encima, sin salir de la página.
+    widgetSnippet: org.web_slug ? `<script src="${SITE}/widget.js" data-slug="${org.web_slug}" async></script>` : null,
     dashboardUrl: `${SITE}/dashboard`,
   }
 }
@@ -126,7 +133,7 @@ function describeOrg(org: { id: string; name: string; web_slug: string | null; p
 async function loadOrg(service: Service, partnerId: string, filter: { id?: string; ref?: string }) {
   let q = service
     .from('organizations')
-    .select('id, name, web_slug, partner_ref, created_at')
+    .select('id, name, web_slug, partner_ref, site_url, created_at')
     .eq('partner_id', partnerId)
   q = filter.id ? q.eq('id', filter.id) : q.eq('partner_ref', filter.ref ?? '')
   const { data: org } = await q.maybeSingle()
@@ -195,6 +202,8 @@ export async function createPartnerOrganization(
     return apiError('create_failed', 500)
   }
 
+  if (input.siteUrl) await service.from('organizations').update({ site_url: input.siteUrl }).eq('id', orgId)
+
   // Enlace de un solo uso para que el dueño elija su contraseña.
   const { data: link } = await service.auth.admin.generateLink({ type: 'recovery', email: input.ownerEmail })
   const hashed = link?.properties?.hashed_token
@@ -217,7 +226,7 @@ export async function createPartnerOrganization(
 export async function listPartnerOrganizations(service: Service, partner: Partner): Promise<NextResponse> {
   const { data: orgs } = await service
     .from('organizations')
-    .select('id, name, web_slug, partner_ref')
+    .select('id, name, web_slug, partner_ref, site_url')
     .eq('partner_id', partner.id)
     .order('created_at')
     .limit(1000)
@@ -295,8 +304,10 @@ export const updateOrgSchema = z
   .object({
     status: z.enum(['active', 'suspended']).optional(),
     plan: z.enum(PLAN_IDS).optional(),
+    /** Página web del negocio; `null` la quita. */
+    siteUrl: z.string().trim().url().max(300).nullable().optional(),
   })
-  .refine((v) => v.status || v.plan, 'Indica status o plan')
+  .refine((v) => v.status || v.plan || v.siteUrl !== undefined, 'Indica status, plan o siteUrl')
 
 export async function updatePartnerOrganization(
   service: Service,
@@ -308,18 +319,24 @@ export async function updatePartnerOrganization(
   const found = await loadOrg(service, partner.id, { id: orgId })
   if (!found) return apiError('not_found', 404)
 
-  const { error } = await service
-    .from('subscriptions')
-    .update({
-      // Suspender = sin acceso al panel y sin recepcionista, con los datos intactos.
-      ...(input.status ? { status: input.status === 'active' ? 'active' : 'canceled' } : {}),
-      ...(input.plan ? { plan_id: input.plan } : {}),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('organization_id', orgId)
-    // Solo suscripciones administradas por el socio: nunca una de Stripe.
-    .is('stripe_subscription_id', null)
-  if (error) return apiError('update_failed', 500)
+  if (input.siteUrl !== undefined) {
+    const { error } = await service.from('organizations').update({ site_url: input.siteUrl }).eq('id', orgId)
+    if (error) return apiError('update_failed', 500)
+  }
+  if (input.status || input.plan) {
+    const { error } = await service
+      .from('subscriptions')
+      .update({
+        // Suspender = sin acceso al panel y sin recepcionista, con los datos intactos.
+        ...(input.status ? { status: input.status === 'active' ? 'active' : 'canceled' } : {}),
+        ...(input.plan ? { plan_id: input.plan } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('organization_id', orgId)
+      // Solo suscripciones administradas por el socio: nunca una de Stripe.
+      .is('stripe_subscription_id', null)
+    if (error) return apiError('update_failed', 500)
+  }
 
   const fresh = await loadOrg(service, partner.id, { id: orgId })
   return fresh ? json(describeOrg(fresh.org, fresh.sub)) : apiError('not_found', 404)

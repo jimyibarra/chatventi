@@ -1055,6 +1055,7 @@ export type Database = {
           referral_code: string | null
           referred_by: string | null
           signup_ref: string | null
+          site_url: string | null
           trial_ai_capped_at: string | null
           trial_ai_messages_used: number
           trial_ended_email_sent_at: string | null
@@ -1089,6 +1090,7 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           signup_ref?: string | null
+          site_url?: string | null
           trial_ai_capped_at?: string | null
           trial_ai_messages_used?: number
           trial_ended_email_sent_at?: string | null
@@ -1123,6 +1125,7 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           signup_ref?: string | null
+          site_url?: string | null
           trial_ai_capped_at?: string | null
           trial_ai_messages_used?: number
           trial_ended_email_sent_at?: string | null

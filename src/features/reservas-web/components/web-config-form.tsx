@@ -22,10 +22,16 @@ export function WebConfigForm({
   orgId,
   webSlug,
   branding,
+  siteUrl = null,
+  partnerName = null,
 }: {
   orgId: string
   webSlug: string | null
   branding: Branding
+  /** Página web del negocio (la del socio o la propia). Con ella, el widget manda. */
+  siteUrl?: string | null
+  /** Socio interno que hizo esa página (PASEN): ya trae el botón de reservar. */
+  partnerName?: string | null
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -69,7 +75,7 @@ export function WebConfigForm({
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="Tu página de reservas" description="Lo que ven tus clientes al reservar: tu enlace, tu color, tu logo y una frase sobre tu negocio.">
+      <Section title="Tu agenda en línea" description="Lo que ven tus clientes al reservar: tu color, tu logo y una frase sobre tu negocio. El enlace es la dirección de la agenda; también la usa el botón de tu página web.">
         <div className="space-y-4">
           <Field label="Enlace" hint="De 3 a 40 caracteres: minúsculas, números y guiones. Es la dirección que compartirás.">
             <span className="flex min-h-[44px] items-stretch overflow-hidden rounded-[13px] border-2 border-[#d6dbec] bg-white transition-[border-color,box-shadow] duration-150 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/15 hover:border-[#bfc5dd] md:min-h-[40px]">
@@ -167,40 +173,56 @@ export function WebConfigForm({
         </Section>
 
         {publicUrl ? (
-          <Section title="Comparte tu página">
-            <div className="space-y-4">
-              <div>
-                <p className="mb-1.5 text-[13.5px] font-semibold text-ink">Enlace público</p>
-                <div className="flex items-center gap-2 rounded-[13px] bg-surface py-1.5 pl-3.5 pr-1.5">
-                  <a
-                    href={publicUrl}
-                    target="_blank"
-                    rel="noopener"
-                    className="min-w-0 flex-1 truncate text-[14px] font-semibold text-brand-700 underline-offset-2 hover:underline"
-                  >
-                    {publicUrl}
-                  </a>
-                  <Button variant="ghost" size="sm" onClick={() => copy(publicUrl, 'url')}>
-                    <Icon name={copied === 'url' ? 'check' : 'copy'} className="h-4 w-4" />
-                    {copied === 'url' ? '¡Copiado!' : 'Copiar'}
-                  </Button>
-                </div>
-              </div>
-              <div>
-                <p className="mb-1.5 text-[13.5px] font-semibold text-ink">Widget para tu sitio web</p>
-                <div className="flex items-center gap-2 rounded-[13px] bg-surface py-1.5 pl-3.5 pr-1.5">
+          <>
+            {/* Primero la página web del negocio (ahí se queda la visita); el enlace suelto es el plan B. */}
+            <Section title="Reservar desde tu página web" data-testid="web-site">
+              {siteUrl ? (
+                <p className="text-[14.5px] leading-relaxed text-ink">
+                  Tus clientes reservan en{' '}
+                  <a href={siteUrl} target="_blank" rel="noopener" className="font-semibold text-brand-700 underline-offset-2 hover:underline">{siteUrl}</a>
+                  {partnerName ? `. La hizo ${partnerName} y ya trae el botón «Reservar cita» conectado a esta agenda.` : ', con el botón «Reservar cita» de abajo.'}
+                </p>
+              ) : (
+                <p className="text-[14.5px] leading-relaxed text-ink-muted">
+                  Si tienes página web, pega este código y aparece un botón «Reservar cita» que abre tu agenda sin que el cliente salga de tu página.
+                </p>
+              )}
+              {(!siteUrl || !partnerName) && (
+                <div className="mt-3 flex items-center gap-2 rounded-[13px] bg-surface py-1.5 pl-3.5 pr-1.5">
                   <code className="min-w-0 flex-1 truncate font-mono text-[12.5px] text-ink-muted">{widgetSnippet}</code>
                   <Button variant="ghost" size="sm" onClick={() => copy(widgetSnippet!, 'widget')}>
                     <Icon name={copied === 'widget' ? 'check' : 'copy'} className="h-4 w-4" />
                     {copied === 'widget' ? '¡Copiado!' : 'Copiar'}
                   </Button>
                 </div>
-              </div>
-            </div>
-          </Section>
+              )}
+            </Section>
+            <Section title="Enlace para Instagram y Google" data-testid="web-link">
+              {siteUrl ? (
+                <p className="text-[14.5px] leading-relaxed text-ink-muted">
+                  Pon tu página en tu biografía de Instagram y en tu ficha de Google: <span className="font-semibold text-ink">{siteUrl}</span>. Ahí mismo reservan.
+                </p>
+              ) : (
+                <>
+                  <p className="mb-2 text-[14.5px] leading-relaxed text-ink-muted">
+                    Solo si no tienes página web: este enlace abre tu agenda sola. Ponlo en tu biografía de Instagram y en tu ficha de Google.
+                  </p>
+                  <div className="flex items-center gap-2 rounded-[13px] bg-surface py-1.5 pl-3.5 pr-1.5">
+                    <a href={publicUrl} target="_blank" rel="noopener" className="min-w-0 flex-1 truncate text-[14px] font-semibold text-brand-700 underline-offset-2 hover:underline">
+                      {publicUrl}
+                    </a>
+                    <Button variant="ghost" size="sm" onClick={() => copy(publicUrl, 'url')}>
+                      <Icon name={copied === 'url' ? 'check' : 'copy'} className="h-4 w-4" />
+                      {copied === 'url' ? '¡Copiado!' : 'Copiar'}
+                    </Button>
+                  </div>
+                </>
+              )}
+            </Section>
+          </>
         ) : (
           <Notice tone="info" title="Aún no está publicada">
-            Elige tu enlace y guarda: aquí aparecerán la dirección para compartir y el código del widget.
+            Elige tu enlace y guarda: aquí aparecerán el botón para tu página web y el enlace para Instagram y Google.
           </Notice>
         )}
       </div>
