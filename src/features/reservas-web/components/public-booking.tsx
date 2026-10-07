@@ -10,7 +10,7 @@ import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
 import { fmtMoney } from '@/shared/lib/format'
 
-type Service = { id: string; name: string; duration_minutes: number; price: number | null }
+type Service = { id: string; name: string; duration_minutes: number; price: number | null; price_text?: string | null }
 type Resource = { id: string; name: string; photo_url: string | null; service_ids: string[] }
 type Slot = { slot_start: string; slot_end: string; resource_id: string | null }
 
@@ -229,7 +229,7 @@ export function PublicBooking({
                   <span className="min-w-0 flex-1">
                     <span className="block text-[15px] font-semibold leading-snug">{s.name}</span>
                     <span className={`block text-[13px] tabular-nums ${on ? 'opacity-90' : 'text-ink-muted'}`}>
-                      {s.duration_minutes} min{s.price != null ? ` · ${fmtMoney(s.price)}` : ''}
+                      {s.duration_minutes} min{s.price_text ? ` · ${s.price_text}` : s.price != null ? ` · ${fmtMoney(s.price)}` : ''}
                     </span>
                   </span>
                   <Icon name={on ? 'check' : 'plus'} className="h-[18px] w-[18px]" strokeWidth={2.4} />

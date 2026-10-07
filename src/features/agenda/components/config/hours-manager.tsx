@@ -9,9 +9,12 @@ import { CARD_SHADOW, buttonClass, CHECKBOX, CONTROL, CONTROL_H } from '@/shared
 export function HoursManager({
   branchId,
   hours,
+  lockedBy = null,
 }: {
   branchId: string
   hours: BusinessHour[]
+  /** Nombre del socio que administra el horario: se muestra sin editar. */
+  lockedBy?: string | null
 }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
@@ -38,9 +41,23 @@ export function HoursManager({
     <section className={`rounded-card bg-white p-4 md:p-5 ${CARD_SHADOW}`}>
       <h2 className="mb-3 text-[1.15rem] font-bold leading-tight text-ink">Horario de la sucursal</h2>
       {error && <p className="mb-2 text-sm text-[#a51b18]">{error}</p>}
+      {lockedBy && (
+        <p className="mb-3 rounded-[14px] bg-[#fff4d6] px-3.5 py-3 text-[14.5px] text-ink">
+          Tu horario se edita en tu panel de {lockedBy}.
+        </p>
+      )}
       <div className="divide-y divide-line">
         {WEEKDAYS.map((label, weekday) => {
           const h = byDay.get(weekday)
+          if (lockedBy) {
+            const closed = h?.is_closed ?? h === undefined
+            return (
+              <div key={weekday} className="flex items-center gap-3 py-2.5 text-[15px] first:pt-0 last:pb-0 tabular-nums" data-testid={`hour-row-${weekday}`}>
+                <span className={`w-24 font-semibold ${closed ? 'text-ink-muted' : 'text-ink'}`}>{label}</span>
+                <span className="text-ink-muted">{closed ? 'Cerrado' : `${h?.open_time?.slice(0, 5)} – ${h?.close_time?.slice(0, 5)}`}</span>
+              </div>
+            )
+          }
           return (
             <HourRow
               key={weekday}

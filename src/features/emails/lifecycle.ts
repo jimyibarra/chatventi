@@ -29,10 +29,13 @@ export async function runDashboardLifecycleEmails(userId: string): Promise<void>
 
     const { data: org } = await admin
       .from('organizations')
-      .select('name, contact_email, welcome_email_sent_at, onboarding_email_sent_at')
+      .select('name, contact_email, welcome_email_sent_at, onboarding_email_sent_at, partner_id')
       .eq('id', orgId)
       .maybeSingle()
     if (!org?.contact_email) return
+    // Negocio de un socio (PASEN): sin prueba gratis ni ofertas de ChatVenti;
+    // su bienvenida se la manda el socio.
+    if (org.partner_id) return
     if (org.welcome_email_sent_at && org.onboarding_email_sent_at) return
 
     // 1) Bienvenida.

@@ -21,7 +21,7 @@ type Branding = {
 type Ctx = {
   org: { name: string; branding: Branding }
   branch: { id: string; name: string; timezone: string } | null
-  services: { id: string; name: string; duration_minutes: number; price: number | null }[]
+  services: { id: string; name: string; duration_minutes: number; price: number | null; price_text?: string | null }[]
   resources: { id: string; name: string; photo_url: string | null; service_ids: string[] }[]
 }
 

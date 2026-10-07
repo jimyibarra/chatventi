@@ -30,6 +30,8 @@ export type RateBucket =
   | 'partner_api'
   // «Aclarar este pago»: cada una manda un correo a soporte.
   | 'billing_inquiry'
+  // Pases de entrada de un socio: tope por negocio para que no se fabriquen en bucle.
+  | 'partner_login'
 
 export interface RateLimitOptions {
   bucket: RateBucket

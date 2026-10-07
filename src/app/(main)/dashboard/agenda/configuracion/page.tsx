@@ -3,6 +3,7 @@ import { ServiceManager } from '@/features/agenda/components/config/service-mana
 import { HoursManager } from '@/features/agenda/components/config/hours-manager'
 import { getBranches, getServices, getBusinessHours } from '@/features/agenda/services'
 import { getResourceLabel } from '@/features/profesionales/services'
+import { internalPartnerName } from '@/features/socios/service'
 import { DepositSettings } from '@/features/anticipos/components/deposit-settings'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
 import { Section } from '@/shared/components/ui/card'
@@ -33,10 +34,12 @@ export default async function AgendaConfigPage() {
     getResourceLabel(supabase),
     supabase
       .from('organizations')
-      .select('deposit_bank_details, deposit_hold_minutes, deposit_cancel_hours')
+      .select('deposit_bank_details, deposit_hold_minutes, deposit_cancel_hours, catalog_managed_by_partner, partner_id')
       .eq('id', branch.organization_id)
       .maybeSingle(),
   ])
+  // Catálogo que manda el socio (PASEN): servicios y horario de solo lectura.
+  const lockedBy = depositCfg?.catalog_managed_by_partner && depositCfg.partner_id ? ((await internalPartnerName(depositCfg.partner_id)) ?? 'tu proveedor') : null
 
   return (
     <Page width="wide">
@@ -50,8 +53,8 @@ export default async function AgendaConfigPage() {
           Columna estrecha: el horario de cada profesional vive en su ficha. */}
       <div className="grid grid-cols-[minmax(0,1fr)] items-start gap-4 lg:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
         <div className="min-w-0 space-y-4">
-          <ServiceManager services={services} />
-          <HoursManager branchId={branch.id} hours={hours} />
+          <ServiceManager services={services} lockedBy={lockedBy} />
+          <HoursManager branchId={branch.id} hours={hours} lockedBy={lockedBy} />
           <DepositSettings
             bankDetails={depositCfg?.deposit_bank_details ?? null}
             holdMinutes={depositCfg?.deposit_hold_minutes ?? 120}

@@ -135,6 +135,40 @@ Al **externo**, el día 1 de cada mes (o el siguiente en que corra el cierre) se
 
 Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsApp Business de cada negocio**. Ni ChatVenti ni el socio pueden cobrarlos ni revenderlos: lo prohíben los términos de Meta para proveedores tecnológicos (cláusula «No Resale»). Lo que el socio vende es el servicio (sitio, agenda, recepcionista), no los mensajes.
 
+## Catálogo del negocio desde el socio
+
+`PUT /organizations/{id}/catalog` — el dueño captura servicios y horario **una sola vez**, en el panel del socio; el socio los manda aquí al dar de alta y cada vez que el dueño guarda. Lo recibido **reemplaza** lo anterior.
+
+```json
+{
+  "services": [
+    { "externalId": "svc-8f2a", "name": "Corte de cabello", "description": null,
+      "durationMinutes": 30, "price": 250, "priceText": "Desde $250", "active": true, "position": 0 }
+  ],
+  "hours": [
+    { "weekday": 1, "opens": "09:00", "closes": "19:00", "closed": false }
+  ]
+}
+```
+
+- Las dos llaves son opcionales: sin `services` no se tocan los servicios; sin `hours`, no se toca el horario.
+- `services` es la lista completa (máximo 100; nombre de 1 a 120, descripción hasta 600, `durationMinutes` de 5 a 600). Se crea o actualiza por `externalId`; lo que ya no venga queda **inactivo** (no se borra: tiene citas). `price` en MXN o `null`; `priceText` es el precio tal como lo escribió el dueño y manda al mostrarlo.
+- `hours` trae los 7 días (`weekday` 0–6, domingo = 0), un tramo por día, `HH:MM` con `opens < closes`; `closed: true` lleva `opens` y `closes` en `null`. Se escribe en la sucursal principal. Si el negocio solo tiene el profesional que sembró el alta y nadie le editó su horario, ese horario se alinea al nuevo.
+- Idempotente: mandar lo mismo dos veces no cambia nada.
+- Desde la primera llamada, los servicios y el horario quedan **de solo lectura** en el panel de ChatVenti («se editan en tu panel de ¡Pasen!»). Profesionales, anticipos y recepcionista siguen editables.
+- Respuesta `200`: `{ "services": [ { "externalId", "id" } ], "hoursUpdated": true|false }`.
+
+## Pase de entrada (el dueño entra desde el socio, sin contraseña)
+
+`POST /organizations/{id}/login-link` (cuerpo vacío) → `200 { "url", "expiresAt" }`.
+
+- Solo lo pide el socio cuando **el dueño**, ya identificado en el sistema del socio, toca «Mi agenda»; el socio redirige el navegador a `url`. El personal del socio nunca recibe pases.
+- La `url` lleva un ticket de **un solo uso, válido 60 segundos**, ligado al dueño de esa organización. Se guarda solo su huella. El canje crea la sesión del lado del servidor; ningún token de Supabase viaja en la URL. Si el navegador traía la sesión de otra persona, se cierra antes.
+- La `url` apunta al dominio del panel del socio (`app_domain`, p. ej. `https://agenda.pasen.mx/…`) o, si no tiene, a `https://www.chatventi.com/…`. Se puede pedir `?next=` con `/dashboard`, `/dashboard/agenda` o `/dashboard/conexiones`.
+- La respuesta va con `Cache-Control: no-store` y `Referrer-Policy: no-referrer`. No guardes ni registres la `url`.
+- Errores: `404 not_found`, `409 suspended` (negocio suspendido), `429 rate_limited` (más de 10 pases por minuto por negocio).
+- Los dueños de negocios de socio no necesitan contraseña; `setPasswordUrl` del alta sigue existiendo para socios externos.
+
 ## Códigos de error
 
 | HTTP | `error` | Significado |
@@ -144,6 +178,7 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
 | 403 | `partner_suspended` | El socio está suspendido. |
 | 404 | `not_found` | El negocio no existe **o no es de este socio**. |
 | 409 | `owner_email_in_use` | El correo del dueño ya tiene cuenta en ChatVenti. |
+| 409 | `suspended` | El negocio está suspendido (pase de entrada). |
 | 429 | `rate_limited` | Demasiadas llamadas en la última hora. |
 | 500 | `create_failed`, `update_failed` | Error interno; reintentar es seguro. |
 

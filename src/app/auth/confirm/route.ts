@@ -26,6 +26,13 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     verified = !error
   } else if (tokenHash) {
+    // Si el navegador traía la sesión de OTRA persona, el enlace se consumía y
+    // esa persona seguía en su sesión (visto en producción el 6-oct-2026).
+    // Se cierra la sesión local antes de canjear el token.
+    const {
+      data: { user: current },
+    } = await supabase.auth.getUser()
+    if (current) await supabase.auth.signOut({ scope: 'local' })
     const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash })
     verified = !error
   }

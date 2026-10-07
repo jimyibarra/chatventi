@@ -26,6 +26,8 @@ export type Partner = {
   discount_pct: number
   /** 'internal' = otra plataforma de Grupo ELRI (PASEN): no se le factura nada. */
   kind: 'external' | 'internal'
+  /** Dominio propio del panel para los negocios del socio (p. ej. agenda.pasen.mx). */
+  app_domain: string | null
 }
 
 type Service = ReturnType<typeof createServiceClient>
@@ -45,7 +47,7 @@ export async function authenticatePartner(
   const service = createServiceClient()
   const { data: partner } = await service
     .from('partners')
-    .select('id, name, discount_pct, status, kind')
+    .select('id, name, discount_pct, status, kind, app_domain')
     .eq('api_key_hash', createHash('sha256').update(key).digest('hex'))
     .maybeSingle()
   if (!partner) return apiError('unauthorized', 401)
@@ -65,6 +67,7 @@ export async function authenticatePartner(
       name: partner.name,
       discount_pct: Number(partner.discount_pct),
       kind: partner.kind === 'internal' ? 'internal' : 'external',
+      app_domain: partner.app_domain ?? null,
     },
     service,
   }
@@ -78,10 +81,10 @@ export async function authenticatePartner(
 export async function internalPartnerName(partnerId: string): Promise<string | null> {
   const { data } = await createServiceClient()
     .from('partners')
-    .select('name, kind')
+    .select('name, kind, display_name')
     .eq('id', partnerId)
     .maybeSingle()
-  return data?.kind === 'internal' ? data.name : null
+  return data?.kind === 'internal' ? data.display_name ?? data.name : null
 }
 
 // ---------------------------------------------------------------------
@@ -370,4 +373,75 @@ export async function updatePartnerOrganization(
 
   const fresh = await loadOrg(service, partner.id, { id: orgId })
   return fresh ? json(describeOrg(fresh.org, fresh.sub)) : apiError('not_found', 404)
+}
+
+// ---------------------------------------------------------------------
+// Pase de entrada: el dueño entra desde el panel del socio sin contraseña
+// ---------------------------------------------------------------------
+
+/** ¿El negocio existe y es de este socio? (404 si no, sin distinguir los dos casos). */
+export async function partnerOwnsOrganization(service: Service, partner: Partner, orgId: string): Promise<boolean> {
+  if (!z.string().uuid().safeParse(orgId).success) return false
+  return !!(await loadOrg(service, partner.id, { id: orgId }))
+}
+
+/** Dominio donde vive el panel para este socio (agenda.pasen.mx cuando exista); si no, el de ChatVenti. */
+export function partnerAppOrigin(partner: Pick<Partner, 'app_domain'>): string {
+  return partner.app_domain ? `https://${partner.app_domain}` : SITE
+}
+
+export const LOGIN_TICKET_SECONDS = 60
+export const LOGIN_NEXT = ['/dashboard', '/dashboard/agenda', '/dashboard/conexiones'] as const
+
+/**
+ * Pase de un solo uso (60 s) para el DUEÑO de la organización. Solo se guarda
+ * la huella del ticket; el canje (src/app/socio/entrar) crea la sesión del
+ * lado del servidor, sin exponer ningún token de Supabase en la URL.
+ */
+export async function createLoginLink(service: Service, partner: Partner, orgId: string, next?: string | null): Promise<NextResponse> {
+  if (!z.string().uuid().safeParse(orgId).success) return apiError('not_found', 404)
+  const found = await loadOrg(service, partner.id, { id: orgId })
+  if (!found) return apiError('not_found', 404)
+  if (found.sub?.status !== 'active') return apiError('suspended', 409, 'El negocio está suspendido.')
+  if (!(await consumeRateLimit({ bucket: 'partner_login', key: orgId, limit: 10, windowSeconds: 60 }))) return apiError('rate_limited', 429)
+
+  const { data: owner } = await service
+    .from('profiles')
+    .select('id')
+    .eq('organization_id', orgId)
+    .eq('role', 'owner')
+    .order('created_at')
+    .limit(1)
+    .maybeSingle()
+  if (!owner) return apiError('not_found', 404, 'El negocio no tiene dueño.')
+
+  const ticket = randomBytes(32).toString('base64url')
+  const expiresAt = new Date(Date.now() + LOGIN_TICKET_SECONDS * 1000).toISOString()
+  const { error } = await service.from('partner_login_tickets').insert({
+    organization_id: orgId,
+    user_id: owner.id,
+    token_hash: createHash('sha256').update(ticket).digest('hex'),
+    expires_at: expiresAt,
+  })
+  if (error) return apiError('update_failed', 500)
+  const dest = (LOGIN_NEXT as readonly string[]).includes(next ?? '') ? (next as string) : '/dashboard'
+  const url = `${partnerAppOrigin(partner)}/socio/entrar?t=${ticket}&next=${encodeURIComponent(dest)}`
+  return json({ url, expiresAt })
+}
+
+/** Canje del pase: devuelve el usuario a sesionar (y marca el ticket como usado) o null. */
+export async function redeemLoginTicket(ticket: string): Promise<{ userId: string; email: string } | null> {
+  if (!/^[A-Za-z0-9_-]{40,50}$/.test(ticket)) return null
+  const service = createServiceClient()
+  const { data: row } = await service
+    .from('partner_login_tickets')
+    .update({ used_at: new Date().toISOString() })
+    .eq('token_hash', createHash('sha256').update(ticket).digest('hex'))
+    .is('used_at', null)
+    .gt('expires_at', new Date().toISOString())
+    .select('user_id')
+    .maybeSingle()
+  if (!row) return null
+  const { data: user } = await service.auth.admin.getUserById(row.user_id)
+  return user?.user?.email ? { userId: row.user_id, email: user.user.email } : null
 }

@@ -140,12 +140,22 @@ export async function setAppointmentStatus(raw: unknown): Promise<ActionResult> 
 // -------------------------------------------------------------------
 // Catálogo de servicios (crear/editar/eliminar)
 // -------------------------------------------------------------------
+/** Servicios y horario de un negocio de socio se editan en el panel del socio: aquí son de solo lectura. */
+async function catalogLocked(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  const { data: orgId } = await supabase.rpc('get_my_org')
+  if (!orgId) return 'No tienes una organización.'
+  const { data } = await supabase.from('organizations').select('catalog_managed_by_partner').eq('id', orgId).maybeSingle()
+  return data?.catalog_managed_by_partner ? 'Tus servicios y tu horario se editan en el panel de tu proveedor.' : null
+}
+
 export async function saveService(raw: unknown): Promise<ActionResult> {
   const parsed = serviceSchema.safeParse(raw)
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? 'Datos inválidos' }
   }
   const supabase = await createClient()
+  const locked = await catalogLocked(supabase)
+  if (locked) return { ok: false, error: locked }
   const { id, name, durationMinutes, price, active } = parsed.data
 
   if (id) {
@@ -177,6 +187,8 @@ export async function saveService(raw: unknown): Promise<ActionResult> {
 
 export async function deleteService(id: string): Promise<ActionResult> {
   const supabase = await createClient()
+  const locked = await catalogLocked(supabase)
+  if (locked) return { ok: false, error: locked }
   // Preferimos desactivar en vez de borrar (historial de citas usa el servicio).
   const { error } = await supabase
     .from('service_catalogs')
@@ -200,6 +212,8 @@ export async function saveBusinessHour(raw: unknown): Promise<ActionResult> {
     return { ok: false, error: 'La hora de cierre debe ser mayor a la de apertura.' }
   }
   const supabase = await createClient()
+  const locked = await catalogLocked(supabase)
+  if (locked) return { ok: false, error: locked }
 
   // Reemplazamos la fila del día (una fila por weekday).
   await supabase

@@ -1034,6 +1034,7 @@ export type Database = {
           ai_cap_exempt: boolean
           branding: Json | null
           business_type: string | null
+          catalog_managed_by_partner: boolean
           city: string | null
           contact_email: string | null
           country: string | null
@@ -1069,6 +1070,7 @@ export type Database = {
           ai_cap_exempt?: boolean
           branding?: Json | null
           business_type?: string | null
+          catalog_managed_by_partner?: boolean
           city?: string | null
           contact_email?: string | null
           country?: string | null
@@ -1104,6 +1106,7 @@ export type Database = {
           ai_cap_exempt?: boolean
           branding?: Json | null
           business_type?: string | null
+          catalog_managed_by_partner?: boolean
           city?: string | null
           contact_email?: string | null
           country?: string | null
@@ -1151,42 +1154,102 @@ export type Database = {
           },
         ]
       }
+      partner_login_tickets: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          organization_id: string
+          token_hash: string
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          organization_id: string
+          token_hash: string
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          organization_id?: string
+          token_hash?: string
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       partners: {
         Row: {
+          accent_color: string | null
           api_key_hash: string
           api_key_prefix: string
+          app_domain: string | null
           billing_email: string
           created_at: string
           discount_pct: number
+          display_name: string | null
+          email_from: string | null
+          icon_url: string | null
           id: string
           kind: string
+          logo_url: string | null
+          logo_white_url: string | null
           name: string
+          panel_url: string | null
+          primary_color: string | null
           status: string
           stripe_customer_id: string | null
+          support_email: string | null
         }
         Insert: {
+          accent_color?: string | null
           api_key_hash: string
           api_key_prefix: string
+          app_domain?: string | null
           billing_email: string
           created_at?: string
           discount_pct?: number
+          display_name?: string | null
+          email_from?: string | null
+          icon_url?: string | null
           id?: string
           kind?: string
+          logo_url?: string | null
+          logo_white_url?: string | null
           name: string
+          panel_url?: string | null
+          primary_color?: string | null
           status?: string
           stripe_customer_id?: string | null
+          support_email?: string | null
         }
         Update: {
+          accent_color?: string | null
           api_key_hash?: string
           api_key_prefix?: string
+          app_domain?: string | null
           billing_email?: string
           created_at?: string
           discount_pct?: number
+          display_name?: string | null
+          email_from?: string | null
+          icon_url?: string | null
           id?: string
           kind?: string
+          logo_url?: string | null
+          logo_white_url?: string | null
           name?: string
+          panel_url?: string | null
+          primary_color?: string | null
           status?: string
           stripe_customer_id?: string | null
+          support_email?: string | null
         }
         Relationships: []
       }
@@ -1507,7 +1570,10 @@ export type Database = {
           id: string
           name: string
           organization_id: string
+          partner_ref: string | null
           price: number | null
+          price_text: string | null
+          sort_order: number
         }
         Insert: {
           active?: boolean
@@ -1519,7 +1585,10 @@ export type Database = {
           id?: string
           name: string
           organization_id: string
+          partner_ref?: string | null
           price?: number | null
+          price_text?: string | null
+          sort_order?: number
         }
         Update: {
           active?: boolean
@@ -1531,7 +1600,10 @@ export type Database = {
           id?: string
           name?: string
           organization_id?: string
+          partner_ref?: string | null
           price?: number | null
+          price_text?: string | null
+          sort_order?: number
         }
         Relationships: [
           {
