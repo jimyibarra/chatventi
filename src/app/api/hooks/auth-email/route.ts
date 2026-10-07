@@ -1,4 +1,4 @@
-import { NextResponse, type NextRequest } from 'next/server'
+import { after, NextResponse, type NextRequest } from 'next/server'
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { createServiceClient } from '@/lib/supabase/service'
 import { sendEmail } from '@/features/emails/mailer'
@@ -74,10 +74,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (payload.email_data.token_hash_new && payload.user.new_email) sends.push({ to: payload.user.new_email, hash: payload.email_data.token_hash_new })
   } else sends.push({ to: payload.user.email, hash: payload.email_data.token_hash })
 
-  for (const s of sends) {
-    const { subject, html } = authEmail({ type, brand, link: s.hash ? link(s.hash) : '', code: payload.email_data.token })
-    const ok = await sendEmail({ to: s.to, subject, html, brand })
-    if (!ok) return NextResponse.json({ error: { http_code: 500, message: 'no se pudo enviar el correo' } }, { status: 500 })
-  }
+  // Supabase corta el hook a los 5 s y el SMTP de Hostinger en frío los rebasa
+  // (probado en producción: hook_timeout). Se responde ya y el envío sigue
+  // después de la respuesta; un fallo queda en los registros de Vercel.
+  after(async () => {
+    for (const s of sends) {
+      const { subject, html } = authEmail({ type, brand, link: s.hash ? link(s.hash) : '', code: payload.email_data.token })
+      const ok = await sendEmail({ to: s.to, subject, html, brand })
+      if (!ok) console.error('[auth-email] no se pudo enviar', type, 'a', s.to, 'marca', brand.name)
+    }
+  })
   return NextResponse.json({})
 }
