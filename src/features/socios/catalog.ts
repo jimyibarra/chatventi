@@ -1,5 +1,6 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
+import type { Json } from '@/lib/supabase/database.types'
 import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
@@ -38,8 +39,10 @@ export const catalogSchema = z
   .object({
     services: z.array(serviceSchema).max(100).optional(),
     hours: z.array(hourSchema).length(7).optional(),
+    /** Color de la página del negocio (#rrggbb): tiñe su agenda pública. */
+    brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'brandColor debe ser #rrggbb').optional(),
   })
-  .refine((c) => c.services || c.hours, 'Manda services, hours o ambos')
+  .refine((c) => c.services || c.hours || c.brandColor, 'Manda services, hours, brandColor o varios')
   .refine((c) => !c.hours || new Set(c.hours.map((h) => h.weekday)).size === 7, 'hours debe traer los 7 días, sin repetir')
   .refine((c) => !c.services || new Set(c.services.map((s) => s.externalId)).size === c.services.length, 'externalId repetido')
 
@@ -130,7 +133,14 @@ export async function putPartnerCatalog(service: Service, orgId: string, input: 
   try {
     const services = input.services ? await putServices(service, orgId, input.services) : []
     if (input.hours) await putHours(service, orgId, branch.id, input.hours)
-    await service.from('organizations').update({ catalog_managed_by_partner: true }).eq('id', orgId)
+    const patch: { catalog_managed_by_partner: boolean; branding?: Json } = { catalog_managed_by_partner: true }
+    if (input.brandColor) {
+      // branding es jsonb con más llaves (logo, descripción): se conserva el resto.
+      const { data: org } = await service.from('organizations').select('branding').eq('id', orgId).maybeSingle()
+      const current = org?.branding && typeof org.branding === 'object' && !Array.isArray(org.branding) ? org.branding : {}
+      patch.branding = { ...current, primary_color: input.brandColor.toLowerCase() }
+    }
+    await service.from('organizations').update(patch).eq('id', orgId)
     return NextResponse.json({ services, hoursUpdated: !!input.hours })
   } catch (err) {
     console.error('[socios] catálogo', err instanceof Error ? err.message : err)

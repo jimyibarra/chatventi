@@ -147,11 +147,13 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
   ],
   "hours": [
     { "weekday": 1, "opens": "09:00", "closes": "19:00", "closed": false }
-  ]
+  ],
+  "brandColor": "#115E59"
 }
 ```
 
-- Las dos llaves son opcionales: sin `services` no se tocan los servicios; sin `hours`, no se toca el horario.
+- Las tres llaves son opcionales: sin `services` no se tocan los servicios; sin `hours`, no se toca el horario; sin `brandColor`, no se toca el color.
+- `brandColor` (`#rrggbb`) es el color de la página del negocio: tiñe su agenda pública (`/r/<slug>`), botones y acentos. Se guarda en `organizations.branding.primary_color` sin tocar el resto de la marca del negocio (logo, descripción).
 - `services` es la lista completa (máximo 100; nombre de 1 a 120, descripción hasta 600, `durationMinutes` de 5 a 600). Se crea o actualiza por `externalId`; lo que ya no venga queda **inactivo** (no se borra: tiene citas). `price` en MXN o `null`; `priceText` es el precio tal como lo escribió el dueño y manda al mostrarlo.
 - `hours` trae los 7 días (`weekday` 0–6, domingo = 0), un tramo por día, `HH:MM` con `opens < closes`; `closed: true` lleva `opens` y `closes` en `null`. Se escribe en la sucursal principal. Si el negocio solo tiene el profesional que sembró el alta y nadie le editó su horario, ese horario se alinea al nuevo.
 - Idempotente: mandar lo mismo dos veces no cambia nada.
