@@ -4,6 +4,7 @@ import { sendToCustomerByChannel } from './senders'
 import { waSendTemplate } from './wa-templates'
 import { sendEmail } from '@/features/emails/mailer'
 import { dailyReportEmail } from '@/features/emails/templates'
+import { brandForOrg, brandOrigin } from '@/features/marca/brand'
 import { AI_SOURCES, sumAiBookings, type AiBookingRow } from '@/features/dashboard/ai-revenue'
 
 type ServiceClient = SupabaseClient<Database>
@@ -178,10 +179,12 @@ export async function runDailyReports(service: ServiceClient): Promise<ReportSum
         .gte('created_at', `${day.slice(0, 8)}01T00:00:00Z`)
         .not('status', 'in', '("cancelled","no_show")')
 
+      const brand = await brandForOrg(org.organization_id)
       const { subject, html } = dailyReportEmail({
         orgName: org.org_name,
         dayLabel,
-        siteUrl,
+        siteUrl: brand.partnerId ? brandOrigin(brand) : siteUrl,
+        brand,
         month: sumAiBookings((monthRows ?? []) as unknown as AiBookingRow[]),
         data: {
           conversaciones: d.conversaciones ?? 0,
@@ -193,7 +196,7 @@ export async function runDailyReports(service: ServiceClient): Promise<ReportSum
           citas_de_hoy: d.citas_de_hoy ?? 0,
         },
       })
-      const ok = await sendEmail({ to: org.contact_email, subject, html })
+      const ok = await sendEmail({ to: org.contact_email, subject, html, brand })
       if (ok) out.sent++
       else out.failed++
     } catch (err) {

@@ -49,7 +49,7 @@ export function DepositSettings({
     <Section
       data-testid="deposit-settings"
       title="Anticipo para apartar la cita"
-      description="Cuando un servicio pide anticipo, tu recepcionista le da al cliente estos datos y aparta la cita mientras llega el comprobante. El dinero va directo a tu cuenta: ChatVenti no lo toca."
+      description="Cuando un servicio pide anticipo, tu recepcionista le da al cliente estos datos y aparta la cita mientras llega el comprobante. El dinero va directo a tu cuenta: nadie más lo toca."
     >
       <div className="space-y-4">
         <Field label="A dónde depositan" hint="Sin estos datos no se pide anticipo, aunque el servicio lo tenga.">

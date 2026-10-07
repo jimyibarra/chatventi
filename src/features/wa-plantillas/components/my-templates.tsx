@@ -15,7 +15,7 @@ export async function MyTemplates({ orgId }: { orgId: string }) {
   return (
     <Section
       title="Mensajes automáticos por WhatsApp"
-      description="Para escribirle a un cliente después de 24 horas sin mensajes (recordatorios, seguimiento), Meta pide plantillas aprobadas. ChatVenti las pide por ti y Meta las revisa en unos minutos. Por Instagram, Messenger y Telegram no hacen falta."
+      description="Para escribirle a un cliente después de 24 horas sin mensajes (recordatorios, seguimiento), Meta pide plantillas aprobadas. Las pedimos por ti y Meta las revisa en unos minutos. Por Instagram, Messenger y Telegram no hacen falta."
       data-testid="my-templates"
     >
       {board.map((c) => (

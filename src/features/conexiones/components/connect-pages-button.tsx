@@ -11,7 +11,7 @@ const SERVER_ERRORS: Record<string, string> = {
   plan_required: 'Tu plan actual no incluye Instagram ni Messenger. Revisa los planes en Facturación.',
   no_pages: 'No autorizaste ninguna página. Vuelve a intentarlo y marca la página de tu negocio.',
   no_page_token: 'Meta no nos dio acceso a esa página. Debes ser administrador de la página para conectarla.',
-  page_in_use: 'Esa página ya está conectada a otra cuenta de ChatVenti.',
+  page_in_use: 'Esa página ya está conectada a otra cuenta.',
   token_exchange_failed: 'La autorización de Meta caducó antes de terminar. Vuelve a intentarlo.',
   token_invalid: 'Meta no validó la autorización. Vuelve a intentarlo.',
   forbidden: 'Solo el dueño o un gerente puede conectar canales.',

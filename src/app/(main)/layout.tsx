@@ -7,10 +7,25 @@ import { PushNotificationPrompt } from '@/features/notifications/components/push
 import { dayRangeUtc, ymdInTz } from '@/features/agenda/datetime'
 import { getMySubscription, paymentIssue } from '@/features/billing/gating'
 import { PaymentIssueBanner } from '@/features/billing/components/payment-issue-banner'
+import { brandStyle, currentBrand } from '@/features/marca/brand'
+import { BrandProvider } from '@/features/marca/brand-context'
+import type { Metadata } from 'next'
 import '@/shared/components/ui/panel.css'
 
 // Tipografía del diseño «Líneas». Solo se carga dentro del panel.
 const rubik = Rubik({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-rubik' })
+
+/** Título, ícono y nombre de app con la marca del socio cuando el negocio es suyo. */
+export async function generateMetadata(): Promise<Metadata> {
+  const brand = await currentBrand()
+  if (!brand.partnerId) return {}
+  return {
+    title: { absolute: brand.name, template: `%s · ${brand.name}` },
+    icons: { icon: brand.iconUrl, apple: brand.iconUrl },
+    appleWebApp: { title: brand.name },
+    openGraph: { siteName: brand.name, title: brand.name },
+  }
+}
 
 export default async function MainLayout({
   children,
@@ -53,6 +68,7 @@ export default async function MainLayout({
   const { data: branch } = await supabase.from('branches').select('timezone').order('created_at').limit(1).maybeSingle()
   const now = new Date()
   const endOfDay = dayRangeUtc(ymdInTz(now, branch?.timezone ?? 'America/Mexico_City'), branch?.timezone ?? 'America/Mexico_City').to
+  const brand = await currentBrand()
   const [unconfirmed, passed, sub] = await Promise.all([
     supabase
       .from('appointments')
@@ -68,17 +84,23 @@ export default async function MainLayout({
   const issue = paymentIssue(sub)
 
   return (
-    <div className={`${rubik.variable} cv-panel min-h-screen bg-surface font-sans text-ink`}>
-      <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0 }} />
+    <BrandProvider brand={brand}>
+    <div className={`${rubik.variable} cv-panel min-h-screen bg-surface font-sans text-ink`} style={brandStyle(brand)}>
+      <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0 }} brandName={brand.name} iconUrl={brand.iconUrl} />
       {/* El riel ocupa 84px a la izquierda (≥md) y la barra 72px abajo (<md). */}
       <div className="pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[84px]">
         <header className="flex items-center justify-between gap-3 bg-brand-500 px-4 py-2 text-white md:justify-end md:bg-transparent md:px-6 md:pb-0 md:pt-3 md:text-ink-muted">
           <span className="flex items-center gap-2 md:hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/chatventi-icon.png" alt="" className="h-8 w-8 rounded-[10px] bg-white p-1" />
-            <span className="font-bold tracking-tight">ChatVenti</span>
+            <img src={brand.iconUrl} alt="" className="h-8 w-8 rounded-[10px] bg-white p-1" />
+            <span className="font-bold tracking-tight">{brand.name}</span>
           </span>
           <div className="flex min-w-0 items-center gap-3">
+            {brand.panelUrl && (
+              <a href={brand.panelUrl} className="hidden truncate text-sm font-semibold underline-offset-2 hover:underline sm:inline" data-testid="volver-socio">
+                Volver a mi panel de {brand.name}
+              </a>
+            )}
             <span className="hidden truncate text-sm sm:inline">{user.email}</span>
             <LogoutButton className="rounded-[11px] border border-white/60 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/15 md:border-line md:text-ink-muted md:hover:bg-white" />
           </div>
@@ -88,5 +110,6 @@ export default async function MainLayout({
       </div>
       <PushNotificationPrompt />
     </div>
+    </BrandProvider>
   )
 }

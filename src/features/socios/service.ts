@@ -187,6 +187,7 @@ export async function createPartnerOrganization(
     email_confirm: true,
     password: `${randomBytes(18).toString('base64url')}aA1!`,
     user_metadata: { created_by_partner: partner.id },
+    app_metadata: { partner_id: partner.id },
   })
   if (userErr || !created?.user) {
     return apiError('owner_email_in_use', 409, 'Ese correo ya tiene una cuenta en ChatVenti. Usa otro correo para el dueño.')

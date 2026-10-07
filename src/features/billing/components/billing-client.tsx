@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import { useBrand } from '@/features/marca/brand-context'
 import {
   PLANS,
   ANNUAL_MONTHS_FREE,
@@ -96,6 +97,8 @@ const optionState = (on: boolean) =>
   on ? 'bg-brand-50 shadow-[inset_0_0_0_2px_#2a1a5e]' : 'bg-surface hover:shadow-[inset_0_0_0_2px_#c4bff5]'
 
 export function BillingClient({ sub, active, businessType, managed, courtesy = false, includedIn, promo, currency }: Props) {
+  // Negocio de socio: ni el nombre del plan nombra a ChatVenti.
+  const platform = useBrand().partnerId ? 'Plan' : 'ChatVenti'
   const [plan, setPlan] = useState<PlanId>('negocio')
   const [interval, setBillingInterval] = useState<BillingInterval>('month')
   const [quizPick, setQuizPick] = useState<string | null>(null)
@@ -140,7 +143,7 @@ export function BillingClient({ sub, active, businessType, managed, courtesy = f
   if (sub && (active || paymentPending)) {
     // plan_id nuevo si existe; si no, nombre aproximado del catálogo legado.
     const currentName = sub.plan_id
-      ? `ChatVenti ${planById(sub.plan_id).name}`
+      ? `${platform} ${planById(sub.plan_id).name}`
       : sub.ai_tier !== 'none'
         ? 'ChatVenti Starter + Recepcionista IA'
         : 'ChatVenti Starter'

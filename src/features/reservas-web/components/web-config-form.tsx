@@ -10,7 +10,7 @@ import { Field, Input } from '@/shared/components/ui/field'
 import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
 
-const BASE = 'https://www.chatventi.com'
+const CHATVENTI_ORIGIN = 'https://www.chatventi.com'
 
 type Branding = {
   primary_color?: string
@@ -24,6 +24,7 @@ export function WebConfigForm({
   branding,
   siteUrl = null,
   partnerName = null,
+  origin = CHATVENTI_ORIGIN,
 }: {
   orgId: string
   webSlug: string | null
@@ -32,7 +33,10 @@ export function WebConfigForm({
   siteUrl?: string | null
   /** Socio interno que hizo esa página (PASEN): ya trae el botón de reservar. */
   partnerName?: string | null
+  /** Dominio donde viven la agenda y el widget (el del socio si tiene marca propia). */
+  origin?: string
 }) {
+  const BASE = origin
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [slug, setSlug] = useState(webSlug ?? '')

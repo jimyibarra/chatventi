@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { internalPartnerName } from '@/features/socios/service'
+import { brandForOrg, brandOrigin } from '@/features/marca/brand'
 import { WebConfigForm } from '@/features/reservas-web/components/web-config-form'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
 
@@ -16,6 +17,7 @@ export default async function ReservasWebPage() {
     .maybeSingle()
   // Negocio de un socio interno (PASEN): su página web ya trae el botón de reservar.
   const partnerName = org?.partner_id ? await internalPartnerName(org.partner_id) : null
+  const origin = brandOrigin(await brandForOrg(org?.id ?? null))
 
   return (
     <Page>
@@ -30,6 +32,7 @@ export default async function ReservasWebPage() {
         branding={(org?.branding ?? null) as Branding}
         siteUrl={org?.site_url ?? null}
         partnerName={partnerName}
+        origin={origin}
       />
     </Page>
   )

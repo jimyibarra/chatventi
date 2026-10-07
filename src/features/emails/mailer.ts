@@ -1,5 +1,6 @@
 import 'server-only'
 import nodemailer, { type Transporter } from 'nodemailer'
+import type { Brand } from '@/features/marca/brand-shared'
 
 /**
  * Mailer transaccional (correos de ciclo de vida: bienvenida, onboarding, fin
@@ -53,11 +54,40 @@ export async function verifyTransport(): Promise<{ configured: boolean; ok: bool
   }
 }
 
+/**
+ * Correos de un negocio de socio con marca propia (¡Pasen!): salen por Resend
+ * con la clave de solo envío de la cuenta del socio (PASEN_RESEND_API_KEY) y
+ * desde su remitente (partners.email_from). Sin la clave, se avisa y no se
+ * manda: nunca salen con la marca de ChatVenti.
+ */
+async function sendViaResend(brand: Brand, opts: { to: string; subject: string; html: string }): Promise<boolean> {
+  const key = process.env.PASEN_RESEND_API_KEY?.trim()
+  if (!key) {
+    console.warn('[emails] falta PASEN_RESEND_API_KEY; se omite correo con marca', brand.name, 'a', opts.to)
+    return false
+  }
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ from: brand.emailFrom, to: [opts.to], subject: opts.subject, html: opts.html, reply_to: brand.supportEmail }),
+    })
+    if (!res.ok) console.error('[emails] Resend', res.status, (await res.text()).slice(0, 200))
+    return res.ok
+  } catch (e) {
+    console.error('[emails] Resend error', e)
+    return false
+  }
+}
+
 export async function sendEmail(opts: {
   to: string
   subject: string
   html: string
+  /** Marca del socio del negocio: cambia remitente y transporte. */
+  brand?: Brand | null
 }): Promise<boolean> {
+  if (opts.brand?.partnerId) return sendViaResend(opts.brand, opts)
   const t = getTransport()
   if (!t) {
     console.warn('[emails] SMTP no configurado; se omite envío a', opts.to)

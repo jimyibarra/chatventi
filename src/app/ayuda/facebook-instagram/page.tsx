@@ -3,11 +3,12 @@ import type { ReactNode } from 'react'
 import { PhoneShot } from '@/features/guia/components/phone-shot'
 import { GuideFaq, GuideTop, Path, Station, Steps, Tip } from '@/features/guia/components/guide-parts'
 import { Icon, type IconName } from '@/shared/components/ui/icon'
+import { currentBrand } from '@/features/marca/brand'
 
 export const metadata: Metadata = {
-  title: 'Conecta tu Facebook e Instagram · ChatVenti',
+  title: 'Conecta tu Facebook e Instagram',
   description:
-    'Guía paso a paso, con imágenes reales, para crear o entrar a tu Facebook, crear la página de tu negocio, preparar tu Instagram y conectarlos a ChatVenti.',
+    'Guía paso a paso, con imágenes reales, para crear o entrar a tu Facebook, crear la página de tu negocio, preparar tu Instagram y conectarlos a tu agenda.',
 }
 
 const STARTS: { href: string; icon: IconName; title: string; text: string }[] = [
@@ -16,7 +17,7 @@ const STARTS: { href: string; icon: IconName; title: string; text: string }[] = 
   { href: '#paso-4', icon: 'plug', title: 'Ya tengo la página de mi negocio', text: 'Ve directo a conectarla.' },
 ]
 
-const FAQ: { q: string; a: ReactNode }[] = [
+const faq = (b: string, support: string): { q: string; a: ReactNode }[] => [
   {
     q: 'Facebook dice «Este contenido no está disponible en este momento»',
     a: 'Te pasa al crear la página si estás usando Facebook como una página (por ejemplo, la de tu negocio). Toca tu foto, arriba a la derecha, elige tu perfil personal y vuelve a intentarlo.',
@@ -30,12 +31,12 @@ const FAQ: { q: string; a: ReactNode }[] = [
     a: 'Revisa tres cosas en la app de Instagram: que sea cuenta profesional, que esté vinculada a tu página de Facebook y que «Permitir acceso a los mensajes» esté activado (paso 3).',
   },
   {
-    q: 'Me dice que la página ya está conectada a otra cuenta de ChatVenti',
-    a: 'Cada página solo puede estar en un negocio. Escríbenos a soporte@chatventi.com desde el correo de tu cuenta y la liberamos.',
+    q: `Me dice que la página ya está conectada a otra cuenta de ${b}`,
+    a: `Cada página solo puede estar en un negocio. Escríbenos a ${support} desde el correo de tu cuenta y la liberamos.`,
   },
   {
     q: '¿Cuesta algo usar Instagram y Messenger?',
-    a: 'No hay costo por mensaje en Instagram ni en Messenger. Vienen incluidos en todos los planes de ChatVenti.',
+    a: `No hay costo por mensaje en Instagram ni en Messenger. Vienen incluidos en todos los planes de ${b}.`,
   },
   {
     q: '¿Lo puedo hacer desde el celular?',
@@ -43,15 +44,17 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
 ]
 
-export default function GuiaFacebookInstagramPage() {
+export default async function GuiaFacebookInstagramPage() {
+  const brand = await currentBrand()
+  const b = brand.name
   return (
     <div className="min-h-screen">
-      <GuideTop />
+      <GuideTop brand={brand} />
 
       <main className="mx-auto max-w-[1080px] px-4 pb-20 md:px-6">
         <div className="max-w-[44rem] pt-4 md:pt-8">
           <h1 className="text-[2.1rem] font-bold leading-[1.05] tracking-tight text-ink [text-wrap:balance] md:text-[3rem]">
-            Conecta tu Facebook e Instagram a ChatVenti
+            Conecta tu Facebook e Instagram a {b}
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-ink-muted md:text-[18px]">
             Así tu recepcionista contesta, también ahí, los mensajes que te mandan a tu página y a tu Instagram, y agenda las citas.
@@ -230,29 +233,29 @@ export default function GuiaFacebookInstagramPage() {
                 </>,
               ]}
             />
-            <Tip>Sin el tercer punto, Instagram no le entrega los mensajes a ChatVenti y la recepcionista no los ve.</Tip>
+            <Tip>Sin el tercer punto, Instagram no le entrega los mensajes a {b} y la recepcionista no los ve.</Tip>
           </Station>
 
           <Station
             n={4}
             id="paso-4"
-            title="Conéctalos en ChatVenti"
+            title={`Conéctalos en ${b}`}
             lead="Un solo botón conecta tu página y, si la vinculaste, tu Instagram. Estas son las pantallas, en orden."
             shotsBelow
             shots={
               <>
                 <PhoneShot
                   src="/guia/cv-conexiones.webp"
-                  alt="Pantalla Conexiones de ChatVenti con el botón Conectar Facebook e Instagram"
+                  alt={`Pantalla Conexiones de ${b} con el botón Conectar Facebook e Instagram`}
                   width={716}
                   height={560}
                   maxWidth={260}
                   tap={{ left: 3.5, top: 79.5, width: 83.5, height: 17 }}
-                  caption="1 · ChatVenti › Más › Conexiones"
+                  caption={`1 · ${b} › Más › Conexiones`}
                 />
                 <PhoneShot
                   src="/guia/fb-ventana-conectar.webp"
-                  alt="Ventana de Facebook que pide iniciar sesión para conectar con ChatVenti"
+                  alt={`Ventana de Facebook que pide iniciar sesión para conectar con ${b}`}
                   width={780}
                   height={1688}
                   maxWidth={260}
@@ -261,7 +264,7 @@ export default function GuiaFacebookInstagramPage() {
                 />
                 <PhoneShot
                   src="/guia/fb-elegir-pagina.webp"
-                  alt="Ventana de Facebook para elegir la página que se comparte con ChatVenti"
+                  alt={`Ventana de Facebook para elegir la página que se comparte con ${b}`}
                   width={460}
                   height={548}
                   frame="screen"
@@ -281,7 +284,7 @@ export default function GuiaFacebookInstagramPage() {
                 />
                 <PhoneShot
                   src="/guia/fb-permisos.webp"
-                  alt="Ventana de Facebook con lo que se compartirá con ChatVenti y el botón Confirmar"
+                  alt={`Ventana de Facebook con lo que se compartirá con ${b} y el botón Confirmar`}
                   width={460}
                   height={548}
                   frame="screen"
@@ -295,16 +298,16 @@ export default function GuiaFacebookInstagramPage() {
             <Steps
               items={[
                 <>
-                  Entra a ChatVenti y ve a <Path parts={['Más', 'Conexiones']} />.
+                  Entra a {b} y ve a <Path parts={['Más', 'Conexiones']} />.
                 </>,
                 'En «Instagram y Messenger» toca «Conectar Facebook e Instagram».',
                 'Se abre una ventana de Facebook. Si te pide entrar, escribe tu correo y contraseña de Facebook.',
                 'En «Selecciona los activos comerciales…»: en «Página» marca la de tu negocio y en «Cuenta de Instagram» elige la tuya. Si te pide un portafolio empresarial, deja el que aparece o crea uno con el nombre de tu negocio. Toca «Siguiente».',
-                'Revisa lo que se compartirá con ChatVenti y toca «Confirmar».',
-                'Regresas a ChatVenti y verás «Messenger de la página» y «Mensajes directos de Instagram» como conectados.',
+                `Revisa lo que se compartirá con ${b} y toca «Confirmar».`,
+                `Regresas a ${b} y verás «Messenger de la página» y «Mensajes directos de Instagram» como conectados.`,
               ]}
             />
-            <Tip>ChatVenti pide ver tu página y leer y contestar los mensajes de Messenger e Instagram. No pide permiso para publicar nada en tu nombre.</Tip>
+            <Tip>{b} pide ver tu página y leer y contestar los mensajes de Messenger e Instagram. No pide permiso para publicar nada en tu nombre.</Tip>
           </Station>
 
           <Station
@@ -319,14 +322,14 @@ export default function GuiaFacebookInstagramPage() {
                 'Escribe algo como «Hola, ¿tienen lugar mañana?».',
                 'La recepcionista contesta en segundos con tus horarios libres.',
                 <>
-                  La conversación aparece en ChatVenti, en <Path parts={['Chats']} />, con el icono de Messenger o de Instagram.
+                  La conversación aparece en {b}, en <Path parts={['Chats']} />, con el icono de Messenger o de Instagram.
                 </>,
               ]}
             />
           </Station>
         </div>
 
-        <GuideFaq items={FAQ} />
+        <GuideFaq items={faq(b, brand.supportEmail)} supportEmail={brand.supportEmail} />
       </main>
     </div>
   )

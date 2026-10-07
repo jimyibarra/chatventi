@@ -1,19 +1,20 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { Icon } from '@/shared/components/ui/icon'
+import { CHATVENTI, type Brand } from '@/features/marca/brand-shared'
 
 // Piezas de las guías públicas (/ayuda/*): la guía es una línea del Metro y
 // cada paso es una estación con su color.
 const LINE = ['#e0007a', '#0b5bd3', '#00a35c', '#5b4fe0', '#f08c00']
 
-/** Barra de las guías: logo a la home y atajo a Conexiones. */
-export function GuideTop() {
+/** Barra de las guías: logo a la home (o al panel del socio) y atajo a Conexiones. */
+export function GuideTop({ brand = CHATVENTI }: { brand?: Brand }) {
   return (
     <header className="mx-auto flex max-w-[1080px] items-center justify-between gap-3 px-4 py-4 md:px-6">
-      <Link href="/" className="flex items-center gap-2 rounded-[12px] font-bold tracking-tight text-ink">
+      <Link href={brand.panelUrl ?? '/'} className="flex items-center gap-2 rounded-[12px] font-bold tracking-tight text-ink">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/chatventi-icon.png" alt="" width={32} height={32} className="h-8 w-8 rounded-[10px] bg-white p-1 shadow-[0_1px_0_#dde2f0]" />
-        ChatVenti
+        <img src={brand.iconUrl} alt="" width={32} height={32} className="h-8 w-8 rounded-[10px] bg-white p-1 shadow-[0_1px_0_#dde2f0]" />
+        {brand.name}
       </Link>
       <Link href="/dashboard/conexiones" className="inline-flex min-h-[44px] items-center rounded-[13px] border-2 border-ink bg-white px-4 text-[15px] font-semibold text-ink hover:bg-brand-50 md:min-h-[40px]">
         Ir a Conexiones
@@ -23,7 +24,7 @@ export function GuideTop() {
 }
 
 /** «Si algo no sale»: preguntas desplegables y el correo de soporte. */
-export function GuideFaq({ items }: { items: { q: string; a: ReactNode }[] }) {
+export function GuideFaq({ items, supportEmail = CHATVENTI.supportEmail }: { items: { q: string; a: ReactNode }[]; supportEmail?: string }) {
   return (
     <section aria-labelledby="faq-t" className="mt-16 max-w-[48rem]">
       <h2 id="faq-t" className="text-[1.45rem] font-bold tracking-tight text-ink md:text-[1.75rem]">
@@ -41,7 +42,7 @@ export function GuideFaq({ items }: { items: { q: string; a: ReactNode }[] }) {
         ))}
       </div>
       <p className="mt-6 text-[15px] text-ink-muted">
-        ¿Te atoraste en otro paso? Escríbenos a <span className="font-semibold text-ink">soporte@chatventi.com</span> y te ayudamos.
+        ¿Te atoraste en otro paso? Escríbenos a <span className="font-semibold text-ink">{supportEmail}</span> y te ayudamos.
       </p>
     </section>
   )

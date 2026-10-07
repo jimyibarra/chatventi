@@ -99,7 +99,7 @@ export function UsageCard({
       )}
       <p className="mt-3 border-t border-line pt-3 text-[13px] leading-snug text-ink-muted">
         Los mensajes de WhatsApp los cobra Meta directamente a la cuenta de WhatsApp de tu negocio;
-        ChatVenti no les añade nada.
+        nadie más les añade nada.
       </p>
     </Section>
   )

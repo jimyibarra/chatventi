@@ -1,5 +1,7 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { brandForOrg } from '@/features/marca/brand'
 import { PublicBooking } from '@/features/reservas-web/components/public-booking'
 import { DEFAULT_RESOURCE_LABEL } from '@/features/profesionales/types'
 import { safeHex, strokeOnWhite, textOn } from '@/shared/lib/color'
@@ -49,6 +51,9 @@ export default async function PublicBookingPage({
   const ctx = data as unknown as Ctx | null
 
   if (!ctx || !ctx.branch) notFound()
+  // Negocio de un socio con marca propia (¡Pasen!): la página no nombra a ChatVenti.
+  const { data: orgRow } = await createServiceClient().from('organizations').select('id').eq('web_slug', slug).maybeSingle()
+  const platform = await brandForOrg(orgRow?.id ?? null)
 
   // El color de marca del negocio manda en esta página (botón, selección y
   // estaciones). Se valida y se decide qué texto aguanta encima: un dueño puede
@@ -105,7 +110,7 @@ export default async function PublicBookingPage({
           resourceLabel={ctx.org.branding?.resource_label || DEFAULT_RESOURCE_LABEL}
         />
 
-        {!isEmbed && (
+        {!isEmbed && !platform.partnerId && (
           <p className="mt-8 text-center text-[13px] text-ink-muted">Reservas con tecnología de ChatVenti</p>
         )}
       </div>

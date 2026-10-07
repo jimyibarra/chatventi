@@ -39,7 +39,7 @@ export function PushNotificationPrompt({ autoShowDelay = 4000 }: { autoShowDelay
       <p className="text-sm font-semibold text-ink">¿Activar notificaciones? 🔔</p>
       <p className="text-xs text-ink-soft">
         Te avisamos cuando un cliente necesite a un humano o haya una respuesta esperando tu
-        aprobación — aunque no tengas ChatVenti abierto.
+        aprobación — aunque no tengas el panel abierto.
       </p>
       <div className="flex gap-2">
         <button

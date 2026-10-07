@@ -5,7 +5,11 @@
 import { TRIAL_DAYS } from '@/features/billing/plans'
 import { CALL_URL } from '@/features/marketing/config'
 
-const LOGO = 'https://www.chatventi.com/brand/chatventi-logo.png'
+import { CHATVENTI, type Brand } from '@/features/marca/brand-shared'
+
+/** Marca del correo: ChatVenti o la del socio del negocio (logo, color, pie y correo de soporte). */
+export type EmailBrand = Pick<Brand, 'name' | 'logoUrl' | 'primaryColor' | 'supportEmail' | 'tagline' | 'partnerId'>
+const DEFAULT_BRAND: EmailBrand = CHATVENTI
 
 interface Built {
   subject: string
@@ -28,17 +32,20 @@ function promoBox(promo: EmailPromo | null | undefined): string {
   </div>`
 }
 
-function layout(opts: {
+export function layout(opts: {
   title: string
   bodyHtml: string
   cta?: { label: string; href: string }
   secondaryCta?: { label: string; href: string }
   note?: string
+  brand?: EmailBrand
 }): string {
   const { title, bodyHtml, cta, secondaryCta, note } = opts
+  const b = opts.brand ?? DEFAULT_BRAND
+  const domain = b.supportEmail.split('@')[1] ?? 'chatventi.com'
   return `<div style="max-width:520px;margin:0 auto;font-family:Arial,Helvetica,sans-serif;color:#1f2937">
   <div style="padding:28px 8px 18px;text-align:center">
-    <img src="${LOGO}" alt="ChatVenti" width="188" style="width:188px;max-width:72%;height:auto" />
+    <img src="${b.logoUrl}" alt="${b.name}" width="188" style="width:188px;max-width:72%;height:auto" />
   </div>
   <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:14px;padding:26px">
     <h2 style="margin:0 0 12px;font-size:19px;color:#111827">${title}</h2>
@@ -46,24 +53,24 @@ function layout(opts: {
     ${
       cta
         ? `<p style="text-align:center;margin:24px 0 6px">
-      <a href="${cta.href}" style="display:inline-block;background:#5b4fe0;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:13px 30px;border-radius:10px">${cta.label}</a>
+      <a href="${cta.href}" style="display:inline-block;background:${b.primaryColor};color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:13px 30px;border-radius:10px">${cta.label}</a>
     </p>`
         : ''
     }
     ${
       secondaryCta
         ? `<p style="text-align:center;margin:6px 0 0;font-size:13px;color:#6b7280">¿Dudas antes de decidir?
-      <a href="${secondaryCta.href}" style="color:#5b4fe0;text-decoration:underline;font-weight:bold">${secondaryCta.label}</a>
+      <a href="${secondaryCta.href}" style="color:${b.primaryColor};text-decoration:underline;font-weight:bold">${secondaryCta.label}</a>
     </p>`
         : ''
     }
     ${note ? `<p style="margin:14px 0 0;font-size:12px;color:#6b7280;line-height:1.6">${note}</p>` : ''}
   </div>
   <p style="text-align:center;font-size:11px;color:#9ca3af;margin:16px 0 4px">
-    ChatVenti &middot; Agenda + recepcionista IA para tu negocio &middot; chatventi.com
+    ${b.name} &middot; ${b.tagline} &middot; ${domain}
   </p>
   <p style="text-align:center;font-size:11px;color:#9ca3af;margin:0">
-    ¿Dudas? Escríbenos a soporte@chatventi.com
+    ¿Dudas? Escríbenos a ${b.supportEmail}
   </p>
 </div>`
 }
@@ -77,10 +84,12 @@ export function teamInvitationEmail(o: {
   roleLabel: string
   inviterName: string | null
   acceptUrl: string
+  brand?: EmailBrand
 }): Built {
   const quien = o.inviterName ? `<strong>${o.inviterName}</strong>` : 'El equipo'
+  const platform = (o.brand ?? DEFAULT_BRAND).name
   const body = `
-    <p style="margin:0 0 14px">${quien} te invitó a unirte a <strong>${o.orgName}</strong> en ChatVenti.</p>
+    <p style="margin:0 0 14px">${quien} te invitó a unirte a <strong>${o.orgName}</strong> en ${platform}.</p>
     <p style="margin:0 0 14px">Tu rol será <strong>${o.roleLabel}</strong>. Al aceptar, creas tu contraseña y entras directo al panel del negocio.</p>
     <table style="margin:0 0 8px;font-size:14.5px;line-height:1.5">
       ${check('Ves la agenda y las citas del negocio')}
@@ -89,8 +98,9 @@ export function teamInvitationEmail(o: {
     </table>
   `
   return {
-    subject: `Te invitaron a ${o.orgName} en ChatVenti`,
+    subject: `Te invitaron a ${o.orgName} en ${platform}`,
     html: layout({
+      brand: o.brand,
       title: `Únete al equipo de ${o.orgName}`,
       bodyHtml: body,
       cta: { label: 'Aceptar invitación →', href: o.acceptUrl },
@@ -294,11 +304,13 @@ export function lowCsatEmail(o: {
   orgName: string
   clientName: string | null
   conversationUrl: string
+  brand?: EmailBrand
 }): Built {
   const who = o.clientName?.trim() || 'Un cliente'
   return {
     subject: `${who} calificó mal su visita`,
     html: layout({
+      brand: o.brand,
       title: 'Una visita no salió bien',
       bodyHtml: `<p style="margin:0 0 12px"><strong>${who}</strong> respondió la encuesta de ${o.orgName} con la nota más baja.</p>
       <p style="margin:0">Le dijimos que el equipo lo revisaría. Una llamada o un mensaje tuyo hoy suele cambiar el final de la historia.</p>`,
@@ -312,6 +324,7 @@ export function dailyReportEmail(o: {
   orgName: string
   dayLabel: string
   siteUrl: string
+  brand?: EmailBrand
   data: {
     conversaciones: number
     mensajes_recibidos: number
@@ -363,6 +376,7 @@ export function dailyReportEmail(o: {
   return {
     subject: `Tu resumen de ayer · ${d.citas_de_hoy} ${d.citas_de_hoy === 1 ? 'cita hoy' : 'citas hoy'}`,
     html: layout({
+      brand: o.brand,
       title: `Buenos días, ${o.orgName}`,
       bodyHtml: body,
       cta: { label: 'Ver mi agenda →', href: `${o.siteUrl}/dashboard` },

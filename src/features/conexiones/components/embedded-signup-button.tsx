@@ -21,7 +21,7 @@ type SignupOutcome =
 
 // Códigos que devuelve /api/whatsapp/embedded-signup, dichos como los entiende un dueño.
 const SERVER_ERRORS: Record<string, string> = {
-  number_in_use: 'Ese número ya está conectado a otra cuenta de ChatVenti.',
+  number_in_use: 'Ese número ya está conectado a otra cuenta.',
   phone_not_accessible:
     'Meta no confirmó que ese número pertenezca a la cuenta que autorizaste. Vuelve a intentarlo.',
   token_exchange_failed:

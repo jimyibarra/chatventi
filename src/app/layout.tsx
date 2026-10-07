@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     template: '%s · ChatVenti',
   },
   description: DESCRIPTION,
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
   openGraph: {
     type: 'website',
     siteName: LEGAL.brand,

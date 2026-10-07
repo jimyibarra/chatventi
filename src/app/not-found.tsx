@@ -1,14 +1,18 @@
 import type { Metadata } from 'next'
 import { ErrorScreen } from '@/shared/components/error-screen'
 import { ButtonLink } from '@/shared/components/ui/button'
+import { currentBrand } from '@/features/marca/brand'
 
-export const metadata: Metadata = { title: 'Página no encontrada' }
+export const metadata: Metadata = { title: { absolute: 'Página no encontrada' } }
 
 // 404 de toda la app. También la ven los clientes finales cuando abren un
 // enlace de reserva (/r/…) o de cita (/c/…) que ya no existe.
-export default function NotFound() {
+export default async function NotFound() {
+  const brand = await currentBrand()
   return (
     <ErrorScreen
+      brandName={brand.name}
+      iconUrl={brand.iconUrl}
       kind="missing"
       tag="Error 404"
       title="Esta página no existe"

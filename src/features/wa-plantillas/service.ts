@@ -1,5 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/service'
+import { manageBaseForOrg } from '@/features/marca/brand'
 import {
   WA_TEMPLATES,
   ensureWaTemplates,
@@ -104,7 +105,7 @@ export async function publishTemplates(opts: { orgId?: string; channelId?: strin
       continue
     }
     const token = (ch.credentials as { access_token?: string } | null)?.access_token
-    const res: EnsureResult = await ensureWaTemplates(ch.waba_id, managementTokens(token))
+    const res: EnsureResult = await ensureWaTemplates(ch.waba_id, managementTokens(token), await manageBaseForOrg(ch.organization_id))
     out.created += res.created.length
     if (res.error) out.failed.push({ orgName, template: 'Todas', error: res.error })
     for (const f of res.failed) out.failed.push({ orgName, template: f.name, error: f.error })

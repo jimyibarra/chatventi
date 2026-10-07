@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Violeta de ChatVenti en canales RGB (#eeedfc … #2b247d). Un socio con marca
+   propia los sobrescribe en el envoltorio de su pantalla (features/marca). */
+:root {
+  --brand-50: 238 237 252;
+  --brand-100: 224 221 250;
+  --brand-200: 196 191 245;
+  --brand-300: 164 155 239;
+  --brand-400: 128 115 232;
+  --brand-500: 91 79 224;
+  --brand-600: 76 63 211;
+  --brand-700: 67 56 202;
+  --brand-800: 54 45 163;
+  --brand-900: 43 36 125;
+}
+
 /*
  * Personaliza tu tema en tailwind.config.ts
  * Documentación: https://tailwindcss.com/docs/theme

@@ -2,11 +2,12 @@ import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { GuideFaq, GuideTop, Path, Station, Steps, Tip } from '@/features/guia/components/guide-parts'
 import { Icon, type IconName } from '@/shared/components/ui/icon'
+import { currentBrand } from '@/features/marca/brand'
 
 export const metadata: Metadata = {
-  title: 'Conecta tu WhatsApp · ChatVenti',
+  title: 'Conecta tu WhatsApp',
   description:
-    'Guía paso a paso para elegir el número, conectar tu WhatsApp a ChatVenti con la conexión oficial de Meta y dejar listos los recordatorios.',
+    'Guía paso a paso para elegir el número, conectar tu WhatsApp a tu agenda con la conexión oficial de Meta y dejar listos los recordatorios.',
 }
 
 const STARTS: { href: string; icon: IconName; title: string; text: string }[] = [
@@ -15,14 +16,14 @@ const STARTS: { href: string; icon: IconName; title: string; text: string }[] = 
   { href: '#paso-3', icon: 'plug', title: 'Ya tengo un número libre', text: 'Ve directo a conectarlo.' },
 ]
 
-const FAQ: { q: string; a: ReactNode }[] = [
+const faq = (b: string, support: string): { q: string; a: ReactNode }[] => [
   {
     q: 'Meta dice que el número ya está registrado',
     a: 'Ese número sigue activo en la app de WhatsApp, en WhatsApp Business o con otro proveedor. Bórralo de la app (paso 1) o usa otro número.',
   },
   {
-    q: 'ChatVenti dice que el número ya está conectado a otra cuenta',
-    a: 'Cada número solo puede estar en un negocio de ChatVenti. Escríbenos a soporte@chatventi.com desde el correo de tu cuenta y lo liberamos.',
+    q: `${b} dice que el número ya está conectado a otra cuenta`,
+    a: `Cada número solo puede estar en un negocio de ${b}. Escríbenos a ${support} desde el correo de tu cuenta y lo liberamos.`,
   },
   {
     q: 'No me llega el código',
@@ -38,22 +39,24 @@ const FAQ: { q: string; a: ReactNode }[] = [
   },
   {
     q: '¿Puedo seguir usando la app de WhatsApp con ese número?',
-    a: 'No. El número pasa a la plataforma oficial de Meta y tus conversaciones las ves en ChatVenti, en Chats, desde el celular o la computadora.',
+    a: `No. El número pasa a la plataforma oficial de Meta y tus conversaciones las ves en ${b}, en Chats, desde el celular o la computadora.`,
   },
   {
     q: '¿Cuánto cuestan los mensajes?',
-    a: 'Meta los cobra directo a la cuenta de WhatsApp de tu negocio: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe). Los recordatorios sí los cobra Meta, por mensaje y según tu país. ChatVenti no les añade nada.',
+    a: `Meta los cobra directo a la cuenta de WhatsApp de tu negocio: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe). Los recordatorios sí los cobra Meta, por mensaje y según tu país. ${b} no les añade nada.`,
   },
 ]
 
-export default function GuiaWhatsAppPage() {
+export default async function GuiaWhatsAppPage() {
+  const brand = await currentBrand()
+  const b = brand.name
   return (
     <div className="min-h-screen">
-      <GuideTop />
+      <GuideTop brand={brand} />
       <main className="mx-auto max-w-[1080px] px-4 pb-20 md:px-6">
         <div className="max-w-[44rem] pt-4 md:pt-8">
           <h1 className="text-[2.1rem] font-bold leading-[1.05] tracking-tight text-ink [text-wrap:balance] md:text-[3rem]">
-            Conecta tu WhatsApp a ChatVenti
+            Conecta tu WhatsApp a {b}
           </h1>
           <p className="mt-4 text-[17px] leading-relaxed text-ink-muted md:text-[18px]">
             Así tu recepcionista contesta y agenda por el WhatsApp de tu negocio, con la conexión oficial de Meta. Se hace en unos
@@ -104,7 +107,7 @@ export default function GuiaWhatsAppPage() {
                 'Mantén el chip en un teléfono con señal mientras haces la conexión: ahí llega el código.',
               ]}
             />
-            <Tip>Después de conectarlo, ese número ya no se usa en la app de WhatsApp: tus conversaciones las ves en ChatVenti, desde el celular o la computadora.</Tip>
+            <Tip>Después de conectarlo, ese número ya no se usa en la app de WhatsApp: tus conversaciones las ves en {b}, desde el celular o la computadora.</Tip>
           </Station>
 
           <Station n={2} id="paso-2" title="Ten a la mano tu Facebook y los datos del negocio" lead="La ventana de Meta te pide entrar con tu Facebook y crear (o elegir) el portafolio de tu negocio y su cuenta de WhatsApp Business.">
@@ -119,18 +122,18 @@ export default function GuiaWhatsAppPage() {
             <Tip>Meta revisa que el nombre visible corresponda a tu negocio. Evita nombres genéricos como «Citas» o «Recepción».</Tip>
           </Station>
 
-          <Station n={3} id="paso-3" title="Conéctalo en ChatVenti" lead="Un solo botón abre la ventana oficial de Meta. Solo el dueño de la cuenta de ChatVenti puede hacerlo.">
+          <Station n={3} id="paso-3" title={`Conéctalo en ${b}`} lead={`Un solo botón abre la ventana oficial de Meta. Solo el dueño de la cuenta de ${b} puede hacerlo.`}>
             <Steps
               items={[
                 <>
-                  Entra a ChatVenti y ve a <Path parts={['Más', 'Conexiones']} />.
+                  Entra a {b} y ve a <Path parts={['Más', 'Conexiones']} />.
                 </>,
                 'En «WhatsApp» toca «Conectar WhatsApp». Se abre una ventana de Meta; entra con tu Facebook si te lo pide.',
                 'Elige el portafolio comercial de tu negocio o crea uno con sus datos.',
                 'Crea la cuenta de WhatsApp Business (o elige la que ya tienes) y escribe el nombre visible y la categoría.',
                 'Escribe tu número, elige SMS o llamada y escribe el código de 6 dígitos que te llega.',
-                'Revisa lo que se compartirá con ChatVenti y confirma.',
-                'Regresas a ChatVenti y tu número aparece como «Activo». Si dice «Pendiente de activación», espera unos minutos o vuelve a tocar «Conectar WhatsApp».',
+                `Revisa lo que se compartirá con ${b} y confirma.`,
+                `Regresas a ${b} y tu número aparece como «Activo». Si dice «Pendiente de activación», espera unos minutos o vuelve a tocar «Conectar WhatsApp».`,
               ]}
             />
           </Station>
@@ -142,7 +145,7 @@ export default function GuiaWhatsAppPage() {
                 'En la sección de pagos, agrega la tarjeta de tu negocio.',
               ]}
             />
-            <Tip>ChatVenti no cobra por mensaje ni ve tu tarjeta: el cobro es directo entre Meta y tu negocio.</Tip>
+            <Tip>{b} no cobra por mensaje ni ve tu tarjeta: el cobro es directo entre Meta y tu negocio.</Tip>
           </Station>
 
           <Station n={5} id="paso-5" title="Pruébalo" lead="Escríbele a tu número desde otro celular, como si fueras un cliente." last>
@@ -151,15 +154,15 @@ export default function GuiaWhatsAppPage() {
                 'Escribe algo como «Hola, ¿tienen lugar mañana?».',
                 'La recepcionista contesta en segundos con tus horarios libres.',
                 <>
-                  La conversación aparece en ChatVenti, en <Path parts={['Chats']} />.
+                  La conversación aparece en {b}, en <Path parts={['Chats']} />.
                 </>,
               ]}
             />
-            <Tip>En Conexiones verás «Mensajes automáticos por WhatsApp»: las plantillas de recordatorios que ChatVenti pide por ti. Meta las aprueba en unos minutos.</Tip>
+            <Tip>En Conexiones verás «Mensajes automáticos por WhatsApp»: las plantillas de recordatorios que {b} pide por ti. Meta las aprueba en unos minutos.</Tip>
           </Station>
         </div>
 
-        <GuideFaq items={FAQ} />
+        <GuideFaq items={faq(b, brand.supportEmail)} supportEmail={brand.supportEmail} />
       </main>
     </div>
   )

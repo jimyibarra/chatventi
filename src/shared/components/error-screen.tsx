@@ -14,18 +14,18 @@ function LineArt({ kind, label }: { kind: 'missing' | 'failed'; label: string })
     <div className="relative mb-9 max-w-[520px]">
       <svg viewBox={`0 0 ${W} 72`} className="block h-auto w-full" aria-hidden>
         {/* tramo recorrido */}
-        <path d="M14 36H306" stroke="#5b4fe0" strokeWidth="6" strokeLinecap="round" />
+        <path d="M14 36H306" stroke="rgb(var(--brand-500))" strokeWidth="6" strokeLinecap="round" />
         {/* tramo punteado hacia la estación final */}
-        <path d={`M330 36H${END - 28}`} stroke="#5b4fe0" strokeWidth="6" strokeLinecap="round" strokeDasharray="0.1 14" />
+        <path d={`M330 36H${END - 28}`} stroke="rgb(var(--brand-500))" strokeWidth="6" strokeLinecap="round" strokeDasharray="0.1 14" />
         {/* atendida */}
         <circle cx="40" cy="36" r="13" fill="#7d7996" stroke="#fff" strokeWidth="3" />
         <path d="m34 36.5 4 4 8-8.5" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
         {/* confirmadas */}
-        <circle cx="156" cy="36" r="14" fill="#5b4fe0" stroke="#fff" strokeWidth="3.5" />
-        <circle cx="272" cy="36" r="14" fill="#5b4fe0" stroke="#fff" strokeWidth="3.5" />
+        <circle cx="156" cy="36" r="14" fill="rgb(var(--brand-500))" stroke="#fff" strokeWidth="3.5" />
+        <circle cx="272" cy="36" r="14" fill="rgb(var(--brand-500))" stroke="#fff" strokeWidth="3.5" />
         {kind === 'missing' ? (
           <g className="cv-lost">
-            <circle cx={END} cy="36" r="20" fill="#fff" stroke="#5b4fe0" strokeWidth="4.5" />
+            <circle cx={END} cy="36" r="20" fill="#fff" stroke="rgb(var(--brand-500))" strokeWidth="4.5" />
             <text x={END} y="44" textAnchor="middle" fontSize="23" fontWeight="700" fill="#2a1a5e" fontFamily="inherit">
               ?
             </text>
@@ -56,6 +56,8 @@ export function ErrorScreen({
   children,
   actions,
   detail,
+  brandName = 'ChatVenti',
+  iconUrl = '/brand/chatventi-icon.png',
 }: {
   kind: 'missing' | 'failed'
   tag: string
@@ -63,6 +65,9 @@ export function ErrorScreen({
   children: ReactNode
   actions: ReactNode
   detail?: ReactNode
+  /** Marca de la cabecera (la del socio en su dominio). */
+  brandName?: string
+  iconUrl?: string
 }) {
   return (
     <div className="cv-panel flex min-h-screen flex-col bg-surface text-ink">
@@ -72,8 +77,8 @@ export function ErrorScreen({
               esto, React precarga el icono en TODAS (Chrome avisa en consola
               de una precarga que nadie usa). */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/chatventi-icon.png" alt="" loading="lazy" className="h-8 w-8 rounded-[10px] bg-white p-1" />
-          <span className="font-bold tracking-tight">ChatVenti</span>
+          <img src={iconUrl} alt="" loading="lazy" className="h-8 w-8 rounded-[10px] bg-white p-1" />
+          <span className="font-bold tracking-tight">{brandName}</span>
         </Link>
       </header>
       <main className="flex flex-1 items-center justify-center px-4 py-10 sm:py-16">

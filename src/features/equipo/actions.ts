@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { brandOrigin, currentBrand } from '@/features/marca/brand'
 import { isBillingEnforced } from '@/features/billing/gating'
 import { sendEmail } from '@/features/emails/mailer'
 import { teamInvitationEmail } from '@/features/emails/templates'
@@ -27,9 +28,6 @@ function humanizeError(message: string): string {
   return 'Ocurrió un error. Intenta de nuevo.'
 }
 
-function siteUrl(): string {
-  return (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
-}
 
 // El correo puede fallar (SMTP sin configurar devuelve false SIN romper): en
 // ese caso se devuelve el enlace para que el dueño lo copie y lo mande él.
@@ -42,7 +40,9 @@ async function sendInvite(params: {
   roleLabel: string
 }): Promise<InviteData> {
   const supabase = await createClient()
-  const link = `${siteUrl()}/invitacion/${params.token}`
+  // Negocio de socio con marca: el enlace y el correo van con su marca y su dominio.
+  const brand = await currentBrand()
+  const link = `${brandOrigin(brand)}/invitacion/${params.token}`
 
   const [{ data: org }, { data: me }] = await Promise.all([
     supabase.from('organizations').select('name').maybeSingle(),
@@ -54,8 +54,9 @@ async function sendInvite(params: {
     roleLabel: params.roleLabel,
     inviterName: me?.full_name ?? null,
     acceptUrl: link,
+    brand,
   })
-  const emailSent = await sendEmail({ to: params.email, subject: built.subject, html: built.html })
+  const emailSent = await sendEmail({ to: params.email, subject: built.subject, html: built.html, brand })
   return { email: params.email, link, emailSent }
 }
 

@@ -1,6 +1,8 @@
 import { sendEmail } from '@/features/emails/mailer'
 import { lowCsatEmail } from '@/features/emails/templates'
 import type { CsatInfo } from './csat'
+import { createServiceClient } from '@/lib/supabase/service'
+import { brandForOrg, brandOrigin } from '@/features/marca/brand'
 
 /**
  * Nota baja en la encuesta → correo inmediato al dueño.
@@ -13,15 +15,20 @@ import type { CsatInfo } from './csat'
 export async function alertLowCsat(score: number, info: CsatInfo | null): Promise<void> {
   if (score > 2 || !info?.contact_email) return
   try {
-    const site = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://www.chatventi.com').replace(/\/$/, '')
+    const { data: conv } = info.conversation_id
+      ? await createServiceClient().from('conversations').select('organization_id').eq('id', info.conversation_id).maybeSingle()
+      : { data: null }
+    const brand = await brandForOrg(conv?.organization_id ?? null)
+    const site = brandOrigin(brand)
     const { subject, html } = lowCsatEmail({
+      brand,
       orgName: info.org_name ?? 'tu negocio',
       clientName: info.client_name ?? null,
       conversationUrl: info.conversation_id
         ? `${site}/dashboard/conversaciones/${info.conversation_id}`
         : `${site}/dashboard/conversaciones`,
     })
-    await sendEmail({ to: info.contact_email, subject, html })
+    await sendEmail({ to: info.contact_email, subject, html, brand })
   } catch (err) {
     console.error('[csat] no se pudo avisar de la nota baja', err)
   }

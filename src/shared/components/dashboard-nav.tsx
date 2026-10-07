@@ -72,7 +72,7 @@ function Tile({ item, active, count }: { item: Pick<NavItem, 'icon' | 'tile'>; a
       {!!count && (
         <b
           className={`absolute -right-2 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-[#ffcd2e] px-1 text-[12px] font-bold leading-none text-ink ${
-            active ? 'shadow-[0_0_0_2px_#fff]' : 'shadow-[0_0_0_2px_#5b4fe0]'
+            active ? 'shadow-[0_0_0_2px_#fff]' : 'shadow-[0_0_0_2px_rgb(var(--brand-500))]'
           }`}
         >
           {count > 9 ? '9+' : count}
@@ -82,7 +82,7 @@ function Tile({ item, active, count }: { item: Pick<NavItem, 'icon' | 'tile'>; a
   )
 }
 
-export function DashboardNav({ role, badges }: { role: string; badges?: { agenda: number; chats: number } }) {
+export function DashboardNav({ role, badges, brandName = 'ChatVenti', iconUrl = '/brand/chatventi-icon.png' }: { role: string; badges?: { agenda: number; chats: number }; brandName?: string; iconUrl?: string }) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
   const secondary = SECONDARY.filter((i) => !i.roles || i.roles.includes(role))
@@ -105,9 +105,9 @@ export function DashboardNav({ role, badges }: { role: string; badges?: { agenda
         className="fixed inset-x-0 bottom-0 z-40 flex justify-around gap-0.5 bg-brand-500 px-1.5 pb-[calc(6px+env(safe-area-inset-bottom))] pt-1.5 md:inset-y-0 md:left-0 md:right-auto md:w-[84px] md:flex-col md:justify-start md:gap-1.5 md:overflow-y-auto md:px-1.5 md:py-3"
         aria-label="Navegación principal"
       >
-        <Link href="/dashboard" className="mb-2 hidden justify-center md:flex" aria-label="ChatVenti, ir al Panel">
+        <Link href="/dashboard" className="mb-2 hidden justify-center md:flex" aria-label={`${brandName}, ir al Panel`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/chatventi-icon.png" alt="" className="h-12 w-12 rounded-[14px] bg-white p-1.5" />
+          <img src={iconUrl} alt="" className="h-12 w-12 rounded-[14px] bg-white p-1.5" />
         </Link>
         {PRIMARY.map((item) => {
           const active = isActive(pathname, item.href)

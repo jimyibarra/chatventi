@@ -6,8 +6,8 @@
    ===================================================================== */
 
 .cv-panel {
-  caret-color: #5b4fe0;
-  accent-color: #5b4fe0;
+  caret-color: rgb(var(--brand-500));
+  accent-color: rgb(var(--brand-500));
   scrollbar-color: #c4bff5 transparent;
 }
 
@@ -19,7 +19,7 @@
 /* Foco de teclado: aro de marca en enlaces, botones y resúmenes. Los
    campos de texto llevan su propio anillo (ver ui/field.tsx). */
 :where(.cv-panel) :is(a, button, summary, [role='button']):focus-visible {
-  outline: 3px solid #5b4fe0;
+  outline: 3px solid rgb(var(--brand-500));
   outline-offset: 2px;
 }
 
@@ -28,7 +28,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #5b4fe0;
+  background: rgb(var(--brand-500));
   animation: cv-dot 1.2s ease-in-out infinite;
 }
 .cv-dot:nth-child(2) { animation-delay: 0.15s; }

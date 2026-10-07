@@ -24,7 +24,8 @@ import type { Database } from '@/lib/supabase/database.types'
 
 const GRAPH = 'https://graph.facebook.com/v25.0'
 const LANG = 'es_MX'
-const MANAGE_BASE = 'https://www.chatventi.com/c/'
+/** Base del enlace «Cambiar o cancelar»; los negocios de un socio con dominio propio usan el suyo. */
+export const MANAGE_BASE = 'https://www.chatventi.com/c/'
 
 export type WaTemplateKey =
   | 'reminder_24h'
@@ -51,7 +52,7 @@ type TemplateDef = {
   buttons?: Button[]
 }
 
-const TEMPLATES: Record<WaTemplateKey, TemplateDef> = {
+const templatesFor = (manageBase: string): Record<WaTemplateKey, TemplateDef> => ({
   reminder_24h: {
     name: 'cv_recordatorio_cita_v1',
     category: 'UTILITY',
@@ -61,7 +62,7 @@ const TEMPLATES: Record<WaTemplateKey, TemplateDef> = {
     example: ['Ana', 'Estética Lumen', 'mar 7 oct, 16:00', 'Corte de cabello'],
     buttons: [
       { type: 'QUICK_REPLY', text: 'Confirmar asistencia' },
-      { type: 'URL', text: 'Cambiar o cancelar', url: `${MANAGE_BASE}{{1}}`, example: [`${MANAGE_BASE}ejemplo`] },
+      { type: 'URL', text: 'Cambiar o cancelar', url: `${manageBase}{{1}}`, example: [`${manageBase}ejemplo`] },
     ],
   },
   reminder_2h: {
@@ -111,7 +112,9 @@ const TEMPLATES: Record<WaTemplateKey, TemplateDef> = {
     body: 'Hola {{1}}, te escribimos de {{2}} con un recordatorio:\n\n{{3}}\n\nResponde a este mensaje y te ayudamos a agendar.',
     example: ['Ana', 'Clínica Dental Sonríe', 'Ya te toca tu limpieza dental de cada 6 meses.'],
   },
-}
+})
+
+const TEMPLATES = templatesFor(MANAGE_BASE)
 
 /** Catálogo para las pantallas: qué plantilla usa cada mensaje automático. */
 export const WA_TEMPLATES = (Object.keys(TEMPLATES) as WaTemplateKey[]).map((key) => ({ key, ...TEMPLATES[key] }))
@@ -155,7 +158,7 @@ export type EnsureResult = { created: string[]; failed: { name: string; error: s
  * Idempotente: se puede llamar las veces que haga falta. Las creadas quedan
  * «en revisión» unos minutos antes de poder usarse.
  */
-export async function ensureWaTemplates(wabaId: string, token: string | string[]): Promise<EnsureResult> {
+export async function ensureWaTemplates(wabaId: string, token: string | string[], manageBase: string = MANAGE_BASE): Promise<EnsureResult> {
   const list = await listWaTemplates(wabaId, Array.isArray(token) ? token : [token])
   if (!list.ok) {
     console.error('[wa-templates] no se pudo listar', list.error)
@@ -163,7 +166,7 @@ export async function ensureWaTemplates(wabaId: string, token: string | string[]
   }
   const headers = { authorization: `Bearer ${list.token}`, 'content-type': 'application/json' }
   const out: EnsureResult = { created: [], failed: [] }
-  for (const t of Object.values(TEMPLATES)) {
+  for (const t of Object.values(templatesFor(manageBase))) {
     if (list.byName.has(t.name)) continue
     const res = await fetch(`${GRAPH}/${wabaId}/message_templates`, {
       method: 'POST',
