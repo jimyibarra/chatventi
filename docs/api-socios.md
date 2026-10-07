@@ -169,6 +169,10 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
 - Errores: `404 not_found`, `409 suspended` (negocio suspendido), `429 rate_limited` (más de 10 pases por minuto por negocio).
 - Los dueños de negocios de socio no necesitan contraseña; `setPasswordUrl` del alta sigue existiendo para socios externos.
 
+## Marca del socio (nivel 2)
+
+Un socio interno con `display_name` en ChatVenti tiene **marca propia**: sus negocios ven su nombre, logo, ícono y colores en el panel, el acceso, la ayuda, el 404 y las páginas públicas (`/r/<slug>`, `/c/<token>`), sin «ChatVenti». Sus correos (los de Supabase Auth y los propios: resumen diario, encuesta baja, invitaciones) salen desde `email_from` por Resend con su logo, y los enlaces apuntan a `app_domain` (`https://agenda.pasen.mx`). El pase de entrada también apunta ahí. Los botones «Cambiar o cancelar» de las plantillas de WhatsApp de esos negocios enlazan a `https://<app_domain>/c/…`. El dominio se da de alta en Vercel y en las Redirect URLs de Supabase Auth; la ventana de Meta para conectar WhatsApp sigue mostrando la app ChatVenti (nivel 3, fuera por ahora).
+
 ## Códigos de error
 
 | HTTP | `error` | Significado |
