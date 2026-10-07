@@ -40,11 +40,11 @@ export async function proxy(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
-  // En el dominio de un socio (agenda.pasen.mx) no hay sitio comercial de
-  // ChatVenti: la raíz y las páginas por giro mandan al acceso.
+  // En el dominio de un socio (agenda.pasen.mx) no hay sitio comercial ni alta
+  // de ChatVenti: la raíz, las páginas por giro y el registro mandan al acceso.
   const host = (request.headers.get('host') ?? '').split(':')[0]
   const ownHost = host === '' || host.endsWith('chatventi.com') || host.endsWith('.vercel.app') || host === 'localhost' || host === '127.0.0.1'
-  if (!ownHost && (pathname === '/' || pathname.startsWith('/para'))) {
+  if (!ownHost && (pathname === '/' || pathname.startsWith('/para') || pathname.startsWith('/signup'))) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

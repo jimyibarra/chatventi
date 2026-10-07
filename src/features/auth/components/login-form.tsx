@@ -13,8 +13,11 @@ import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
 import { PasswordInput } from './password-input'
 import { TurnstileWidget } from './turnstile-widget'
+import { useBrand } from '@/features/marca/brand-context'
 
 export function LoginForm() {
+  // En el dominio de un socio (agenda.pasen.mx) no hay alta ni sitio de ChatVenti.
+  const brand = useBrand()
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   // Captcha (Turnstile). Solo se pinta si hay NEXT_PUBLIC_TURNSTILE_SITE_KEY; si
@@ -115,15 +118,17 @@ export function LoginForm() {
       </Button>
 
       <div className="space-y-3 border-t border-line pt-4">
-        <p className="text-center text-[14.5px] text-ink-muted">
-          ¿No tienes cuenta?{' '}
-          <Link href="/signup" className="rounded-[6px] font-semibold text-brand-600 underline-offset-4 hover:underline">
-            Regístrate
-          </Link>
-        </p>
-        <ButtonLink href="/" variant="ghost" className="w-full">
+        {!brand.partnerId && (
+          <p className="text-center text-[14.5px] text-ink-muted">
+            ¿No tienes cuenta?{' '}
+            <Link href="/signup" className="rounded-[6px] font-semibold text-brand-600 underline-offset-4 hover:underline">
+              Regístrate
+            </Link>
+          </p>
+        )}
+        <ButtonLink href={brand.panelUrl ?? '/'} variant="ghost" className="w-full">
           <Icon name="arrowLeft" className="h-4 w-4" />
-          Regresar al inicio
+          {brand.partnerId ? `Volver a mi panel de ${brand.name}` : 'Regresar al inicio'}
         </ButtonLink>
       </div>
     </form>

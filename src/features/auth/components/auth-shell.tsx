@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { LinesShowcase } from './lines-showcase'
 import { CHATVENTI, brandStyle, type Brand } from '@/features/marca/brand-shared'
+import { BrandProvider } from '@/features/marca/brand-context'
 
 // Armazón de acceso y alta (login, registro, recuperar, nueva contraseña,
 // bienvenida e invitación), diseño «Líneas»:
@@ -39,7 +40,9 @@ export function AuthShell({ children, brand = CHATVENTI }: { children: React.Rea
           </Link>
         </header>
         <main className="flex flex-1 flex-col items-center px-4 pb-10 pt-6 sm:justify-center sm:py-12">
-          <div className="w-full max-w-[440px]">{children}</div>
+          <div className="w-full max-w-[440px]">
+            <BrandProvider brand={brand}>{children}</BrandProvider>
+          </div>
         </main>
       </div>
     </div>
