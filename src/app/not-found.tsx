@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import { ErrorScreen } from '@/shared/components/error-screen'
 import { ButtonLink } from '@/shared/components/ui/button'
 import { currentBrand } from '@/features/marca/brand'
+import { brandMetadata } from '@/features/marca/brand-shared'
 
-export const metadata: Metadata = { title: { absolute: 'Página no encontrada' } }
+export async function generateMetadata(): Promise<Metadata> {
+  return brandMetadata(await currentBrand(), 'Página no encontrada')
+}
 
 // 404 de toda la app. También la ven los clientes finales cuando abren un
 // enlace de reserva (/r/…) o de cita (/c/…) que ya no existe.

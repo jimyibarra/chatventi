@@ -2,7 +2,8 @@ import { notFound } from 'next/navigation'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { brandForOrg } from '@/features/marca/brand'
+import { brandForOrg, currentBrand } from '@/features/marca/brand'
+import { brandMetadata } from '@/features/marca/brand-shared'
 import {
   AppointmentManager,
   type PublicAppointment,
@@ -10,7 +11,9 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = { title: 'Tu cita' }
+export async function generateMetadata() {
+  return brandMetadata(await currentBrand(), 'Tu cita')
+}
 
 const tokenSchema = z.string().uuid()
 

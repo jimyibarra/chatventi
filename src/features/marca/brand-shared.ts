@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import type { Metadata } from 'next'
 
 // Marca con la que se muestra ChatVenti: la propia o la de un socio interno
 // (¡Pasen!) para sus negocios y su dominio. Este archivo no toca la base:
@@ -81,4 +82,26 @@ export function palette(primary: string): Record<string, string> {
 /** Variables CSS para envolver una pantalla con la marca del socio; undefined en ChatVenti. */
 export function brandStyle(brand: Brand): CSSProperties | undefined {
   return brand.partnerId ? (palette(brand.primaryColor) as CSSProperties) : undefined
+}
+
+/**
+ * Metadatos de una pantalla con la marca del socio: título, íconos, Open Graph
+ * y nombre de la app al instalarla en iOS. Sin socio devuelve solo el título,
+ * que hereda la plantilla «%s · ChatVenti» del layout raíz. Las etiquetas no se
+ * ven en pantalla, pero son lo que muestra un enlace compartido o el icono en
+ * el teléfono: por ahí se colaba «ChatVenti» en agenda.pasen.mx.
+ */
+export function brandMetadata(brand: Brand, title?: string): Metadata {
+  if (!brand.partnerId) return title ? { title } : {}
+  const origin = brandOrigin(brand)
+  return {
+    metadataBase: new URL(origin),
+    title: title ? { absolute: `${title} · ${brand.name}` } : { absolute: brand.name, template: `%s · ${brand.name}` },
+    description: brand.tagline,
+    applicationName: brand.name,
+    icons: { icon: brand.iconUrl, apple: brand.iconUrl },
+    appleWebApp: { title: brand.name },
+    openGraph: { siteName: brand.name, title: brand.name, url: origin, description: brand.tagline, images: [{ url: brand.iconUrl }] },
+    twitter: { card: 'summary', title: brand.name, description: brand.tagline, images: [brand.iconUrl] },
+  }
 }

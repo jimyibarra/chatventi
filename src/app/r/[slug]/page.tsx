@@ -1,7 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { brandForOrg } from '@/features/marca/brand'
+import { brandForOrg, currentBrand } from '@/features/marca/brand'
+import { brandMetadata } from '@/features/marca/brand-shared'
 import { PublicBooking } from '@/features/reservas-web/components/public-booking'
 import { DEFAULT_RESOURCE_LABEL } from '@/features/profesionales/types'
 import { safeHex, strokeOnWhite, textOn } from '@/shared/lib/color'
@@ -32,7 +33,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const supabase = await createClient()
   const { data } = await supabase.rpc('get_public_booking_context', { p_slug: slug })
   const ctx = data as unknown as Ctx | null
-  return { title: ctx?.org?.name ? `Reserva en ${ctx.org.name}` : 'Reservar cita' }
+  return brandMetadata(await currentBrand(), ctx?.org?.name ? `Reserva en ${ctx.org.name}` : 'Reservar cita')
 }
 
 export default async function PublicBookingPage({

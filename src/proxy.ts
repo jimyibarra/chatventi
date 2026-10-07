@@ -39,6 +39,17 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   const { pathname } = request.nextUrl
+
+  // En el dominio de un socio (agenda.pasen.mx) no hay sitio comercial de
+  // ChatVenti: la raíz y las páginas por giro mandan al acceso.
+  const host = (request.headers.get('host') ?? '').split(':')[0]
+  const ownHost = host === '' || host.endsWith('chatventi.com') || host.endsWith('.vercel.app') || host === 'localhost' || host === '127.0.0.1'
+  if (!ownHost && (pathname === '/' || pathname.startsWith('/para'))) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    return NextResponse.redirect(url)
+  }
+
   const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/signup')
   const isProtected = pathname.startsWith('/dashboard')
   const isBilling = pathname.startsWith('/dashboard/facturacion')

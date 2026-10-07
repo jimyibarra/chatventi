@@ -9,6 +9,7 @@ import { getMySubscription, paymentIssue } from '@/features/billing/gating'
 import { PaymentIssueBanner } from '@/features/billing/components/payment-issue-banner'
 import { brandStyle, currentBrand } from '@/features/marca/brand'
 import { BrandProvider } from '@/features/marca/brand-context'
+import { brandMetadata } from '@/features/marca/brand-shared'
 import type { Metadata } from 'next'
 import '@/shared/components/ui/panel.css'
 
@@ -17,14 +18,7 @@ const rubik = Rubik({ subsets: ['latin'], weight: ['400', '500', '600', '700'], 
 
 /** Título, ícono y nombre de app con la marca del socio cuando el negocio es suyo. */
 export async function generateMetadata(): Promise<Metadata> {
-  const brand = await currentBrand()
-  if (!brand.partnerId) return {}
-  return {
-    title: { absolute: brand.name, template: `%s · ${brand.name}` },
-    icons: { icon: brand.iconUrl, apple: brand.iconUrl },
-    appleWebApp: { title: brand.name },
-    openGraph: { siteName: brand.name, title: brand.name },
-  }
+  return brandMetadata(await currentBrand())
 }
 
 export default async function MainLayout({
