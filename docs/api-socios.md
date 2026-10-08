@@ -175,6 +175,24 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
 
 Un socio interno con `display_name` en ChatVenti tiene **marca propia**: sus negocios ven su nombre, logo, ícono y colores en el panel, el acceso, la ayuda, el 404 y las páginas públicas (`/r/<slug>`, `/c/<token>`), sin «ChatVenti». Sus correos (los de Supabase Auth y los propios: resumen diario, encuesta baja, invitaciones) salen desde `email_from` por Resend con su logo, y los enlaces apuntan a `app_domain` (`https://agenda.pasen.mx`). El pase de entrada también apunta ahí. Los botones «Cambiar o cancelar» de las plantillas de WhatsApp de esos negocios enlazan a `https://<app_domain>/c/…`. El dominio se da de alta en Vercel y en las Redirect URLs de Supabase Auth; la ventana de Meta para conectar WhatsApp sigue mostrando la app ChatVenti (nivel 3, fuera por ahora).
 
+## Asistente de ventas de ¡Pasen!: página de muestra desde WhatsApp
+
+La organización de ventas de ¡Pasen! en ChatVenti (`PASEN_SALES_ORG_ID`) tiene dos herramientas más en su recepcionista IA; ninguna otra organización las ve. ChatVenti llama a PASEN por `POST` con `Authorization: Bearer <PASEN_SAMPLE_PAGE_SECRET>`, 20 s de tope y sin reintentos.
+
+| Variable (Vercel, Production) | Valor |
+|---|---|
+| `PASEN_SALES_ORG_ID` | id de la organización de ventas de ¡Pasen! |
+| `PASEN_SAMPLE_PAGE_URL` | `https://pasen.mx/api/socios/chatventi/pagina-muestra` |
+| `PASEN_PANEL_ACCESS_URL` | `https://pasen.mx/api/socios/chatventi/acceso` |
+| `PASEN_SAMPLE_PAGE_SECRET` | la clave que entrega PASEN (misma para las dos) |
+
+Sin alguna de las cuatro, las herramientas no existen y el asistente sigue mandando al formulario.
+
+- `create_sample_page` → `POST PASEN_SAMPLE_PAGE_URL` con `{ businessName, businessType, city|null, contactName|null, summary|null, phone, conversationId, test }`. `phone` es el **wa_id** de la conversación tal cual lo manda WhatsApp (solo dígitos con país, p. ej. `5215512345678`); el modelo nunca lo elige. `conversationId` es el uuid de la conversación en ChatVenti. Respuestas: `200 { url, trialUntilText, created }` → el modelo manda el enlace; `422 unknown_business_type { options }` → ofrece las opciones y reintenta una vez; cualquier otra o sin respuesta → el código escala a una persona (no se inventa enlace).
+- `send_panel_access` → `POST PASEN_PANEL_ACCESS_URL` con `{ email, phone, conversationId, test }`. Solo se manda un correo que el cliente **escribió** en la conversación. Respuestas: `200 { sent: true }` → «te llegó un correo»; `200 { sent: false, reason: "team_review" }` → «una persona te confirma hoy»; `404 not_found` → el modelo crea primero la página; otra → escala.
+- Topes: 1 página y 2 accesos por conversación; 20 llamadas por hora por organización. Cada página creada y cada acceso enviado deja una constancia visible en Chats.
+- Chat de prueba del panel: `test: true` y `phone: "5215500000000"`; PASEN responde sin crear nada.
+
 ## Códigos de error
 
 | HTTP | `error` | Significado |

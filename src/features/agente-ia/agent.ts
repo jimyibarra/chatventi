@@ -10,13 +10,14 @@ import { renderVoiceBlock, resolveVoiceProfile } from './voice'
 import { salesReply, type SalesTurn } from '@/features/ventas-agente/brain'
 import { OPENROUTER_USAGE, recordAiCost } from './ai-cost'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
+import { PASEN_PROMPT_RULES, buildPasenTools } from './pasen-tools'
 
 type AnyClient = SupabaseClient<Database>
 
 // -------------------------------------------------------------------
 // Prompt del sistema: acota al negocio (regla Meta: sin chatbots genéricos)
 // -------------------------------------------------------------------
-function buildSystemPrompt(ctx: AgentContext): string {
+function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {}): string {
   const tz = ctx.branch?.timezone ?? 'America/Mexico_City'
   const today = new Intl.DateTimeFormat('es-MX', {
     timeZone: tz,
@@ -135,6 +136,7 @@ function buildSystemPrompt(ctx: AgentContext): string {
     '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
     '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
     '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise.',
+    ...(opts.pasenTools ? PASEN_PROMPT_RULES : []),
     // Solo cuando de verdad hay un archivo leído en el historial. Sin esto el
     // agente trataba la lectura como algo "fuera de su ámbito" y respondía
     // "no puedo ayudarte con eso" a un comprobante de pago perfectamente
@@ -650,7 +652,7 @@ export async function runAgent(params: {
   const openrouter = createOpenRouter({ apiKey })
   const model = openrouter(ctx.config?.model || 'openai/gpt-4o-mini', OPENROUTER_USAGE)
 
-  const tools = {
+  const baseTools = {
     check_availability: tool({
       description:
         'Consulta los horarios disponibles para uno o más servicios en una fecha. Devuelve horas libres reales (máx 3). Pasa resource_id solo si el cliente pidió a alguien concreto.',
@@ -906,11 +908,27 @@ export async function runAgent(params: {
 
   const convId = ctx.conversation.id
 
+  // Solo la organización de ventas de ¡Pasen! (PASEN_SALES_ORG_ID) tiene estas
+  // dos herramientas; para el resto es null y nada cambia. Si PASEN no responde,
+  // el código escala a humano por sí mismo: el modelo no decide si inventa.
+  const pasenTools = buildPasenTools({
+    orgId: ctx.org_id,
+    conversationId: convId,
+    clientHandle: ctx.conversation.client_handle,
+    inboundTexts: (ctx.messages ?? []).filter((m) => m.direction === 'inbound').map((m) => m.body ?? ''),
+    sandbox,
+    onUnavailable: (draft) => {
+      if (!approvalRequested) approvalDraft = draft
+      approvalRequested = true
+    },
+  })
+  const tools = pasenTools ? { ...baseTools, ...pasenTools } : baseTools
+
   let text = ''
   try {
     const result = await generateText({
       model,
-      system: buildSystemPrompt(ctx),
+      system: buildSystemPrompt(ctx, { pasenTools: !!pasenTools }),
       messages: toModelMessages(ctx),
       tools,
       stopWhen: stepCountIs(6),

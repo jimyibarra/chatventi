@@ -32,6 +32,8 @@ export type RateBucket =
   | 'billing_inquiry'
   // Pases de entrada de un socio: tope por negocio para que no se fabriquen en bucle.
   | 'partner_login'
+  // Herramientas de ¡Pasen! del asistente de ventas: cada llamada crea una página o manda un acceso en PASEN.
+  | 'pasen_tools'
 
 export interface RateLimitOptions {
   bucket: RateBucket
