@@ -19,6 +19,7 @@ import { runConversationScoring } from '@/features/agente-ia/scoring-job'
 import { runColdFollowups, runDailyReports } from '@/features/agente-ia/outreach-jobs'
 import { waSendTemplate, type WaTemplateKey } from '@/features/agente-ia/wa-templates'
 import { runUsageClose } from '@/features/billing/usage-close'
+import { dispatchPartnerWebhooks } from '@/features/socios/webhooks'
 
 export const runtime = 'nodejs'
 
@@ -343,7 +344,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // horario y se avisa al cliente. Corre en ambas corridas (es puntual).
   const deposits = await runDepositExpiry(service)
 
-  if (frequent) return NextResponse.json({ ok: true, scope: 'reminders', summary, deposits })
+  // Webhooks de socios que quedaron pendientes (reintentos o kick perdido).
+  const webhooks = await dispatchPartnerWebhooks(service, { limit: 50 })
+
+  if (frequent) return NextResponse.json({ ok: true, scope: 'reminders', summary, deposits, webhooks })
 
   // Recordatorios recurrentes del expediente ("vuelve a cortarte", "limpieza
   // dental cada 6 meses"). Independientes de las citas.

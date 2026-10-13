@@ -1182,7 +1182,75 @@ export type Database = {
           used_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "partner_login_tickets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_webhook_deliveries: {
+        Row: {
+          appointment_id: string | null
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          event: string
+          id: string
+          last_error: string | null
+          last_status: number | null
+          next_attempt_at: string
+          organization_id: string | null
+          partner_id: string
+          payload: Json | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          event: string
+          id?: string
+          last_error?: string | null
+          last_status?: number | null
+          next_attempt_at?: string
+          organization_id?: string | null
+          partner_id: string
+          payload?: Json | null
+        }
+        Update: {
+          appointment_id?: string | null
+          attempts?: number
+          created_at?: string
+          delivered_at?: string | null
+          event?: string
+          id?: string
+          last_error?: string | null
+          last_status?: number | null
+          next_attempt_at?: string
+          organization_id?: string | null
+          partner_id?: string
+          payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_webhook_deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_webhook_deliveries_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       partners: {
         Row: {
@@ -1206,6 +1274,9 @@ export type Database = {
           status: string
           stripe_customer_id: string | null
           support_email: string | null
+          webhook_created_at: string | null
+          webhook_secret: string | null
+          webhook_url: string | null
         }
         Insert: {
           accent_color?: string | null
@@ -1228,6 +1299,9 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           support_email?: string | null
+          webhook_created_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
         }
         Update: {
           accent_color?: string | null
@@ -1250,6 +1324,9 @@ export type Database = {
           status?: string
           stripe_customer_id?: string | null
           support_email?: string | null
+          webhook_created_at?: string | null
+          webhook_secret?: string | null
+          webhook_url?: string | null
         }
         Relationships: []
       }
@@ -2048,6 +2125,29 @@ export type Database = {
         Args: { p_date: string; p_org: string }
         Returns: boolean
       }
+      claim_partner_webhook_deliveries: {
+        Args: { p_limit?: number }
+        Returns: {
+          appointment_id: string | null
+          attempts: number
+          created_at: string
+          delivered_at: string | null
+          event: string
+          id: string
+          last_error: string | null
+          last_status: number | null
+          next_attempt_at: string
+          organization_id: string | null
+          partner_id: string
+          payload: Json | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "partner_webhook_deliveries"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_reminder: {
         Args: { p_appointment_id: string; p_kind: string }
         Returns: boolean
@@ -2236,6 +2336,7 @@ export type Database = {
       get_my_org: { Args: never; Returns: string }
       get_my_role: { Args: never; Returns: string }
       get_public_booking_context: { Args: { p_slug: string }; Returns: Json }
+      kick_partner_webhooks: { Args: never; Returns: undefined }
       log_outbound_message: {
         Args: {
           p_body: string
