@@ -245,20 +245,15 @@ Firma sobre el **cuerpo crudo** (bytes tal cual llegaron), no sobre el JSON ya p
 
 Un socio interno con `display_name` en ChatVenti tiene **marca propia**: sus negocios ven su nombre, logo, ícono y colores en el panel, el acceso, la ayuda, el 404 y las páginas públicas (`/r/<slug>`, `/c/<token>`), sin «ChatVenti». Sus correos (los de Supabase Auth y los propios: resumen diario, encuesta baja, invitaciones) salen desde `email_from` por Resend con su logo, y los enlaces apuntan a `app_domain` (`https://agenda.pasen.mx`). El pase de entrada también apunta ahí. Los botones «Cambiar o cancelar» de las plantillas de WhatsApp de esos negocios enlazan a `https://<app_domain>/c/…`. El dominio se da de alta en Vercel y en las Redirect URLs de Supabase Auth.
 
-## La ventana de Meta con la marca del socio (nivel 3)
+## La ventana de Meta (WhatsApp, Facebook e Instagram) para los negocios del socio
 
-Al conectar WhatsApp o Facebook/Instagram, el dueño ve una ventana de Meta con el nombre y el logo de **la app** que la abre. Por defecto es la app «ChatVenti». Un socio interno puede traer **su propia app de Meta** y entonces sus negocios ven la suya. Se configura en **/admin/socios → el socio → «App de Meta»** con: id de la app, su secreto, el id de la configuración del Embedded Signup de WhatsApp, el id de la configuración del inicio de sesión para empresas (páginas e Instagram; vacío = la de ChatVenti) y, opcional, el token de un System User.
+**Decisión (Juan, 13-oct-2026): no hay app de Meta aparte para PASEN.** Todos los negocios, sean de ChatVenti o de un socio, conectan WhatsApp, Facebook e Instagram con la app **ChatVenti** de Meta, ya aprobada y en producción. Lo que ve el dueño de un negocio de ¡Pasen!:
 
-Lo que la app del socio necesita del lado de Meta (la crea Grupo ELRI en su portafolio):
+- Su panel, la pantalla **Conexiones**, las guías paso a paso, los correos y las plantillas de WhatsApp llevan la marca **¡Pasen!** (nivel 2).
+- La **ventana de Meta** que se abre al tocar «Conectar WhatsApp» o «Conectar Facebook e Instagram» dice «ChatVenti», porque el nombre y el logo de esa ventana son los de la app registrada en Meta. Conexiones y las guías lo aclaran en una línea («es la tecnología con la que trabaja ¡Pasen!»).
+- Los mensajes de WhatsApp los cobra Meta a la cuenta del negocio, igual que a cualquier otro.
 
-1. App de tipo **Empresa** con los productos **WhatsApp**, **Facebook Login for Business**, **Messenger** e **Instagram**.
-2. **Webhooks apuntando a ChatVenti**, con el mismo token de verificación que la app de ChatVenti: WhatsApp → `https://www.chatventi.com/api/webhooks/whatsapp` (campo `messages`); Messenger e Instagram → `https://www.chatventi.com/api/webhooks/meta` (campos `messages`, `messaging_postbacks`).
-3. Una **configuración de Embedded Signup** de WhatsApp y una de **inicio de sesión para empresas** (con `pages_messaging`, `pages_show_list`, `pages_manage_metadata`, `instagram_basic`, `instagram_manage_messages`).
-4. Dominio `https://www.chatventi.com` (y el del socio, p. ej. `https://agenda.pasen.mx`) en los dominios de la app y en las URI de redirección válidas.
-5. **App Review** aprobado para `whatsapp_business_messaging`, `whatsapp_business_management`, `pages_messaging`, `instagram_manage_messages` y `business_management`, y la app en modo **Producción**. Hasta entonces solo conectan cuentas con rol en la app.
-6. Verificación de la empresa en el portafolio (la de Grupo ELRI ya está) y la de **Proveedor de tecnología**, que es del portafolio y ya la tiene.
-
-Mientras la app del socio esté incompleta (sin id, secreto o configuración de WhatsApp), sus negocios siguen conectando con la app de ChatVenti; nada se rompe.
+La posibilidad de una app propia por socio existe en el código (`/admin/socios → App de Meta`), por si algún día un socio externo la necesita, pero **no se usa**: mientras un socio no tenga app propia completa, todo va por la de ChatVenti.
 
 ## Asistente de ventas de ¡Pasen!: página de muestra desde WhatsApp
 

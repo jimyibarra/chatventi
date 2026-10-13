@@ -301,7 +301,7 @@ export default async function GuiaFacebookInstagramPage() {
                   Entra a {b} y ve a <Path parts={['Más', 'Conexiones']} />.
                 </>,
                 'En «Instagram y Messenger» toca «Conectar Facebook e Instagram».',
-                'Se abre una ventana de Facebook. Si te pide entrar, escribe tu correo y contraseña de Facebook.',
+                `Se abre una ventana de Facebook${brand.partnerId ? ` que dice «ChatVenti» (la tecnología con la que trabaja ${b}; es normal)` : ''}. Si te pide entrar, escribe tu correo y contraseña de Facebook.`,
                 'En «Selecciona los activos comerciales…»: en «Página» marca la de tu negocio y en «Cuenta de Instagram» elige la tuya. Si te pide un portafolio empresarial, deja el que aparece o crea uno con el nombre de tu negocio. Toca «Siguiente».',
                 `Revisa lo que se compartirá con ${b} y toca «Confirmar».`,
                 `Regresas a ${b} y verás «Messenger de la página» y «Mensajes directos de Instagram» como conectados.`,

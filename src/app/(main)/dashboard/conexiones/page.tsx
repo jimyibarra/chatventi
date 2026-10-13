@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { EmbeddedSignupButton } from '@/features/conexiones/components/embedded-signup-button'
 import { ConnectPagesButton } from '@/features/conexiones/components/connect-pages-button'
 import { metaAppForOrg } from '@/features/marca/meta-app'
+import { currentBrand } from '@/features/marca/brand'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { planById } from '@/features/billing/plans'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
@@ -77,6 +78,9 @@ export default async function ConexionesPage() {
 
   // La app de Meta del socio del negocio (nivel 3 de marca) o la de ChatVenti.
   const meta = await metaAppForOrg((orgId as string | null) ?? null)
+  // Negocios de socio (¡Pasen!): la ventana de Meta es de la app ChatVenti; se les avisa para que no extrañe.
+  const brand = await currentBrand()
+  const metaNote = brand.partnerId && !meta?.partnerId ? ` La ventana de Meta dice «ChatVenti»: es la tecnología con la que trabaja ${brand.name}.` : ''
   const appId = meta?.appId ?? ''
   const configId = meta?.configId ?? ''
   const PAGES_CONFIG_ID = meta?.pagesConfigId ?? ''
@@ -94,7 +98,7 @@ export default async function ConexionesPage() {
         <Section
           title="WhatsApp"
           badge={whatsapp.some((c) => c.status === 'active') ? <StatusChip tone="ok" size="md">Conectado</StatusChip> : undefined}
-          description="Con el inicio de sesión de Meta eliges (o creas) tu cuenta de WhatsApp Business y tu número. Los mensajes los cobra Meta directamente a esa cuenta."
+          description={`Con el inicio de sesión de Meta eliges (o creas) tu cuenta de WhatsApp Business y tu número. Los mensajes los cobra Meta directamente a esa cuenta.${metaNote}`}
           actions={
             <ButtonLink href="/ayuda/whatsapp" variant="secondary" size="sm" target="_blank" data-testid="guia-whatsapp">
               <Icon name="book" className="h-4 w-4" />
@@ -116,7 +120,7 @@ export default async function ConexionesPage() {
           data-testid="social-channels"
           title="Instagram y Messenger"
           badge={social.some((c) => c.status === 'active') ? <StatusChip tone="ok" size="md">Conectado</StatusChip> : undefined}
-          description="Conecta la página de Facebook de tu negocio; si tiene un Instagram profesional enlazado, se conecta también. Necesitas ser administrador de la página."
+          description={`Conecta la página de Facebook de tu negocio; si tiene un Instagram profesional enlazado, se conecta también. Necesitas ser administrador de la página.${metaNote}`}
           actions={
             <ButtonLink href="/ayuda/facebook-instagram" variant="secondary" size="sm" target="_blank" data-testid="guia-fb-ig">
               <Icon name="book" className="h-4 w-4" />

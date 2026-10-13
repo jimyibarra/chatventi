@@ -128,7 +128,7 @@ export default async function GuiaWhatsAppPage() {
                 <>
                   Entra a {b} y ve a <Path parts={['Más', 'Conexiones']} />.
                 </>,
-                'En «WhatsApp» toca «Conectar WhatsApp». Se abre una ventana de Meta; entra con tu Facebook si te lo pide.',
+                `En «WhatsApp» toca «Conectar WhatsApp». Se abre una ventana de Meta${brand.partnerId ? ` (dice «ChatVenti»: es la tecnología con la que trabaja ${b}, es normal)` : ''}; entra con tu Facebook si te lo pide.`,
                 'Elige el portafolio comercial de tu negocio o crea uno con sus datos.',
                 'Crea la cuenta de WhatsApp Business (o elige la que ya tienes) y escribe el nombre visible y la categoría.',
                 'Escribe tu número, elige SMS o llamada y escribe el código de 6 dígitos que te llega.',
