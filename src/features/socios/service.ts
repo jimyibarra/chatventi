@@ -6,6 +6,8 @@ import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { EXTRA_REPLY_PRICE_USD, planById, usageOverage, type PlanId } from '@/features/billing/plans'
+import { catalogFields, hasCatalog, hoursCoverWeek, serviceIdsUnique } from './catalog-schema'
+import { applyPartnerCatalog, type CatalogResult } from './catalog'
 
 // =====================================================================
 // API de socios (revendedores). PASEN es el primero.
@@ -32,9 +34,8 @@ export type Partner = {
 
 type Service = ReturnType<typeof createServiceClient>
 
-const json = (body: unknown, status = 200) => NextResponse.json(body, { status })
-export const apiError = (code: string, status: number, message?: string) =>
-  json({ error: code, ...(message ? { message } : {}) }, status)
+import { apiError, json } from './http'
+export { apiError } from './http'
 
 /** Valida la clave del socio. Devuelve el socio o la respuesta de error ya armada. */
 export async function authenticatePartner(
@@ -104,7 +105,11 @@ export const createOrgSchema = z.object({
   phone: z.string().trim().max(20).optional(),
   /** Página web del negocio en el sistema del socio (p. ej. https://negocio.pasen.mx). */
   siteUrl: z.string().trim().url().max(300).optional(),
+  // v2: el catálogo puede venir en el alta (mismo formato que PUT /catalog).
+  ...catalogFields,
 })
+  .refine(hoursCoverWeek, 'hours debe traer los 7 días, sin repetir')
+  .refine(serviceIdsUnique, 'externalId repetido')
 
 /** Mismo criterio que public.canonical_email: minúsculas, sin +etiqueta y, en Gmail, sin puntos. */
 function canonicalEmail(email: string): string {
@@ -236,6 +241,20 @@ export async function createPartnerOrganization(
   // del negocio funciona desde el primer minuto, igual que en el alta normal.
   await seedOrganization(service, orgId, input.ownerName ?? null).catch((err) => console.error('[socios] siembra', err))
 
+  // v2: si el socio ya trae el catálogo, se aplica encima de la siembra (misma
+  // lógica que PUT /catalog: alinea al profesional sembrado y deja la org como
+  // administrada por el socio). Los servicios de ejemplo recién sembrados se
+  // retiran: el negocio es nuevo, no tienen citas, y solo estorbarían inactivos.
+  let catalog: CatalogResult | null = null
+  if (hasCatalog(input)) {
+    try {
+      catalog = await applyPartnerCatalog(service, orgId, { services: input.services, hours: input.hours, brandColor: input.brandColor })
+      if (input.services) await service.from('service_catalogs').delete().eq('organization_id', orgId).is('partner_ref', null)
+    } catch (err) {
+      console.error('[socios] catálogo en el alta', err instanceof Error ? err.message : err)
+    }
+  }
+
   // Enlace de un solo uso para que el dueño elija su contraseña.
   const { data: link } = await service.auth.admin.generateLink({ type: 'recovery', email: input.ownerEmail })
   const hashed = link?.properties?.hashed_token
@@ -246,6 +265,7 @@ export async function createPartnerOrganization(
       ...describeOrg(fresh.org, fresh.sub),
       created: true,
       setPasswordUrl: hashed ? `${SITE}/auth/confirm?token_hash=${hashed}&type=recovery` : null,
+      ...(catalog ? { catalog } : {}),
     },
     201
   )

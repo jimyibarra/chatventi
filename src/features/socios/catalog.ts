@@ -1,11 +1,10 @@
 import 'server-only'
 import { NextResponse } from 'next/server'
 import type { Json } from '@/lib/supabase/database.types'
-import { z } from 'zod'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 import { STARTER_HOURS } from '@/features/onboarding/starter-data'
-import { apiError } from './service'
+import { apiError } from './http'
 
 // Catálogo administrado por el socio: PASEN manda la lista completa de
 // servicios y el horario de la sucursal; aquí se reemplaza lo anterior. Los
@@ -13,40 +12,8 @@ import { apiError } from './service'
 
 type Service = SupabaseClient<Database>
 
-const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
-
-const serviceSchema = z.object({
-  externalId: z.string().trim().min(1).max(80),
-  name: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(600).nullable().optional(),
-  durationMinutes: z.number().int().min(5).max(600),
-  price: z.number().min(0).max(1_000_000).nullable().optional(),
-  priceText: z.string().trim().max(60).nullable().optional(),
-  active: z.boolean().default(true),
-  position: z.number().int().min(0).max(10_000).default(0),
-})
-
-const hourSchema = z
-  .object({
-    weekday: z.number().int().min(0).max(6),
-    opens: z.string().regex(HHMM, 'Hora HH:MM').nullable().optional(),
-    closes: z.string().regex(HHMM, 'Hora HH:MM').nullable().optional(),
-    closed: z.boolean().default(false),
-  })
-  .refine((h) => h.closed || (h.opens && h.closes && h.opens < h.closes), 'Un día abierto necesita opens < closes')
-
-export const catalogSchema = z
-  .object({
-    services: z.array(serviceSchema).max(100).optional(),
-    hours: z.array(hourSchema).length(7).optional(),
-    /** Color de la página del negocio (#rrggbb): tiñe su agenda pública. */
-    brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'brandColor debe ser #rrggbb').optional(),
-  })
-  .refine((c) => c.services || c.hours || c.brandColor, 'Manda services, hours, brandColor o varios')
-  .refine((c) => !c.hours || new Set(c.hours.map((h) => h.weekday)).size === 7, 'hours debe traer los 7 días, sin repetir')
-  .refine((c) => !c.services || new Set(c.services.map((s) => s.externalId)).size === c.services.length, 'externalId repetido')
-
-export type CatalogInput = z.infer<typeof catalogSchema>
+export { catalogSchema, type CatalogInput } from './catalog-schema'
+import type { CatalogInput } from './catalog-schema'
 
 type HourRow = { weekday: number; open_time: string; close_time: string; is_closed: boolean }
 type ScheduleRow = { weekday: number; start_time: string; end_time: string }
@@ -126,24 +93,37 @@ async function putHours(service: Service, orgId: string, branchId: string, list:
   if (rows.length > 0) await service.from('staff_schedules').insert(rows)
 }
 
-/** PUT /organizations/{id}/catalog: reemplaza servicios y/o horario y marca la org como administrada por el socio. */
-export async function putPartnerCatalog(service: Service, orgId: string, input: CatalogInput): Promise<NextResponse> {
+export type CatalogResult = { services: { externalId: string; id: string | null }[]; hoursUpdated: boolean }
+
+/**
+ * Reemplaza servicios y/o horario (y el color) y marca la org como administrada
+ * por el socio. Lanza si algo falla. La usan PUT /catalog y el alta.
+ */
+export async function applyPartnerCatalog(service: Service, orgId: string, input: CatalogInput): Promise<CatalogResult> {
   const { data: branch } = await service.from('branches').select('id').eq('organization_id', orgId).order('created_at').limit(1).maybeSingle()
-  if (!branch) return apiError('not_found', 404, 'El negocio no tiene sucursal.')
+  if (!branch) throw new Error('sin_sucursal')
+  const services = input.services ? await putServices(service, orgId, input.services) : []
+  if (input.hours) await putHours(service, orgId, branch.id, input.hours)
+  const patch: { catalog_managed_by_partner: boolean; branding?: Json } = { catalog_managed_by_partner: true }
+  if (input.brandColor) {
+    // branding es jsonb con más llaves (logo, descripción): se conserva el resto.
+    const { data: org } = await service.from('organizations').select('branding').eq('id', orgId).maybeSingle()
+    const current = org?.branding && typeof org.branding === 'object' && !Array.isArray(org.branding) ? org.branding : {}
+    patch.branding = { ...current, primary_color: input.brandColor.toLowerCase() }
+  }
+  const { error } = await service.from('organizations').update(patch).eq('id', orgId)
+  if (error) throw new Error(error.message)
+  return { services, hoursUpdated: !!input.hours }
+}
+
+/** PUT /organizations/{id}/catalog */
+export async function putPartnerCatalog(service: Service, orgId: string, input: CatalogInput): Promise<NextResponse> {
   try {
-    const services = input.services ? await putServices(service, orgId, input.services) : []
-    if (input.hours) await putHours(service, orgId, branch.id, input.hours)
-    const patch: { catalog_managed_by_partner: boolean; branding?: Json } = { catalog_managed_by_partner: true }
-    if (input.brandColor) {
-      // branding es jsonb con más llaves (logo, descripción): se conserva el resto.
-      const { data: org } = await service.from('organizations').select('branding').eq('id', orgId).maybeSingle()
-      const current = org?.branding && typeof org.branding === 'object' && !Array.isArray(org.branding) ? org.branding : {}
-      patch.branding = { ...current, primary_color: input.brandColor.toLowerCase() }
-    }
-    await service.from('organizations').update(patch).eq('id', orgId)
-    return NextResponse.json({ services, hoursUpdated: !!input.hours })
+    return NextResponse.json(await applyPartnerCatalog(service, orgId, input))
   } catch (err) {
-    console.error('[socios] catálogo', err instanceof Error ? err.message : err)
+    const msg = err instanceof Error ? err.message : String(err)
+    if (msg === 'sin_sucursal') return apiError('not_found', 404, 'El negocio no tiene sucursal.')
+    console.error('[socios] catálogo', msg)
     return apiError('update_failed', 500)
   }
 }
