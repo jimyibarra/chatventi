@@ -915,6 +915,7 @@ export async function runAgent(params: {
     orgId: ctx.org_id,
     conversationId: convId,
     clientHandle: ctx.conversation.client_handle,
+    channelType,
     inboundTexts: (ctx.messages ?? []).filter((m) => m.direction === 'inbound').map((m) => m.body ?? ''),
     sandbox,
     onUnavailable: (draft) => {

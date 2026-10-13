@@ -140,6 +140,13 @@ export function buildPasenTools(p: {
   conversationId: string
   /** Identificador del cliente en el canal (wa_id en WhatsApp). */
   clientHandle: string
+  /**
+   * Canal de la conversación. PASEN recibe `clientHandle` como el WhatsApp del
+   * cliente, así que las herramientas SOLO existen en WhatsApp (o en el chat de
+   * prueba): en Messenger/Instagram el identificador es un PSID, no un teléfono,
+   * y se le mandaría a PASEN como si lo fuera.
+   */
+  channelType: 'whatsapp' | 'telegram' | 'web' | 'instagram' | 'messenger'
   /** Lo que ESCRIBIÓ el cliente en la conversación: el correo tiene que venir de ahí. */
   inboundTexts: string[]
   sandbox: boolean
@@ -150,6 +157,7 @@ export function buildPasenTools(p: {
 }) {
   const env = pasenEnv(p.env)
   if (!env || env.orgId !== p.orgId) return null
+  if (!p.sandbox && p.channelType !== 'whatsapp') return null
   const d = { ...realDeps, ...p.deps }
   const phone = p.sandbox ? SANDBOX_PHONE : p.clientHandle
   const common = { phone, conversationId: p.conversationId, test: p.sandbox }

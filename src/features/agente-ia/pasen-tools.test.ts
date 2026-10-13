@@ -41,6 +41,7 @@ function build(opts: {
   orgOk?: boolean
   envOverride?: Record<string, string | undefined>
   inbound?: string[]
+  channelType?: 'whatsapp' | 'telegram' | 'web' | 'instagram' | 'messenger'
 }) {
   const unavailable: string[] = []
   const noted: string[] = []
@@ -48,6 +49,7 @@ function build(opts: {
     orgId: opts.orgId ?? SALES_ORG,
     conversationId: 'conv-1',
     clientHandle: '5215512345678',
+    channelType: opts.channelType ?? 'whatsapp',
     inboundTexts: ['hola, soy Luis', 'mi correo es Dueno@Negocio.mx', ...(opts.inbound ?? [])],
     sandbox: opts.sandbox ?? false,
     onUnavailable: (d) => unavailable.push(d),
@@ -76,6 +78,14 @@ describe('las herramientas de ¡Pasen! existen solo para su organización', () =
   it('sin variables de entorno no existen ni para la de ventas', () => {
     expect(build({ envOverride: {} }).tools).toBeNull()
     expect(build({ envOverride: { ...env, PASEN_SAMPLE_PAGE_SECRET: '' } }).tools).toBeNull()
+  })
+  it('en Messenger, Instagram o Telegram no existen: el identificador no es un teléfono', () => {
+    for (const channelType of ['messenger', 'instagram', 'telegram', 'web'] as const) {
+      expect(build({ channelType }).tools).toBeNull()
+    }
+  })
+  it('en el chat de prueba existen aunque el canal sea web (manda el teléfono de prueba)', () => {
+    expect(build({ channelType: 'web', sandbox: true }).tools).not.toBeNull()
   })
   it('la de ventas tiene exactamente las dos', () => {
     expect(Object.keys(build({}).tools ?? {}).sort()).toEqual(['create_sample_page', 'send_panel_access'])
