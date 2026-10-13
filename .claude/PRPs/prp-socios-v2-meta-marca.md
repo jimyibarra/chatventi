@@ -21,7 +21,7 @@ GO de Juan el 13-oct-2026 a tres pendientes de PASEN. Todo en producción el mis
 - `src/features/marca/meta-app.ts`: `metaAppForOrg` (la del socio si está COMPLETA: id + secreto + config de WhatsApp; si no, ChatVenti), `metaAppSecrets` (todas las apps, para firmar webhooks).
 - Usan la app del negocio: Conexiones (botones), `/api/whatsapp/embedded-signup` (canje del code, system user token, plantillas), `/api/meta/connect-pages`, plantillas (`managementTokens(token, systemUserToken)`); webhooks WhatsApp y Meta aceptan la firma de cualquier app conocida.
 - Panel: `/admin/socios` → botón «App de Meta: propia | ChatVenti» (solo socios internos) → `MetaAppForm`.
-- **Lado de Meta (Juan)**: ver `docs/api-socios.md` → «La ventana de Meta con la marca del socio (nivel 3)». Sin App Review aprobado en la app nueva, solo conectan cuentas con rol en esa app.
+- **Decisión de Juan (13-oct, más tarde): sin app de Meta aparte para PASEN.** Todo conecta con la app ChatVenti; la ventana de Meta dice «ChatVenti» y Conexiones + guías lo aclaran. El código de app por socio queda disponible pero sin uso.
 
 ## Gotchas de esta ejecución
 - `import 'server-only'` rompe vitest: la parte pura (firma, URL) vive en `webhooks-sign.ts`.
