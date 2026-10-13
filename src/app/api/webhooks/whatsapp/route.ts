@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { metaAppSecrets } from '@/features/marca/meta-app'
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -116,13 +117,16 @@ function extractBody(msg: z.infer<typeof messageSchema>): string | null {
 export async function POST(request: NextRequest): Promise<NextResponse> {
   const rawBody = await request.text()
 
-  const appSecret = process.env.META_APP_SECRET
-  if (!appSecret) {
+  // La app de ChatVenti y las de los socios (nivel 3 de marca) apuntan al
+  // mismo webhook: la firma vale si coincide con el secreto de cualquiera.
+  const secrets = await metaAppSecrets()
+  if (secrets.length === 0) {
     console.error('[whatsapp-webhook] falta META_APP_SECRET')
     return NextResponse.json({ ok: true }, { status: 200 })
   }
 
-  if (!isValidSignature(rawBody, request.headers.get('x-hub-signature-256'), appSecret)) {
+  const signature = request.headers.get('x-hub-signature-256')
+  if (!secrets.some((s) => isValidSignature(rawBody, signature, s))) {
     console.error('[whatsapp-webhook] firma invalida')
     // 200 para no filtrar informacion ni provocar reintentos.
     return NextResponse.json({ ok: true }, { status: 200 })

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { EmbeddedSignupButton } from '@/features/conexiones/components/embedded-signup-button'
 import { ConnectPagesButton } from '@/features/conexiones/components/connect-pages-button'
+import { metaAppForOrg } from '@/features/marca/meta-app'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { planById } from '@/features/billing/plans'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
@@ -24,7 +25,6 @@ const STATUS: Record<string, { tone: ChipTone; label: string }> = {
 // Configuración de "Inicio de sesión con Facebook para empresas" que pide los
 // permisos de páginas e Instagram. No es un secreto (viaja en el navegador);
 // la variable solo existe para poder cambiarla sin tocar el código.
-const PAGES_CONFIG_ID = process.env.NEXT_PUBLIC_META_PAGES_CONFIG_ID ?? '904116956101183'
 
 type ChannelRow = { id: string; type: string; external_id: string; waba_id: string | null; display_name: string | null; status: string }
 
@@ -75,8 +75,11 @@ export default async function ConexionesPage() {
   const whatsapp = channels.filter((c) => c.type === 'whatsapp')
   const social = channels.filter((c) => c.type !== 'whatsapp')
 
-  const appId = process.env.NEXT_PUBLIC_META_APP_ID ?? ''
-  const configId = process.env.NEXT_PUBLIC_META_CONFIG_ID ?? ''
+  // La app de Meta del socio del negocio (nivel 3 de marca) o la de ChatVenti.
+  const meta = await metaAppForOrg((orgId as string | null) ?? null)
+  const appId = meta?.appId ?? ''
+  const configId = meta?.configId ?? ''
+  const PAGES_CONFIG_ID = meta?.pagesConfigId ?? ''
   // En la prueba gratis se puede conectar todo; con plan, desde Profesional.
   const socialAllowed = !subIsActive(sub) || planById(sub?.plan_id).aiChannels.includes('Instagram')
 

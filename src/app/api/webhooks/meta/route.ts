@@ -6,6 +6,7 @@
 //   SIEMPRE tras validar, trabajo pesado en after(). Texto en esta fase.
 // =====================================================================
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { metaAppSecrets } from '@/features/marca/meta-app'
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { runAgent } from '@/features/agente-ia/agent'
@@ -43,11 +44,12 @@ function validSignature(rawBody: string, signatureHeader: string | null, appSecr
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
-  const appSecret = process.env.META_APP_SECRET
-  if (!appSecret) return NextResponse.json({ error: 'not configured' }, { status: 500 })
+  const secrets = await metaAppSecrets()
+  if (secrets.length === 0) return NextResponse.json({ error: 'not configured' }, { status: 500 })
 
   const rawBody = await request.text()
-  if (!validSignature(rawBody, request.headers.get('x-hub-signature-256'), appSecret)) {
+  const signature = request.headers.get('x-hub-signature-256')
+  if (!secrets.some((s) => validSignature(rawBody, signature, s))) {
     return NextResponse.json({ error: 'invalid signature' }, { status: 401 })
   }
 

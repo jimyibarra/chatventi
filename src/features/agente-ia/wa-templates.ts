@@ -124,8 +124,11 @@ export const WA_TEMPLATES = (Object.keys(TEMPLATES) as WaTemplateKey[]).map((key
  * Provider (permanente) y, de respaldo, el del negocio. Mismo orden que el
  * Embedded Signup.
  */
-export function managementTokens(channelToken: string | null | undefined): string[] {
-  return [process.env.META_SYSTEM_USER_TOKEN?.trim(), channelToken ?? undefined].filter((t): t is string => !!t)
+export function managementTokens(
+  channelToken: string | null | undefined,
+  systemUserToken: string | null | undefined = process.env.META_SYSTEM_USER_TOKEN?.trim()
+): string[] {
+  return [systemUserToken ?? undefined, channelToken ?? undefined].filter((t): t is string => !!t)
 }
 
 export type MetaTemplate = { status: string; reason: string | null }

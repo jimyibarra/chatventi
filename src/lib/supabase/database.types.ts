@@ -1268,6 +1268,11 @@ export type Database = {
           kind: string
           logo_url: string | null
           logo_white_url: string | null
+          meta_app_id: string | null
+          meta_app_secret: string | null
+          meta_config_id: string | null
+          meta_pages_config_id: string | null
+          meta_system_user_token: string | null
           name: string
           panel_url: string | null
           primary_color: string | null
@@ -1293,6 +1298,11 @@ export type Database = {
           kind?: string
           logo_url?: string | null
           logo_white_url?: string | null
+          meta_app_id?: string | null
+          meta_app_secret?: string | null
+          meta_config_id?: string | null
+          meta_pages_config_id?: string | null
+          meta_system_user_token?: string | null
           name: string
           panel_url?: string | null
           primary_color?: string | null
@@ -1318,6 +1328,11 @@ export type Database = {
           kind?: string
           logo_url?: string | null
           logo_white_url?: string | null
+          meta_app_id?: string | null
+          meta_app_secret?: string | null
+          meta_config_id?: string | null
+          meta_pages_config_id?: string | null
+          meta_system_user_token?: string | null
           name?: string
           panel_url?: string | null
           primary_color?: string | null
@@ -2070,6 +2085,17 @@ export type Database = {
       }
       admin_set_partner_kind: {
         Args: { p_id: string; p_kind: string }
+        Returns: undefined
+      }
+      admin_set_partner_meta: {
+        Args: {
+          p_app_id?: string
+          p_app_secret?: string
+          p_config_id?: string
+          p_id: string
+          p_pages_config_id?: string
+          p_system_user_token?: string
+        }
         Returns: undefined
       }
       admin_set_partner_status: {

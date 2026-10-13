@@ -92,3 +92,35 @@ export async function deletePartner(id: string): Promise<PartnerActionResult> {
   revalidatePath('/admin/socios')
   return { ok: true }
 }
+
+// App de Meta del socio (nivel 3 de marca). Campo vacío = borrar; los
+// secretos se mandan solo si se escriben (si no, se conservan).
+const metaSchema = z.object({
+  id: z.string().uuid(),
+  appId: z.string().trim().max(20).regex(/^\d{5,20}$|^$/, 'El id de la app son solo dígitos.'),
+  appSecret: z.string().trim().max(200).optional(),
+  configId: z.string().trim().max(40).regex(/^\d*$/, 'Solo dígitos.'),
+  pagesConfigId: z.string().trim().max(40).regex(/^\d*$/, 'Solo dígitos.'),
+  systemUserToken: z.string().trim().max(600).optional(),
+  clearSecrets: z.boolean().default(false),
+})
+
+export async function setPartnerMeta(raw: unknown): Promise<PartnerActionResult> {
+  const parsed = metaSchema.safeParse(raw)
+  if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? 'Revisa los datos de la app de Meta.' }
+  const v = parsed.data
+  const secret = v.clearSecrets ? '' : v.appSecret || undefined
+  const token = v.clearSecrets ? '' : v.systemUserToken || undefined
+  const supabase = await createClient()
+  const { error } = await supabase.rpc('admin_set_partner_meta', {
+    p_id: v.id,
+    p_app_id: v.appId,
+    p_app_secret: secret,
+    p_config_id: v.configId,
+    p_pages_config_id: v.pagesConfigId,
+    p_system_user_token: token,
+  })
+  if (error) return { ok: false, error: error.message.includes('invalid_input') ? 'El id de la app son solo dígitos.' : 'No se pudo guardar la app de Meta.' }
+  revalidatePath('/admin/socios')
+  return { ok: true }
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { createPartner, deletePartner, rotatePartnerKey, setPartnerStatus, updatePartner } from '../partner-actions'
+import { createPartner, deletePartner, rotatePartnerKey, setPartnerMeta, setPartnerStatus, updatePartner } from '../partner-actions'
 import { Button, Card, Field, Input, Notice, SEGMENT_GROUP, Section, StatusChip, segmentItem } from '@/shared/components/ui'
 
 type PartnerKind = 'external' | 'internal'
@@ -15,6 +15,62 @@ export type PartnerRow = {
   status: 'active' | 'suspended'
   organizations: number
   kind: PartnerKind
+  display_name?: string | null
+  app_domain?: string | null
+  webhook_url?: string | null
+  meta?: { app_id: string | null; config_id: string | null; pages_config_id: string | null; has_secret: boolean; has_system_user_token: boolean } | null
+}
+
+type MetaInfo = NonNullable<PartnerRow['meta']>
+const metaComplete = (m: MetaInfo | null | undefined) => !!(m?.app_id && m.has_secret && m.config_id)
+
+/**
+ * App de Meta propia del socio (nivel 3): la ventana «Conectar WhatsApp» de
+ * sus negocios muestra su nombre y logo. Los secretos se escriben y no se
+ * vuelven a mostrar; dejarlos vacíos conserva los guardados.
+ */
+function MetaAppForm({ row, pending, onSubmit, onCancel }: { row: PartnerRow; pending: boolean; onSubmit: (v: Parameters<typeof setPartnerMeta>[0]) => void; onCancel: () => void }) {
+  const m = row.meta ?? null
+  const [appId, setAppId] = useState(m?.app_id ?? '')
+  const [appSecret, setAppSecret] = useState('')
+  const [configId, setConfigId] = useState(m?.config_id ?? '')
+  const [pagesConfigId, setPagesConfigId] = useState(m?.pages_config_id ?? '')
+  const [systemUserToken, setSystemUserToken] = useState('')
+  const [clearSecrets, setClearSecrets] = useState(false)
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <p className="text-[13.5px] text-ink-muted sm:col-span-2">
+        La app del socio en Meta for Developers (dentro del portafolio de Grupo ELRI). Con id, secreto y configuración de WhatsApp, sus negocios conectan WhatsApp y Facebook con la marca del socio. La app debe tener los mismos webhooks y el mismo token de verificación que la de ChatVenti.
+      </p>
+      <Field label="ID de la app" hint="Meta for Developers → la app → Configuración → Básica.">
+        <Input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="2268338090636391" inputMode="numeric" data-testid="meta-app-id" />
+      </Field>
+      <Field label="Secreto de la app" hint={m?.has_secret ? 'Guardado. Escribe uno nuevo solo si cambió.' : 'Configuración → Básica → Clave secreta.'}>
+        <Input type="password" value={appSecret} onChange={(e) => setAppSecret(e.target.value)} placeholder={m?.has_secret ? '••••••••' : ''} autoComplete="off" />
+      </Field>
+      <Field label="Configuración de WhatsApp (Embedded Signup)" hint="WhatsApp → Registro integrado → id de la configuración.">
+        <Input value={configId} onChange={(e) => setConfigId(e.target.value)} placeholder="1498382898694876" inputMode="numeric" />
+      </Field>
+      <Field label="Configuración de Facebook e Instagram" hint="Inicio de sesión para empresas → id de la configuración. Vacío = la de ChatVenti.">
+        <Input value={pagesConfigId} onChange={(e) => setPagesConfigId(e.target.value)} placeholder="904116956101183" inputMode="numeric" />
+      </Field>
+      <Field label="Token del System User" hint={m?.has_system_user_token ? 'Guardado. Pega otro solo si cambió.' : 'Permanente, de un usuario del sistema del portafolio con acceso a la app. Vacío = se usa el token del negocio.'}>
+        <Input type="password" value={systemUserToken} onChange={(e) => setSystemUserToken(e.target.value)} placeholder={m?.has_system_user_token ? '••••••••' : ''} autoComplete="off" />
+      </Field>
+      <label className="flex items-center gap-2 self-end text-[13.5px] text-ink-muted">
+        <input type="checkbox" checked={clearSecrets} onChange={(e) => setClearSecrets(e.target.checked)} />
+        Borrar el secreto y el token guardados
+      </label>
+      <div className="flex flex-wrap gap-2 sm:col-span-2">
+        <Button onClick={() => onSubmit({ id: row.id, appId, appSecret, configId, pagesConfigId, systemUserToken, clearSecrets })} disabled={pending}>
+          {pending ? 'Guardando…' : 'Guardar app de Meta'}
+        </Button>
+        <Button variant="ghost" onClick={onCancel} disabled={pending}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  )
 }
 
 const DISCOUNT_HINT = 'Se resta al precio de lista de cada plan cuando le facturas al socio. 0 = sin descuento.'
@@ -148,7 +204,7 @@ function PartnerForm({
 
 function PartnerCard({ row }: { row: PartnerRow }) {
   const [pending, startTransition] = useTransition()
-  const [mode, setMode] = useState<'view' | 'edit' | 'delete'>('view')
+  const [mode, setMode] = useState<'view' | 'edit' | 'meta' | 'delete'>('view')
   const [newKey, setNewKey] = useState<string | null>(null)
   const [error, setError] = useState('')
   const active = row.status === 'active'
@@ -203,6 +259,10 @@ function PartnerCard({ row }: { row: PartnerRow }) {
         />
       )}
 
+      {mode === 'meta' && (
+        <MetaAppForm row={row} pending={pending} onCancel={() => setMode('view')} onSubmit={(v) => run(() => setPartnerMeta(v), () => setMode('view'))} />
+      )}
+
       {mode === 'delete' && (
         <Notice
           tone="danger"
@@ -229,6 +289,11 @@ function PartnerCard({ row }: { row: PartnerRow }) {
           <Button size="sm" variant="secondary" onClick={() => setMode('edit')} disabled={pending}>
             Editar
           </Button>
+          {row.kind === 'internal' && (
+            <Button size="sm" variant="ghost" onClick={() => setMode('meta')} disabled={pending} data-testid="partner-meta">
+              {metaComplete(row.meta) ? 'App de Meta: propia' : 'App de Meta: ChatVenti'}
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

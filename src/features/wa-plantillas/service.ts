@@ -1,6 +1,7 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/service'
 import { manageBaseForOrg } from '@/features/marca/brand'
+import { metaAppForOrg } from '@/features/marca/meta-app'
 import {
   WA_TEMPLATES,
   ensureWaTemplates,
@@ -60,7 +61,8 @@ async function readChannel(ch: ChannelRow): Promise<ChannelTemplates> {
   const base = { channelId: ch.id, orgId: ch.organization_id, orgName: ch.organizations?.name ?? '—', phone: ch.display_name }
   const empty = Object.fromEntries(WA_TEMPLATES.map((t) => [t.key, { state: 'missing' as const, reason: null }]))
   if (!ch.waba_id) return { ...base, error: 'El canal no tiene cuenta de WhatsApp Business registrada.', states: empty as ChannelTemplates['states'] }
-  const list = await listWaTemplates(ch.waba_id, managementTokens(token))
+  const meta = await metaAppForOrg(ch.organization_id)
+  const list = await listWaTemplates(ch.waba_id, managementTokens(token, meta?.systemUserToken))
   if (!list.ok) return { ...base, error: list.error, states: empty as ChannelTemplates['states'] }
   const states = Object.fromEntries(
     WA_TEMPLATES.map((t) => {
@@ -105,7 +107,8 @@ export async function publishTemplates(opts: { orgId?: string; channelId?: strin
       continue
     }
     const token = (ch.credentials as { access_token?: string } | null)?.access_token
-    const res: EnsureResult = await ensureWaTemplates(ch.waba_id, managementTokens(token), await manageBaseForOrg(ch.organization_id))
+    const meta = await metaAppForOrg(ch.organization_id)
+    const res: EnsureResult = await ensureWaTemplates(ch.waba_id, managementTokens(token, meta?.systemUserToken), await manageBaseForOrg(ch.organization_id))
     out.created += res.created.length
     if (res.error) out.failed.push({ orgName, template: 'Todas', error: res.error })
     for (const f of res.failed) out.failed.push({ orgName, template: f.name, error: f.error })

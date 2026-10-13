@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto'
 import { NextResponse, type NextRequest, after } from 'next/server'
 import { ensureWaTemplates, managementTokens } from '@/features/agente-ia/wa-templates'
 import { manageBaseForOrg } from '@/features/marca/brand'
+import { metaAppForOrg } from '@/features/marca/meta-app'
 import { z } from 'zod'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -138,14 +139,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'invalid_body', detail: String(err) }, { status: 400 })
   }
 
-  const appId = process.env.NEXT_PUBLIC_META_APP_ID
-  const appSecret = process.env.META_APP_SECRET
-  if (!appId || !appSecret) {
-    return NextResponse.json(
-      { error: 'faltan NEXT_PUBLIC_META_APP_ID o META_APP_SECRET' },
-      { status: 500 }
-    )
+  // La app de Meta con la que el navegador abrió la ventana: la del socio del
+  // negocio si la tiene, si no la de ChatVenti. El `code` solo se canjea con ella.
+  const meta = await metaAppForOrg(profile.organization_id)
+  if (!meta) {
+    return NextResponse.json({ error: 'faltan NEXT_PUBLIC_META_APP_ID o META_APP_SECRET' }, { status: 500 })
   }
+  const { appId, appSecret } = meta
 
   // 3. Intercambiar el `code` por un access_token de negocio (Graph API).
   const tokenUrl = new URL(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token`)
@@ -202,7 +202,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   //    Preferimos el token del System User de nuestro Tech Provider (permanente,
   //    ámbito acotado a nuestros assets); si no existe, usamos el token del
   //    negocio recién intercambiado (válido para su propia WABA).
-  const mgmtToken = process.env.META_SYSTEM_USER_TOKEN?.trim() || accessToken
+  const mgmtToken = meta.systemUserToken || accessToken
 
   // 7. Suscribir nuestra app a la WABA del cliente (webhooks entrantes) y
   //    registrar el número. No-fatales: si fallan, el canal queda 'pending' con
@@ -260,7 +260,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // 9. Plantillas de recordatorio en la cuenta del negocio: Meta tarda unos
   //    minutos en aprobarlas, así que se piden ya, sin retrasar la respuesta.
   after(async () => {
-    await ensureWaTemplates(body.wabaId, managementTokens(accessToken), await manageBaseForOrg(profile.organization_id)).catch((err) =>
+    await ensureWaTemplates(body.wabaId, managementTokens(accessToken, meta.systemUserToken), await manageBaseForOrg(profile.organization_id)).catch((err) =>
       console.error('[embedded-signup] plantillas', err)
     )
   })

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { metaAppForOrg } from '@/features/marca/meta-app'
 import { z } from 'zod'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -68,9 +69,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const parsed = bodySchema.safeParse(await request.json().catch(() => null))
   if (!parsed.success) return NextResponse.json({ error: 'invalid_body' }, { status: 400 })
 
-  const appId = process.env.NEXT_PUBLIC_META_APP_ID
-  const appSecret = process.env.META_APP_SECRET
-  if (!appId || !appSecret) return NextResponse.json({ error: 'not_configured' }, { status: 500 })
+  const meta = await metaAppForOrg(orgId)
+  if (!meta) return NextResponse.json({ error: 'not_configured' }, { status: 500 })
+  const { appId, appSecret } = meta
 
   const service = createServiceClient()
 
