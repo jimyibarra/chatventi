@@ -1,4 +1,4 @@
-# API de socios de ChatVenti (v1)
+# API de socios de ChatVenti (v1 + v2)
 
 Para sistemas que revenden ChatVenti dentro de su propio producto. El primero es **PASEN**.
 
@@ -53,6 +53,7 @@ repositorio. Si se pierde o se filtra, se suspende el socio y se crea otro.
 | `country` | no | Código de dos letras (`MX`, `US`, `ES`…). |
 | `ownerName`, `city`, `phone` | no | |
 | `siteUrl` | no | La página web del negocio en el sistema del socio (`https://…`, máx. 300). Con ella, ChatVenti le dice al dueño que sus reservas viven en esa página y deja de ofrecerle el enlace `chatventi.com/r/…` como principal. |
+| `services`, `hours`, `brandColor` | no | **v2.** El catálogo del negocio, con el mismo formato que `PUT /organizations/{id}/catalog` (abajo). Si vienen, el negocio nace con esos servicios, ese horario y ese color en vez de los de ejemplo, y queda administrado por el socio desde el primer día. La respuesta añade `catalog: { services: [{ externalId, id }], hoursUpdated }`. |
 
 Respuesta `201`:
 
@@ -76,7 +77,7 @@ Respuesta `201`:
 - `bookingUrl` es la misma agenda como página suelta (`chatventi.com/r/…`). Sirve para Instagram o Google cuando el negocio no tiene página; con `siteUrl`, el dueño ya no la ve como principal.
 - `setPasswordUrl` es un enlace **de un solo uso** para que el dueño elija su contraseña y entre a su panel. Solo llega en el alta (`created: true`). Trátalo como una credencial: mándaselo al dueño y no lo guardes.
 
-El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tarjeta. Nace **listo para agendar**: con los servicios típicos de su giro (`businessType`), horario de lunes a sábado de 9:00 a 19:00, un primer profesional (el dueño) y la recepcionista encendida. El dueño lo ajusta después en su panel; nada de eso se vuelve a sembrar si ya lo cambió.
+El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tarjeta. Nace **listo para agendar**: con los servicios típicos de su giro (`businessType`) o los que mande el socio en `services`, el horario de `hours` (o lunes a sábado de 9:00 a 19:00), un primer profesional (el dueño) con ese mismo horario, y la recepcionista encendida. El dueño lo ajusta después en su panel; nada de eso se vuelve a sembrar si ya lo cambió.
 
 ## Listado
 
@@ -171,9 +172,93 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
 - Errores: `404 not_found`, `409 suspended` (negocio suspendido), `429 rate_limited` (más de 10 pases por minuto por negocio).
 - Los dueños de negocios de socio no necesitan contraseña; `setPasswordUrl` del alta sigue existiendo para socios externos.
 
+## Avisos salientes (webhooks) — v2
+
+ChatVenti avisa al socio cada vez que **se crea o cambia una cita** de uno de sus negocios: la agendó la recepcionista por WhatsApp, el cliente desde la página, el dueño desde su panel, o se canceló o reagendó por cualquier vía. Un endpoint por socio.
+
+### Registrar el endpoint
+
+`PUT /webhook` con `{ "url": "https://pasen.mx/api/chatventi/webhook" }` → `200`:
+
+```json
+{ "url": "https://pasen.mx/api/chatventi/webhook", "secret": "cvw_…", "createdAt": "2026-10-13T05:46:27Z" }
+```
+
+- Solo `https`, con dominio público (sin IP, sin `localhost`, sin usuario:contraseña).
+- `secret` se muestra **una sola vez**: guárdalo como variable de entorno del servidor. Repetir el `PUT` (con la misma URL o con otra) genera un secreto **nuevo** y el anterior deja de valer.
+- `GET /webhook` → `{ url, secretPrefix, createdAt, events }` (nunca el secreto completo). `DELETE /webhook` → `204` y se descarta lo que estuviera pendiente de enviar.
+- `POST /webhook/test` → manda un evento `webhook.test` firmado y responde cómo le fue: `{ deliveryId, delivered, status, error }`. Úsalo para comprobar la firma antes de que haya citas reales.
+
+### Qué llega
+
+`POST` a tu URL, `Content-Type: application/json`, con estas cabeceras:
+
+| Cabecera | Valor |
+|---|---|
+| `X-ChatVenti-Event` | `appointment.created`, `appointment.updated`, `appointment.cancelled` o `webhook.test` |
+| `X-ChatVenti-Delivery` | id de la entrega (uuid). Si reintentamos, llega el **mismo** id: sirve para no procesar dos veces. |
+| `X-ChatVenti-Timestamp` | segundos Unix de cuando se envió |
+| `X-ChatVenti-Signature` | `v1=<hex>` = HMAC-SHA256 con tu `secret` de la cadena `"<timestamp>.<cuerpo crudo>"` |
+
+Cuerpo:
+
+```json
+{
+  "id": "4a0f…", "event": "appointment.created", "createdAt": "2026-10-13T05:47:02Z", "attempt": 1,
+  "organization": { "id": "b48b…", "externalId": "tenant-8f2a", "name": "Estética Lumen" },
+  "appointment": {
+    "id": "7349…", "status": "scheduled", "startsAt": "2026-10-15T16:00:00+00:00", "endsAt": "2026-10-15T16:30:00+00:00",
+    "timezone": "America/Mexico_City", "source": "whatsapp", "notes": null,
+    "services": [ { "id": "6264…", "externalId": "svc-corte", "name": "Corte", "durationMinutes": 30, "price": 200 } ],
+    "staff": { "id": "…", "name": "Mariana" },
+    "client": { "id": "…", "name": "Luis", "phone": "5215512345678" },
+    "manageUrl": "https://agenda.pasen.mx/c/…"
+  }
+}
+```
+
+- `status`: `scheduled`, `confirmed`, `completed`, `cancelled`, `no_show`. `appointment.updated` llega cuando cambia el estado (salvo a `cancelled`, que es su propio evento), la fecha u hora, o el profesional. El cuerpo siempre trae la cita **como está en ese momento**, no como estaba al disparar el evento; si se borró, llega `{ "id", "status": "deleted" }`.
+- `services[].externalId` es el id con el que el socio mandó el servicio en el catálogo (`null` si lo creó el dueño en su panel).
+- `webhook.test` llega con `"test": true` y `organization: null`.
+
+### Respuesta y reintentos
+
+Responde **2xx** en menos de 10 segundos (haz el trabajo después, en tu cola). Cualquier otra respuesta, un timeout o un error de red cuenta como fallo y se reintenta: a 1 minuto, 5 minutos, 30 minutos, 2 horas y 12 horas; tras 6 intentos se abandona. Las entregas pueden llegar **fuera de orden** cuando hay reintentos: usa `createdAt` (o el `status` del cuerpo, que ya es el actual) para decidir.
+
+### Verificar la firma (Node)
+
+```js
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
+export function verifyChatVenti(req, rawBody, secret) {
+  const ts = req.headers['x-chatventi-timestamp']
+  const sig = req.headers['x-chatventi-signature'] // "v1=…"
+  if (!ts || !sig || Math.abs(Date.now() / 1000 - Number(ts)) > 300) return false
+  const expected = 'v1=' + createHmac('sha256', secret).update(`${ts}.${rawBody}`).digest('hex')
+  return expected.length === sig.length && timingSafeEqual(Buffer.from(expected), Buffer.from(sig))
+}
+```
+
+Firma sobre el **cuerpo crudo** (bytes tal cual llegaron), no sobre el JSON ya parseado y vuelto a serializar.
+
 ## Marca del socio (nivel 2)
 
-Un socio interno con `display_name` en ChatVenti tiene **marca propia**: sus negocios ven su nombre, logo, ícono y colores en el panel, el acceso, la ayuda, el 404 y las páginas públicas (`/r/<slug>`, `/c/<token>`), sin «ChatVenti». Sus correos (los de Supabase Auth y los propios: resumen diario, encuesta baja, invitaciones) salen desde `email_from` por Resend con su logo, y los enlaces apuntan a `app_domain` (`https://agenda.pasen.mx`). El pase de entrada también apunta ahí. Los botones «Cambiar o cancelar» de las plantillas de WhatsApp de esos negocios enlazan a `https://<app_domain>/c/…`. El dominio se da de alta en Vercel y en las Redirect URLs de Supabase Auth; la ventana de Meta para conectar WhatsApp sigue mostrando la app ChatVenti (nivel 3, fuera por ahora).
+Un socio interno con `display_name` en ChatVenti tiene **marca propia**: sus negocios ven su nombre, logo, ícono y colores en el panel, el acceso, la ayuda, el 404 y las páginas públicas (`/r/<slug>`, `/c/<token>`), sin «ChatVenti». Sus correos (los de Supabase Auth y los propios: resumen diario, encuesta baja, invitaciones) salen desde `email_from` por Resend con su logo, y los enlaces apuntan a `app_domain` (`https://agenda.pasen.mx`). El pase de entrada también apunta ahí. Los botones «Cambiar o cancelar» de las plantillas de WhatsApp de esos negocios enlazan a `https://<app_domain>/c/…`. El dominio se da de alta en Vercel y en las Redirect URLs de Supabase Auth.
+
+## La ventana de Meta con la marca del socio (nivel 3)
+
+Al conectar WhatsApp o Facebook/Instagram, el dueño ve una ventana de Meta con el nombre y el logo de **la app** que la abre. Por defecto es la app «ChatVenti». Un socio interno puede traer **su propia app de Meta** y entonces sus negocios ven la suya. Se configura en **/admin/socios → el socio → «App de Meta»** con: id de la app, su secreto, el id de la configuración del Embedded Signup de WhatsApp, el id de la configuración del inicio de sesión para empresas (páginas e Instagram; vacío = la de ChatVenti) y, opcional, el token de un System User.
+
+Lo que la app del socio necesita del lado de Meta (la crea Grupo ELRI en su portafolio):
+
+1. App de tipo **Empresa** con los productos **WhatsApp**, **Facebook Login for Business**, **Messenger** e **Instagram**.
+2. **Webhooks apuntando a ChatVenti**, con el mismo token de verificación que la app de ChatVenti: WhatsApp → `https://www.chatventi.com/api/webhooks/whatsapp` (campo `messages`); Messenger e Instagram → `https://www.chatventi.com/api/webhooks/meta` (campos `messages`, `messaging_postbacks`).
+3. Una **configuración de Embedded Signup** de WhatsApp y una de **inicio de sesión para empresas** (con `pages_messaging`, `pages_show_list`, `pages_manage_metadata`, `instagram_basic`, `instagram_manage_messages`).
+4. Dominio `https://www.chatventi.com` (y el del socio, p. ej. `https://agenda.pasen.mx`) en los dominios de la app y en las URI de redirección válidas.
+5. **App Review** aprobado para `whatsapp_business_messaging`, `whatsapp_business_management`, `pages_messaging`, `instagram_manage_messages` y `business_management`, y la app en modo **Producción**. Hasta entonces solo conectan cuentas con rol en la app.
+6. Verificación de la empresa en el portafolio (la de Grupo ELRI ya está) y la de **Proveedor de tecnología**, que es del portafolio y ya la tiene.
+
+Mientras la app del socio esté incompleta (sin id, secreto o configuración de WhatsApp), sus negocios siguen conectando con la app de ChatVenti; nada se rompe.
 
 ## Asistente de ventas de ¡Pasen!: página de muestra desde WhatsApp
 
@@ -208,4 +293,4 @@ Sin alguna de las cuatro, las herramientas no existen y el asistente sigue manda
 
 ## Lo que todavía no cubre esta API
 
-Pendiente para una v2, en este orden: avisos salientes (webhooks) cuando se crea o cambia una cita, y carga por API de servicios, horarios y profesionales. Hoy eso lo captura el dueño en su panel, o se trae desde su ficha de Google en *Recepcionista IA → Reseñas en Google*.
+Profesionales por API (hoy los captura el dueño en su panel) y avisos de otros objetos que no sean citas (conversaciones, clientes). Si los necesitas, pídelos.
