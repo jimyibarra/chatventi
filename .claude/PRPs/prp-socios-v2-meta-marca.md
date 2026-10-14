@@ -27,3 +27,7 @@ GO de Juan el 13-oct-2026 a tres pendientes de PASEN. Todo en producción el mis
 - `import 'server-only'` rompe vitest: la parte pura (firma, URL) vive en `webhooks-sign.ts`.
 - `node -e "…"` con comillas dobles deja que Bash expanda `$480` y rompa el dollar-quoting de SQL: scripts en archivo.
 - Las migraciones se aplicaron por la API de SQL de Supabase (MCP caído); tipos regenerados por `GET /types/typescript`.
+
+## 5. Coexistencia WhatsApp Business (fase 1, 14-oct) y aviso de Meta en Conexiones
+- Informe: https://claude.ai/code/artifact/4bc736b9-eccd-4d47-ae5e-59aa18a1611c . Decisiones de Juan: GO aviso claro, GO fase 1 con +52 55 7843 7260, historial NO por defecto (botón opcional, fase 3), App Review de páginas el 15-oct.
+- Código: `COEXISTENCE_ORG_IDS` y `SOCIAL_FOR_PARTNER_ORGS` en la página de Conexiones; `coexistence` en `EmbeddedSignupButton` y en la ruta del Embedded Signup (sin /register); `meta_raw_events` para los campos nuevos del webhook. Fases 2–5 pendientes (ecos + pausa 30 min, historial opcional, desconexiones/tope, guías).
