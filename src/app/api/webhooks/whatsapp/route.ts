@@ -3,6 +3,7 @@ import { metaAppSecrets } from '@/features/marca/meta-app'
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
+import type { Json } from '@/lib/supabase/database.types'
 import { runAgent } from '@/features/agente-ia/agent'
 import { handleIncomingMedia } from '@/features/agente-ia/media'
 import { fetchWhatsAppMedia } from '@/features/agente-ia/media-fetch'
@@ -68,8 +69,11 @@ const payloadSchema = z.object({
   entry: z
     .array(
       z.object({
+        id: z.string().optional(),
+        // `field` distingue los mensajes de los campos de coexistencia (history,
+        // smb_message_echoes…); `passthrough` conserva el valor crudo para guardarlo.
         changes: z
-          .array(z.object({ value: changeValueSchema }))
+          .array(z.object({ field: z.string().optional(), value: changeValueSchema.passthrough() }))
           .optional(),
       })
     )
@@ -170,6 +174,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const supabase = createServiceClient()
     for (const entry of parsed.entry ?? []) {
       for (const change of entry.changes ?? []) {
+        // Coexistencia (fase 1): todo lo que no sea `messages` se guarda tal cual
+        // para estudiarlo; todavía no tiene manejador.
+        if (change.field && change.field !== 'messages') {
+          const { error: rawErr } = await supabase.from('meta_raw_events').insert({
+            object: parsed.object ?? null,
+            field: change.field,
+            phone_number_id: change.value.metadata?.phone_number_id ?? null,
+            waba_id: entry.id ?? null,
+            payload: change.value as Json,
+          })
+          if (rawErr) console.error('[whatsapp-webhook] raw event', change.field, rawErr.message)
+          continue
+        }
         const phoneNumberId = change.value.metadata?.phone_number_id
         if (!phoneNumberId) continue
         for (const msg of change.value.messages ?? []) {

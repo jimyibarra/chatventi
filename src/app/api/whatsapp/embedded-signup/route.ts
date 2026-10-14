@@ -26,6 +26,8 @@ const bodySchema = z.object({
   phoneNumberId: z.string().min(1),
   wabaId: z.string().min(1),
   displayName: z.string().optional(),
+  /** Coexistencia: el número sigue en la app WhatsApp Business del negocio (fase 1, solo orgs permitidas). */
+  coexistence: z.boolean().optional(),
 })
 
 const GRAPH_VERSION = 'v25.0'
@@ -209,10 +211,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   //    la nota del error para reintentar, en vez de perder la conexión.
   //    Un número que ya estaba activo NO se vuelve a registrar: ya tiene su PIN
   //    y pedir otro lo dejaría en error sin motivo.
-  const pin = alreadyActive && previous?.pin ? previous.pin : String(randomInt(100000, 1000000))
+  // Coexistencia: el número ya está registrado desde la app del negocio; Meta
+  // prohíbe /register con PIN en ese modo. Solo se suscribe la WABA.
+  const coexistence = body.coexistence === true
+  const pin = coexistence ? '' : alreadyActive && previous?.pin ? previous.pin : String(randomInt(100000, 1000000))
   const subscribeErr = await subscribeAppToWaba(body.wabaId, mgmtToken)
   if (subscribeErr) console.error('[embedded-signup]', subscribeErr)
-  const registerErr = alreadyActive
+  const registerErr = alreadyActive || coexistence
     ? null
     : await registerPhoneNumber(body.phoneNumberId, mgmtToken, pin)
   if (registerErr) console.error('[embedded-signup]', registerErr)
@@ -224,6 +229,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const credentials = {
     access_token: accessToken,
     pin,
+    mode: coexistence ? 'coexistence' : 'cloud_api',
     obtained_at: new Date().toISOString(),
     subscribe_error: subscribeErr,
     register_error: registerErr,

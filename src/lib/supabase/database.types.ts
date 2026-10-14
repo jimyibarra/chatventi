@@ -995,6 +995,36 @@ export type Database = {
           },
         ]
       }
+      meta_raw_events: {
+        Row: {
+          created_at: string
+          field: string
+          id: string
+          object: string | null
+          payload: Json
+          phone_number_id: string | null
+          waba_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          field: string
+          id?: string
+          object?: string | null
+          payload: Json
+          phone_number_id?: string | null
+          waba_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          field?: string
+          id?: string
+          object?: string | null
+          payload?: Json
+          phone_number_id?: string | null
+          waba_id?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           body: string | null

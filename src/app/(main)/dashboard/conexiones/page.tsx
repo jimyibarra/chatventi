@@ -17,6 +17,24 @@ import { MyTemplates } from '@/features/wa-plantillas/components/my-templates'
 
 export const dynamic = 'force-dynamic'
 
+// Fase 1 de coexistencia (14-oct-2026): solo estas organizaciones ven el botón
+// «Conectar el número que ya uso en WhatsApp Business». Lista corta a propósito.
+const COEXISTENCE_ORG_IDS = new Set([
+  '17a720a3-8f4f-40e7-93e7-abd796c5b2f0', // ¡Pasen! (ventas)
+  '7ab0c2ea-b424-467a-970b-071b1ff1f1a7', // ChatVenti Demo
+])
+// Facebook e Instagram para negocios de SOCIO: apagado hasta que Meta apruebe el
+// acceso avanzado de pages_manage_metadata (sin él, la página no queda suscrita).
+const SOCIAL_FOR_PARTNER_ORGS = false
+
+/** Etiqueta del canal. Un Messenger/Instagram «pendiente» es Meta sin autorizar la suscripción, no una espera nuestra. */
+function statusFor(ch: { type: string; status: string }): { tone: ChipTone; label: string } {
+  if (ch.status === 'pending' && (ch.type === 'messenger' || ch.type === 'instagram')) {
+    return { tone: 'wait', label: 'Meta no autorizó recibir sus mensajes · en revisión' }
+  }
+  return STATUS[ch.status] ?? { tone: 'neutral', label: ch.status }
+}
+
 const STATUS: Record<string, { tone: ChipTone; label: string }> = {
   active: { tone: 'ok', label: 'Activo' },
   pending: { tone: 'neutral', label: 'Pendiente de activación' },
@@ -41,7 +59,7 @@ function ChannelList({ rows, empty, detail }: { rows: ChannelRow[]; empty: strin
   return (
     <ul className="mb-4 space-y-2">
       {rows.map((ch) => {
-        const st = STATUS[ch.status] ?? { tone: 'neutral' as const, label: ch.status }
+        const st = statusFor(ch)
         return (
           <li key={ch.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[14px] bg-surface px-3.5 py-3">
             <span className="grid h-10 w-10 flex-none place-items-center rounded-[12px] bg-white text-ink shadow-[0_1px_0_#dde2f0]" aria-hidden>
@@ -81,6 +99,8 @@ export default async function ConexionesPage() {
   // Negocios de socio (¡Pasen!): la ventana de Meta es de la app ChatVenti; se les avisa para que no extrañe.
   const brand = await currentBrand()
   const metaNote = brand.partnerId && !meta?.partnerId ? ` La ventana de Meta dice «ChatVenti»: es la tecnología con la que trabaja ${brand.name}.` : ''
+  const coexistence = !!orgId && COEXISTENCE_ORG_IDS.has(orgId as string)
+  const socialBlockedForPartner = !!brand.partnerId && !SOCIAL_FOR_PARTNER_ORGS
   const appId = meta?.appId ?? ''
   const configId = meta?.configId ?? ''
   const PAGES_CONFIG_ID = meta?.pagesConfigId ?? ''
@@ -112,6 +132,14 @@ export default async function ConexionesPage() {
             detail={(c) => `ID: ${c.external_id}${c.waba_id ? ` · WABA ${c.waba_id}` : ''}`}
           />
           <EmbeddedSignupButton appId={appId} configId={configId} />
+          {coexistence && (
+            <div className="mt-3 space-y-2">
+              <EmbeddedSignupButton appId={appId} configId={configId} coexistence />
+              <p className="max-w-[65ch] text-[13.5px] leading-snug text-ink-muted">
+                Prueba de coexistencia: el número sigue en tu app de WhatsApp Business y la recepcionista contesta desde aquí. Necesitas la app actualizada (2.24.17 o más nueva).
+              </p>
+            </div>
+          )}
         </Section>
 
         {orgId && whatsapp.length > 0 && <MyTemplates orgId={orgId as string} />}
@@ -133,7 +161,11 @@ export default async function ConexionesPage() {
             empty="Todavía no has conectado tu página ni tu Instagram."
             detail={(c) => (c.type === 'instagram' ? 'Mensajes directos de Instagram' : 'Messenger de la página de Facebook')}
           />
-          {socialAllowed ? (
+          {socialBlockedForPartner ? (
+            <Notice tone="info">
+              Facebook e Instagram para los negocios de {brand.name} quedan pendientes de una revisión de Meta. WhatsApp sí está disponible. Te avisamos en cuanto Meta apruebe.
+            </Notice>
+          ) : socialAllowed ? (
             <>
               <ConnectPagesButton appId={appId} configId={PAGES_CONFIG_ID} />
               <p className="mt-3 flex max-w-[65ch] items-start gap-2 text-[13.5px] leading-snug text-ink-muted">

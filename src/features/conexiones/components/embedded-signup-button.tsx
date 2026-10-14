@@ -10,6 +10,8 @@ const GRAPH_VERSION = 'v25.0'
 interface SessionInfo {
   phone_number_id: string
   waba_id: string
+  /** true cuando Meta terminó con FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING (coexistencia). */
+  coexistence?: boolean
 }
 
 // Último evento de Meta que NO terminó en un número conectado. Sirve para
@@ -75,9 +77,12 @@ type State =
 export function EmbeddedSignupButton({
   appId,
   configId,
+  coexistence = false,
 }: {
   appId: string
   configId: string
+  /** Conectar el número que el negocio YA usa en la app WhatsApp Business (coexistencia de Meta). Fase 1: solo orgs permitidas. */
+  coexistence?: boolean
 }) {
   const router = useRouter()
   const [state, setState] = useState<State>({ kind: 'idle' })
@@ -133,8 +138,12 @@ export function EmbeddedSignupButton({
             error_code: d.error_code,
             session_id: d.session_id,
           })
-          if (payload.event === 'FINISH' && d.phone_number_id && d.waba_id) {
-            sessionRef.current = { phone_number_id: d.phone_number_id, waba_id: d.waba_id }
+          if ((payload.event === 'FINISH' || payload.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING') && d.phone_number_id && d.waba_id) {
+            sessionRef.current = {
+              phone_number_id: d.phone_number_id,
+              waba_id: d.waba_id,
+              coexistence: payload.event === 'FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING',
+            }
           } else if (payload.event === 'CANCEL') {
             outcomeRef.current = d.error_message
               ? { kind: 'error', message: d.error_message, sessionId: d.session_id }
@@ -186,6 +195,7 @@ export function EmbeddedSignupButton({
                 code,
                 phoneNumberId: session.phone_number_id,
                 wabaId: session.waba_id,
+                coexistence: session.coexistence === true,
               }),
             })
             const json: unknown = await res.json().catch(() => null)
@@ -221,10 +231,12 @@ export function EmbeddedSignupButton({
         // Embedded Signup v4: la versión la fija la configuración (config_id),
         // no el código. v2/v3 (featureType, sessionInfoVersion) se retiran el
         // 15-oct-2026.
-        extras: { setup: {} },
+        // Coexistencia: featureType pide a Meta el camino «el negocio sigue usando
+        // su app». Si v4 lo ignora, se activa en el ajuste del Embedded Signup.
+        extras: coexistence ? { setup: {}, featureType: 'whatsapp_business_app_onboarding' } : { setup: {} },
       }
     )
-  }, [configId, router])
+  }, [configId, router, coexistence])
 
   const disabled = !appId || !configId || state.kind === 'loading'
 
@@ -238,7 +250,7 @@ export function EmbeddedSignupButton({
         className="inline-flex min-h-[44px] items-center gap-2 rounded-[13px] bg-[#0b7d47] px-4 text-[15px] font-semibold text-white transition-[background-color,transform] duration-150 hover:bg-[#096b3c] active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-50 md:min-h-[40px]"
       >
         <Icon name="whatsapp" />
-        {state.kind === 'loading' ? 'Conectando…' : 'Conectar WhatsApp'}
+        {state.kind === 'loading' ? 'Conectando…' : coexistence ? 'Conectar el número que ya uso en WhatsApp Business' : 'Conectar WhatsApp'}
       </button>
 
       {!configId && (
