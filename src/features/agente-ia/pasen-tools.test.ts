@@ -45,6 +45,7 @@ function build(opts: {
 }) {
   const unavailable: string[] = []
   const noted: string[] = []
+  const flagged: string[] = []
   const tools = buildPasenTools({
     orgId: opts.orgId ?? SALES_ORG,
     conversationId: 'conv-1',
@@ -61,9 +62,12 @@ function build(opts: {
       note: async (_c, body) => {
         noted.push(body)
       },
+      flagWaiting: async (_o, _c, detail) => {
+        flagged.push(detail)
+      },
     },
   })
-  return { tools, unavailable, noted }
+  return { tools, unavailable, noted, flagged }
 }
 
 const run = (t: unknown, input: unknown) =>
@@ -218,9 +222,13 @@ describe('send_panel_access: respuestas de PASEN', () => {
     expect(noted[0]).toContain(NOTE_ACCESS)
   })
   it('sent:false team_review → lo_revisa_el_equipo', async () => {
-    const { tools, noted } = build({ fetcher: fakePasen(200, { sent: false, reason: 'team_review' }).fetcher })
+    const { tools, noted, flagged, unavailable } = build({ fetcher: fakePasen(200, { sent: false, reason: 'team_review' }).fetcher })
     expect(await run(tools!.send_panel_access, { email: 'dueno@negocio.mx' })).toEqual({ resultado: 'lo_revisa_el_equipo' })
     expect(noted[0]).toContain('revisa')
+    // El código marca «Te espera» y avisa, pero NO frena la respuesta al cliente.
+    expect(flagged).toHaveLength(1)
+    expect(flagged[0]).toContain('dueno@negocio.mx')
+    expect(unavailable).toHaveLength(0)
   })
   it('404 not_found → sin_pagina (sin escalar)', async () => {
     const { tools, unavailable } = build({ fetcher: fakePasen(404, { error: 'not_found' }).fetcher })

@@ -2,6 +2,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { createServiceClient } from '@/lib/supabase/service'
+import { notifyOrgOwners } from '@/features/notifications/send'
 
 // Herramientas del asistente de ventas de ¡Pasen! (socio interno): crear la
 // página de muestra del prospecto en PASEN y mandarle el acceso a su panel.
@@ -116,6 +117,8 @@ export type PasenDeps = {
   countNotes?: (conversationId: string, prefix: string) => Promise<number>
   /** Deja la constancia visible en Chats. */
   note?: (conversationId: string, body: string) => Promise<void>
+  /** Marca la plática como «Te espera» y avisa al equipo, SIN frenar la respuesta al cliente. */
+  flagWaiting?: (orgId: string, conversationId: string, detail: string) => Promise<void>
 }
 
 const realDeps: Required<PasenDeps> = {
@@ -132,6 +135,15 @@ const realDeps: Required<PasenDeps> = {
   },
   note: async (conversationId, body) => {
     await createServiceClient().rpc('log_outbound_message', { p_conversation_id: conversationId, p_body: body, p_sender: 'system' })
+  },
+  flagWaiting: async (orgId, conversationId, detail) => {
+    await createServiceClient().from('conversations').update({ status: 'pending' }).eq('id', conversationId)
+    await notifyOrgOwners(orgId, {
+      title: 'Un cliente espera su acceso a ¡Pasen!',
+      body: detail.slice(0, 120),
+      tag: 'pasen_access',
+      data: { url: `/dashboard/conversaciones/${conversationId}` },
+    }).catch(() => null)
   },
 }
 
@@ -225,6 +237,12 @@ export function buildPasenTools(p: {
             p.conversationId,
             out.resultado === 'enviado' ? `${NOTE_ACCESS} enviado a ${input.email}` : `${NOTE_ACCESS} pendiente: el equipo de ¡Pasen! revisa ${input.email}`,
           )
+          // GO de Juan (17-oct): si PASEN deja el acceso en revisión, el CÓDIGO
+          // marca la plática «Te espera» y avisa; no se depende de que el modelo
+          // llame request_human_approval. La respuesta al cliente sale igual.
+          if (out.resultado === 'lo_revisa_el_equipo') {
+            await d.flagWaiting(p.orgId, p.conversationId, `Revisar el acceso de ${input.email}: el correo ya tiene cuenta o la página ya tiene dueño.`)
+          }
         }
         return out
       },
