@@ -114,8 +114,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   debugUrl.searchParams.set('input_token', userToken)
   debugUrl.searchParams.set('access_token', `${appId}|${appSecret}`)
   const debug = (await fetch(debugUrl).then((r) => r.json().catch(() => null)).catch(() => null)) as {
-    data?: { is_valid?: boolean; app_id?: string; granular_scopes?: { scope: string; target_ids?: string[] }[] }
+    data?: { is_valid?: boolean; app_id?: string; type?: string; scopes?: string[]; granular_scopes?: { scope: string; target_ids?: string[] }[] }
   } | null
+  // Diagnóstico (16-oct-2026, prueba con cuenta sin rol): qué permisos y a qué
+  // activos los concedió Meta. Solo nombres y cantidades; nunca el token.
+  console.info(
+    '[connect-pages] debug_token',
+    JSON.stringify({
+      type: debug?.data?.type,
+      scopes: debug?.data?.scopes,
+      granular: (debug?.data?.granular_scopes ?? []).map((g) => ({ scope: g.scope, targets: g.target_ids ?? [] })),
+    })
+  )
   if (!debug?.data?.is_valid || debug.data.app_id !== appId) {
     return NextResponse.json({ error: 'token_invalid' }, { status: 502 })
   }
@@ -127,6 +137,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (pageIds.size === 0) {
     const accounts = await graph<{ data?: { id: string }[] }>('me/accounts?fields=id&limit=25', userToken)
     for (const a of accounts?.data ?? []) pageIds.add(a.id)
+    console.info('[connect-pages] me/accounts', (accounts?.data ?? []).length)
   }
   if (pageIds.size === 0) return NextResponse.json({ error: 'no_pages' }, { status: 422 })
 
