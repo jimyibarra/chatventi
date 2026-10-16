@@ -127,6 +127,12 @@ export function EmbeddedSignupButton({
       if (host !== 'facebook.com' && !host.endsWith('.facebook.com')) return
       try {
         const data: unknown = typeof event.data === 'string' ? JSON.parse(event.data) : event.data
+        // Diagnóstico (16-oct-2026): qué mensajes manda la ventana de Meta. Solo
+        // tipo y evento; nunca el contenido (puede traer códigos de autorización).
+        if (data && typeof data === 'object') {
+          const d0 = data as { type?: unknown; event?: unknown }
+          if (typeof d0.type === 'string') console.info('[embedded-signup] mensaje de Meta', d0.type, typeof d0.event === 'string' ? d0.event : '')
+        }
         if (
           data &&
           typeof data === 'object' &&
@@ -178,6 +184,14 @@ export function EmbeddedSignupButton({
         void (async () => {
           const code = response.authResponse?.code
           const session = sessionRef.current
+          // Diagnóstico: cómo cerró Meta la ventana (sin el código).
+          console.info('[embedded-signup] respuesta de FB.login', {
+            status: response.status ?? null,
+            hasCode: Boolean(code),
+            hasSession: Boolean(session),
+            coexistence: session?.coexistence ?? null,
+            outcome: outcomeRef.current?.kind ?? null,
+          })
           if (!code) {
             setState({ kind: 'error', detail: outcomeMessage(outcomeRef.current) })
             return
