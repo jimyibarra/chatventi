@@ -94,7 +94,7 @@ export default async function VerticalPage({ params }: { params: Promise<{ giro:
             {/* Foto del giro. `priority` porque es el LCP de esta página. */}
             <figure className="vphoto">
               <Image src={`/verticales/${vertical.slug}.webp`} alt={content.imageAlt} width={1024} height={1024} priority sizes="(max-width: 920px) 100vw, 46vw" />
-              <figcaption><i />Contesta por WhatsApp, Instagram y Messenger</figcaption>
+              <figcaption><i />Contesta por WhatsApp al instante</figcaption>
             </figure>
           </div>
         </section>

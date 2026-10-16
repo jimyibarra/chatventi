@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { metaAppForOrg } from '@/features/marca/meta-app'
+import { SOCIAL_CHANNELS_ENABLED } from '@/features/conexiones/flags'
 import { z } from 'zod'
 import { createClient as createServerSupabase } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -49,6 +50,8 @@ async function graph<T>(path: string, token: string, init?: RequestInit): Promis
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
+  // Facebook e Instagram en pausa (16-oct-2026): ni con la pantalla oculta se aceptan conexiones nuevas.
+  if (!SOCIAL_CHANNELS_ENABLED) return NextResponse.json({ error: 'social_disabled' }, { status: 403 })
   // 1. Solo dueño o gerente de una organización.
   const supabase = await createServerSupabase()
   const {

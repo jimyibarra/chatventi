@@ -22,7 +22,7 @@ import '@/features/landing/lineas-landing.css'
 // barra, pie, giros, fundadores y cierre se comparten con /para/* (chrome.tsx).
 
 const HOME_TITLE = 'ChatVenti — Recepcionista IA que agenda citas por WhatsApp 24/7'
-const HOME_DESC = `ChatVenti es la recepcionista con IA que agenda citas por WhatsApp, Instagram, Messenger y tu página de reservas. Contesta al instante, ofrece solo horarios libres y llena tu agenda 24/7. Prueba gratis ${TRIAL_DAYS} días.`
+const HOME_DESC = `ChatVenti es la recepcionista con IA que agenda citas por WhatsApp y tu página de reservas. Contesta al instante, ofrece solo horarios libres y llena tu agenda 24/7. Prueba gratis ${TRIAL_DAYS} días.`
 
 export const metadata: Metadata = pageMetadata({ title: HOME_TITLE, description: HOME_DESC, path: '/' })
 
@@ -35,7 +35,7 @@ const APP_LD = {
   operatingSystem: 'Web',
   url: LEGAL.siteUrl,
   description:
-    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp, Instagram, Messenger y web 24/7 para barberías, dentistas, veterinarias, spas y consultorios.',
+    'Recepcionista con inteligencia artificial que agenda citas por WhatsApp y web 24/7 para barberías, dentistas, veterinarias, spas y consultorios.',
   offers: {
     '@type': 'Offer',
     price: String(STARTER_PRICE_USD),
@@ -105,7 +105,7 @@ function Hero() {
       <div className="wrap">
         <div>
           <p className="display">Tus clientes escriben. <span>ChatVenti agenda.</span></p>
-          <h1>Recepcionista con IA que agenda citas por WhatsApp, Instagram y Messenger</h1>
+          <h1>Recepcionista con IA que agenda citas por WhatsApp</h1>
           <p className="lede">Contesta al instante, ofrece solo tus horarios libres y deja la cita en tu agenda. A las 11 de la mañana o a las 11:47 de la noche.</p>
           <div className="cta-row">
             <Link className="btn btn-primary" href="/signup">{CTA}</Link>
@@ -123,8 +123,6 @@ function Hero() {
 
 const CHANNELS: { ch?: string; label: string; color: string; free?: boolean }[] = [
   { ch: 'whatsapp', label: 'WhatsApp', color: '#0b7d47' },
-  { ch: 'instagram', label: 'Instagram', color: '#e0007a', free: true },
-  { ch: 'messenger', label: 'Messenger', color: '#1468d6', free: true },
   { label: 'Telegram', color: '#2aa3e0' },
   { label: 'Tu página de reservas', color: '#5b4fe0' },
 ]
@@ -149,7 +147,7 @@ function Channels() {
 function Steps() {
   const steps = [
     ['Crea tu cuenta', 'Con tu correo. Eliges tu giro y la configuración rápida crea tus servicios, tu horario y tu recepcionista.', '2 minutos'],
-    ['Conecta tus canales', 'WhatsApp con la ventana oficial de Meta. Instagram y Messenger con un botón.', 'Unos minutos'],
+    ['Conecta tu WhatsApp', 'Con la ventana oficial de Meta, desde tu panel. Tu página de reservas ya queda lista.', 'Unos minutos'],
     ['Tu recepcionista contesta', 'Desde ese momento agenda, confirma y recuerda. Tú la ves trabajar en tu panel.', 'De día y de noche'],
   ]
   return (

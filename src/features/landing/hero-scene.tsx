@@ -37,7 +37,7 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    biz: 'Clínica Dental Sonríe', av: 'D', color: '#0b5bd3', ch: 'instagram', chLabel: 'Instagram', day: 'Martes', y: 98, hour: 12.5, tag: 'Nueva · 12:30',
+    biz: 'Clínica Dental Sonríe', av: 'D', color: '#0b5bd3', ch: 'whatsapp', chLabel: 'WhatsApp', day: 'Martes', y: 98, hour: 12.5, tag: 'Nueva · 12:30',
     msgs: [
       ['c', 'Buenos días, ¿tienen cita para limpieza el martes?', '07:10'],
       ['a', 'Sí. El martes tengo <b>10:00</b> y <b>12:30</b> con la Dra. Laura. La limpieza dura 45 minutos.', '07:10'],
@@ -46,7 +46,7 @@ const SCENARIOS: Scenario[] = [
     ],
   },
   {
-    biz: 'Veterinaria Huellitas', av: 'V', color: '#00a35c', ch: 'messenger', chLabel: 'Messenger', day: 'Sábado', y: 146, hour: 13, tag: 'Nueva · 1:00 pm',
+    biz: 'Veterinaria Huellitas', av: 'V', color: '#00a35c', ch: 'whatsapp', chLabel: 'WhatsApp', day: 'Sábado', y: 146, hour: 13, tag: 'Nueva · 1:00 pm',
     msgs: [
       ['c', '¿Pueden vacunar a mi perrita el sábado?', '21:15'],
       ['a', 'Claro. El sábado tengo <b>11:00</b> y <b>1:00 pm</b> con el Dr. Sergio. ¿Cuál prefieres?', '21:15'],

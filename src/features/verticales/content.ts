@@ -247,8 +247,8 @@ export const VERTICAL_CONTENT: Record<string, VerticalContent> = {
         a: 'La IA informa de precios y de lo que incluye cada paquete a partir de la información que cargues, y agenda la cita. El cobro del paquete se hace como lo hagas hoy: ChatVenti gestiona la conversación y la agenda, no el pago del tratamiento.',
       },
       {
-        q: '¿Contesta también por Instagram?',
-        a: 'Hoy responde en WhatsApp, Telegram y en tu página de reservas web. Puedes poner el enlace de reservas en la bio de Instagram para que quien te escriba por ahí agende en un clic.',
+        q: '¿Y si un cliente no me escribe por WhatsApp?',
+        a: 'También agenda desde tu página de reservas web y por Telegram. Comparte tu enlace de reservas en tus redes y en tu ficha de Google para que agenden en un clic.',
       },
     ],
   },

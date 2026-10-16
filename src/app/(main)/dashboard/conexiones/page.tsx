@@ -6,6 +6,7 @@ import { metaAppForOrg } from '@/features/marca/meta-app'
 import { brandOrigin, currentBrand } from '@/features/marca/brand'
 import { createServiceClient } from '@/lib/supabase/service'
 import { buildSignupPrefill } from '@/features/conexiones/meta-helpers'
+import { SOCIAL_CHANNELS_ENABLED } from '@/features/conexiones/flags'
 import { getWabaHealth, wabaBillingUrl, type WabaHealth } from '@/features/conexiones/waba-health'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { planById } from '@/features/billing/plans'
@@ -179,6 +180,9 @@ export default async function ConexionesPage() {
       }))
   )
   const socialBlockedForPartner = !!brand.partnerId && !SOCIAL_FOR_PARTNER_ORGS
+  // Facebook e Instagram apagados para todos (16-oct-2026): la sección solo se
+  // ve si el negocio ya tenía una página conectada, y sin botón para conectar otra.
+  const showSocial = SOCIAL_CHANNELS_ENABLED || social.length > 0
   const appId = meta?.appId ?? ''
   const configId = meta?.configId ?? ''
   const PAGES_CONFIG_ID = meta?.pagesConfigId ?? ''
@@ -223,52 +227,58 @@ export default async function ConexionesPage() {
 
         {orgId && whatsapp.length > 0 && <MyTemplates orgId={orgId as string} />}
 
-        <Section
-          data-testid="social-channels"
-          title="Instagram y Messenger"
-          badge={social.some((c) => c.status === 'active') ? <StatusChip tone="ok" size="md">Conectado</StatusChip> : undefined}
-          description={`Conecta la página de Facebook de tu negocio; si tiene un Instagram profesional enlazado, se conecta también. Necesitas ser administrador de la página.${metaNote}`}
-          actions={
-            <ButtonLink href="/ayuda/facebook-instagram" variant="secondary" size="sm" target="_blank" data-testid="guia-fb-ig">
-              <Icon name="book" className="h-4 w-4" />
-              Guía paso a paso
-            </ButtonLink>
-          }
-        >
-          <ChannelList
-            rows={social}
-            empty="Todavía no has conectado tu página ni tu Instagram."
-            detail={(c) => (c.type === 'instagram' ? 'Mensajes directos de Instagram' : 'Messenger de la página de Facebook')}
-          />
-          {socialBlockedForPartner ? (
-            <Notice tone="info">
-              Facebook e Instagram para los negocios de {brand.name} quedan pendientes de una revisión de Meta. WhatsApp sí está disponible. Te avisamos en cuanto Meta apruebe.
-            </Notice>
-          ) : socialAllowed ? (
-            <>
-              <ConnectPagesButton appId={appId} configId={PAGES_CONFIG_ID} />
-              <p className="mt-3 flex max-w-[65ch] items-start gap-2 text-[13.5px] leading-snug text-ink-muted">
-                <Icon name="info" className="mt-px h-4 w-4" />
-                <span>
-                  Para Instagram: en la app de Instagram, entra a Configuración → Mensajes → Herramientas
-                  conectadas y activa «Permitir acceso a los mensajes». Sin eso, Instagram no nos entrega
-                  los mensajes.
-                </span>
-              </p>
-            </>
-          ) : (
-            <Notice
-              tone="info"
-              action={
-                <Link href="/dashboard/facturacion" className="inline-flex min-h-[40px] items-center rounded-[11px] px-2.5 text-sm font-semibold text-brand-800 underline underline-offset-2">
-                  Ver planes
-                </Link>
-              }
-            >
-              Tu plan actual no incluye Instagram ni Messenger.
-            </Notice>
-          )}
-        </Section>
+        {showSocial && (
+          <Section
+            data-testid="social-channels"
+            title="Instagram y Messenger"
+            badge={social.some((c) => c.status === 'active') ? <StatusChip tone="ok" size="md">Conectado</StatusChip> : undefined}
+            description={`Conecta la página de Facebook de tu negocio; si tiene un Instagram profesional enlazado, se conecta también. Necesitas ser administrador de la página.${metaNote}`}
+            actions={
+              <ButtonLink href="/ayuda/facebook-instagram" variant="secondary" size="sm" target="_blank" data-testid="guia-fb-ig">
+                <Icon name="book" className="h-4 w-4" />
+                Guía paso a paso
+              </ButtonLink>
+            }
+          >
+            <ChannelList
+              rows={social}
+              empty="Todavía no has conectado tu página ni tu Instagram."
+              detail={(c) => (c.type === 'instagram' ? 'Mensajes directos de Instagram' : 'Messenger de la página de Facebook')}
+            />
+            {!SOCIAL_CHANNELS_ENABLED ? (
+              <Notice tone="info">
+                Por ahora la recepcionista atiende por WhatsApp, Telegram y tu página de reservas. La conexión de nuevas páginas de Facebook e Instagram está en pausa; lo que ya tenías conectado sigue funcionando.
+              </Notice>
+            ) : socialBlockedForPartner ? (
+              <Notice tone="info">
+                Facebook e Instagram para los negocios de {brand.name} quedan pendientes de una revisión de Meta. WhatsApp sí está disponible. Te avisamos en cuanto Meta apruebe.
+              </Notice>
+            ) : socialAllowed ? (
+              <>
+                <ConnectPagesButton appId={appId} configId={PAGES_CONFIG_ID} />
+                <p className="mt-3 flex max-w-[65ch] items-start gap-2 text-[13.5px] leading-snug text-ink-muted">
+                  <Icon name="info" className="mt-px h-4 w-4" />
+                  <span>
+                    Para Instagram: en la app de Instagram, entra a Configuración → Mensajes → Herramientas
+                    conectadas y activa «Permitir acceso a los mensajes». Sin eso, Instagram no nos entrega
+                    los mensajes.
+                  </span>
+                </p>
+              </>
+            ) : (
+              <Notice
+                tone="info"
+                action={
+                  <Link href="/dashboard/facturacion" className="inline-flex min-h-[40px] items-center rounded-[11px] px-2.5 text-sm font-semibold text-brand-800 underline underline-offset-2">
+                    Ver planes
+                  </Link>
+                }
+              >
+                Tu plan actual no incluye Instagram ni Messenger.
+              </Notice>
+            )}
+          </Section>
+        )}
       </div>
     </Page>
   )

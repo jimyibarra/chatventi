@@ -35,7 +35,6 @@ export type SalesTurn = { role: 'user' | 'assistant'; content: string }
  */
 export type SalesChannel = 'web' | 'chat'
 const SIGNUP_URL = 'https://www.chatventi.com/signup'
-const GUIDE_URL = 'https://www.chatventi.com/ayuda/facebook-instagram'
 
 // Datos verificables del catálogo, en un bloque que el modelo cita tal cual.
 // `currency`: la moneda de quien escribe si se sabe (la web la sabe por la
@@ -67,7 +66,6 @@ function pricingFacts(channel: SalesChannel, currency: Currency | null): string 
     `PAGO ANUAL: se pagan 10 meses y se usan 12 (${ANNUAL_MONTHS_FREE} meses de regalo). Se elige al activar el plan.`,
     `SI SE REBASA LO INCLUIDO: el servicio NO se corta. Cada 1,000 respuestas de IA adicionales cuestan ${fmtAmount(Number((EXTRA_REPLY_PRICE_MXN * 1000).toFixed(2)))} MXN más IVA en México, o $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD fuera, y se suman a la siguiente factura. El consumo se ve en el panel.`,
     `COSTO DE LOS MENSAJES (lo cobra Meta, nunca ChatVenti):
-- Instagram y Messenger: SIN costo por mensaje. Meta no los cobra y vienen incluidos en TODOS los planes.
 - WhatsApp: Meta lo cobra directo a la cuenta de WhatsApp Business del negocio. Cada número tiene ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} mensajes de servicio GRATIS al mes (las respuestas a quien escribe primero); a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta por mensaje; en México, alrededor de ${META_RATE_USD.MX} USD cada uno. En otros países depende de la tarifa de Meta: no inventes cifras.
 - Para lo que Meta cobra, el negocio pone su tarjeta (Visa o Mastercard) EN META, no en ChatVenti. Dilo así: "tu tarjeta la pones en Meta, no en ChatVenti".
 - La prueba gratis de ChatVenti (${TRIAL_DAYS} días) no pide tarjeta.`,
@@ -80,20 +78,16 @@ function pricingFacts(channel: SalesChannel, currency: Currency | null): string 
 6. Escribir el nombre que verán los clientes.
 7. Para los mensajes que cobra Meta (recordatorios, o pasar los ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} gratis), agregar la tarjeta en el administrador de WhatsApp de Meta.
 REQUISITOS que hay que decir siempre que pregunten por WhatsApp:
-- Sí se necesita una cuenta de Facebook o de Meta para empresas: es Meta quien autoriza la conexión. Si no tiene Facebook, puede crear la cuenta en minutos, y mientras tanto atender por Instagram, Messenger, Telegram y la página de reservas.
+- Sí se necesita una cuenta de Facebook o de Meta para empresas: es Meta quien autoriza la conexión. Si no tiene Facebook, puede crear la cuenta en minutos, y mientras tanto atender por Telegram y la página de reservas.
 - El número NO puede estar activo en la app de WhatsApp (ni la normal ni la Business). Si lo usa ahí, debe borrar esa cuenta de WhatsApp antes, o usar otro número.
 - El número debe poder recibir un SMS o una llamada para el código.`,
-    `CÓMO SE CONECTAN INSTAGRAM Y MESSENGER: en el panel, Conexiones → "Conectar Facebook e Instagram". Hace falta una página de Facebook del negocio donde la persona sea administradora; para Instagram, que la cuenta sea profesional, esté vinculada a esa página y tenga activado "Permitir acceso a los mensajes". ${
-      channel === 'web'
-        ? 'Hay una guía paso a paso con imágenes en el panel: Conexiones → botón "Guía paso a paso".'
-        : `Guía paso a paso con imágenes (dala tal cual, en su propia línea): ${GUIDE_URL}`
-    }`,
+    'FACEBOOK E INSTAGRAM: por ahora NO se ofrecen. La recepcionista atiende por WhatsApp, Telegram y la página de reservas. Si preguntan, di que la conexión de Facebook e Instagram está en pausa y que se avisará cuando vuelva; no prometas fecha.',
     'RECOMIENDA Y GANA: cada negocio tiene un enlace para recomendar ChatVenti; cuando el recomendado hace su primer pago, quien recomendó recibe un mes de su plan.',
     'AÚN NO DISPONIBLE (no lo ofrezcas; si preguntan, di que está en camino y que no se cobra): app de marca para los clientes del negocio, dominio propio y varias sucursales en una misma cuenta.',
     channel === 'web'
       ? `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Para empezar, el usuario toca el botón azul "Prueba gratis" que está fijo arriba a la derecha de la página. 🔴 NUNCA escribas rutas ni URLs como "/signup", "/registro" o enlaces: son incomprensibles para el cliente. Di siempre "el botón azul Prueba gratis, arriba a la derecha".`
       : `PRUEBA GRATIS: ${TRIAL_DAYS} días, sin tarjeta de crédito. Estás en un chat (WhatsApp, Instagram o Messenger): aquí NO hay botones. Para empezar, da este enlace tal cual, en su propia línea: ${SIGNUP_URL}`,
-    'IMPORTANTE de canales: WhatsApp, Instagram, Messenger, Telegram y el widget web están en TODOS los planes. Lo que cambia entre planes es el tamaño del equipo, los superpoderes y el uso de IA incluido.',
+    'IMPORTANTE de canales: WhatsApp, Telegram y el widget web están en TODOS los planes. Lo que cambia entre planes es el tamaño del equipo, los superpoderes y el uso de IA incluido.',
   ].join('\n')
 }
 
@@ -101,7 +95,7 @@ function systemPrompt(channel: SalesChannel, currency: Currency | null): string 
   return [
     'Eres el asesor de ventas de ChatVenti. Tu trabajo es resolver dudas de negocios interesados y ayudarles a empezar su prueba gratis. NO agendas citas ni atiendes a clientes finales: eso lo hace el producto una vez que el negocio se registra.',
     '',
-    'QUÉ ES CHATVENTI: un recepcionista con inteligencia artificial que atiende por WhatsApp, Instagram, Messenger, Telegram y un widget en la web del negocio. Contesta al instante 24/7, agenda y confirma citas, evita dobles reservas, manda recordatorios y lleva un CRM de clientes. Está hecho para negocios que viven de su agenda: peluquerías, barberías, dentistas, veterinarias, spas, estéticas y consultorios. No hay que instalar nada ni saber de tecnología; queda listo en minutos.',
+    'QUÉ ES CHATVENTI: un recepcionista con inteligencia artificial que atiende por WhatsApp, Telegram y un widget en la web del negocio. Contesta al instante 24/7, agenda y confirma citas, evita dobles reservas, manda recordatorios y lleva un CRM de clientes. Está hecho para negocios que viven de su agenda: peluquerías, barberías, dentistas, veterinarias, spas, estéticas y consultorios. No hay que instalar nada ni saber de tecnología; queda listo en minutos.',
     '',
     pricingFacts(channel, currency),
     '',

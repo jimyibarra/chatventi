@@ -1,3 +1,5 @@
+import { notFound } from 'next/navigation'
+import { SOCIAL_CHANNELS_ENABLED } from '@/features/conexiones/flags'
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 import { PhoneShot } from '@/features/guia/components/phone-shot'
@@ -45,6 +47,8 @@ const faq = (b: string, support: string): { q: string; a: ReactNode }[] => [
 ]
 
 export default async function GuiaFacebookInstagramPage() {
+  // En pausa desde el 16-oct-2026 junto con la conexión de Facebook e Instagram.
+  if (!SOCIAL_CHANNELS_ENABLED) notFound()
   const brand = await currentBrand()
   const b = brand.name
   return (

@@ -141,8 +141,8 @@ export function Close({ signupHref = '/signup', faqHref = '#preguntas' }: { sign
 export function AllIn() {
   return (
     <div className="allin">
-      <div><b>En todos los planes:</b> WhatsApp, Instagram, Messenger, Telegram, tu página de reservas, recordatorios y la ficha de cada cliente.</div>
-      <div><b>Sobre WhatsApp:</b> Meta cobra sus mensajes aparte y regala 1,000 de servicio al mes por número. Tu tarjeta la pones en Meta, no en ChatVenti. Instagram y Messenger no tienen costo por mensaje.</div>
+      <div><b>En todos los planes:</b> WhatsApp, Telegram, tu página de reservas, recordatorios y la ficha de cada cliente.</div>
+      <div><b>Sobre WhatsApp:</b> Meta cobra sus mensajes aparte y regala 1,000 de servicio al mes por número. Tu tarjeta la pones en Meta, no en ChatVenti.</div>
     </div>
   )
 }
@@ -154,7 +154,7 @@ export function Footer({ base = '' }: { base?: string }) {
       <div className="wrap foot">
         <div className="foot-brand">
           <Logo base={base} />
-          <p>La recepcionista con IA que agenda citas por WhatsApp, Instagram y Messenger.</p>
+          <p>La recepcionista con IA que agenda citas por WhatsApp.</p>
         </div>
         <nav aria-labelledby="foot-producto">
           <h2 id="foot-producto">Producto</h2>
@@ -166,7 +166,6 @@ export function Footer({ base = '' }: { base?: string }) {
         <nav aria-labelledby="foot-guias">
           <h2 id="foot-guias">Guías paso a paso</h2>
           <Link href="/ayuda/whatsapp">Conecta tu WhatsApp</Link>
-          <Link href="/ayuda/facebook-instagram">Conecta Facebook e Instagram</Link>
         </nav>
         <nav aria-labelledby="foot-legal">
           <h2 id="foot-legal">Legal</h2>

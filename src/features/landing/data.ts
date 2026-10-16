@@ -31,8 +31,8 @@ export const FEATURES = [
     body: 'Solo ofrece horarios realmente libres: respeta duraciones, horarios por miembro del equipo, descansos y ausencias. Adiós dobles reservas.',
   },
   {
-    title: 'WhatsApp, Instagram, Messenger, Telegram y web',
-    body: 'Te escriban por donde te escriban, todo cae en la misma agenda y el mismo historial. Instagram y Messenger, incluidos en todos los planes y sin costo por mensaje.',
+    title: 'WhatsApp, Telegram y web',
+    body: 'Te escriban por donde te escriban, todo cae en la misma agenda y el mismo historial, con la misma recepcionista.',
   },
   {
     title: 'Recordatorios automáticos',
@@ -44,7 +44,7 @@ export const FEATURES = [
   },
   {
     title: 'Página de reservas con tu marca',
-    body: 'Un link elegante con tus servicios y tu tienda para tu bio de Instagram o Google Maps, más un widget para incrustar en tu sitio.',
+    body: 'Un link elegante con tus servicios y tu tienda para tus redes o tu ficha de Google, más un widget para incrustar en tu sitio.',
   },
   {
     title: 'Panel de control + CRM',
@@ -65,7 +65,7 @@ export const PROOF = [
   },
   {
     title: 'Conexión oficial con Meta',
-    body: 'ChatVenti pasó la revisión de Meta para usar la API oficial de WhatsApp, Instagram y Messenger. Sin aplicaciones piratas ni riesgo de que te bloqueen el número.',
+    body: 'ChatVenti pasó la revisión de Meta para usar la API oficial de WhatsApp. Sin aplicaciones piratas ni riesgo de que te bloqueen el número.',
   },
   {
     title: `${TRIAL_DAYS} días con todo, sin tarjeta`,
@@ -140,11 +140,11 @@ export const FAQS = [
   },
   {
     q: '¿Qué necesito para conectar mi WhatsApp?',
-    a: 'Una cuenta de Facebook (o una cuenta de Meta para empresas), un número que pueda recibir un SMS o una llamada para verificarlo y que no esté activo en la app de WhatsApp, y el nombre que verán tus clientes. Lo conectas desde tu panel en Conexiones, en unos minutos. Mientras tanto puedes atender por Instagram, Messenger, Telegram y tu página de reservas.',
+    a: 'Una cuenta de Meta (si tienes Facebook, ya la tienes), un número que pueda recibir un SMS o una llamada para verificarlo y que no esté activo en la app de WhatsApp, y el nombre que verán tus clientes. Lo conectas desde tu panel en Conexiones, en unos minutos. Mientras tanto puedes atender por Telegram y tu página de reservas.',
   },
   {
-    q: '¿Cuánto cuestan los mensajes de WhatsApp, Instagram y Messenger?',
-    a: 'Instagram y Messenger no tienen costo por mensaje: Meta no los cobra y vienen incluidos en todos los planes. WhatsApp sí lo cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe), así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
+    q: '¿Cuánto cuestan los mensajes de WhatsApp?',
+    a: 'Los cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe), así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
   },
   {
     q: '¿Qué pasa si la IA no sabe responder algo?',
@@ -172,7 +172,7 @@ export const FAQS = [
   },
   {
     q: '¿En qué se diferencian los cuatro planes?',
-    a: 'La recepcionista con IA por WhatsApp, Instagram, Messenger, Telegram y tu página de reservas va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
+    a: 'La recepcionista con IA por WhatsApp, Telegram y tu página de reservas va en los cuatro. Cambia el tamaño de tu equipo (cuántos profesionales agendan y cuántas personas entran al panel), las funciones avanzadas y cuánto uso de IA trae incluido cada mes. Si tu negocio crece, cambias de plan desde tu panel cuando quieras.',
   },
   {
     q: '¿Qué pasa si mi recepcionista atiende más de lo que incluye mi plan?',

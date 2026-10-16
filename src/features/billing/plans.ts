@@ -1,3 +1,4 @@
+import { SOCIAL_CHANNELS_ENABLED } from '@/features/conexiones/flags'
 // =====================================================================
 // ChatVenti · Catálogo de planes (compartido cliente + servidor)
 //   NO contiene secretos. Los price IDs de Stripe viven en env (stripe.ts).
@@ -97,6 +98,11 @@ export interface Plan {
 // Margen bruto MÍNIMO (crédito agotado, Stripe e infraestructura descontados):
 // 64 / 62 / 63 / 63 %. Con consumo real (~55 % del crédito): 75-80 %.
 // Ver monthlyMarginUsd().
+/** Canales del agente en todos los planes. Facebook e Instagram dependen del interruptor (16-oct-2026: apagados). */
+const AI_CHANNELS: string[] = SOCIAL_CHANNELS_ENABLED
+  ? ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram']
+  : ['WhatsApp', 'Widget web', 'Telegram']
+
 export const PLANS: Plan[] = [
   {
     id: 'arranque',
@@ -104,7 +110,7 @@ export const PLANS: Plan[] = [
     name: 'Arranque',
     priceUsd: 19,
     tagline: 'Para quien trabaja solo y no quiere perder ni una cita.',
-    aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
+    aiChannels: AI_CHANNELS,
     maxResources: 1,
     maxSeats: 1,
     usageCreditUsd: 6,
@@ -113,7 +119,7 @@ export const PLANS: Plan[] = [
     includesDomain: false,
     popular: false,
     features: [
-      'Recepcionista IA por WhatsApp, Instagram, Messenger, web y Telegram',
+      SOCIAL_CHANNELS_ENABLED ? 'Recepcionista IA por WhatsApp, Instagram, Messenger, web y Telegram' : 'Recepcionista IA por WhatsApp, web y Telegram',
       'Agenda online y reservas desde tu web',
       'CRM de clientes con historial',
       '1 profesional · 1 acceso',
@@ -126,7 +132,7 @@ export const PLANS: Plan[] = [
     name: 'Negocio',
     priceUsd: 39,
     tagline: 'Para un equipo pequeño que ya no da abasto contestando.',
-    aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
+    aiChannels: AI_CHANNELS,
     maxResources: 3,
     maxSeats: 2,
     usageCreditUsd: 13,
@@ -148,7 +154,7 @@ export const PLANS: Plan[] = [
     name: 'Profesional',
     priceUsd: 79,
     tagline: 'Para clínicas y estéticas con varios profesionales.',
-    aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
+    aiChannels: AI_CHANNELS,
     maxResources: 10,
     maxSeats: 5,
     usageCreditUsd: 26,
@@ -169,7 +175,7 @@ export const PLANS: Plan[] = [
     name: 'Multi-sede',
     priceUsd: 149,
     tagline: 'Para equipos grandes que atienden mucho volumen.',
-    aiChannels: ['WhatsApp', 'Instagram', 'Messenger', 'Widget web', 'Telegram'],
+    aiChannels: AI_CHANNELS,
     maxResources: null,
     maxSeats: 10,
     usageCreditUsd: 50,
