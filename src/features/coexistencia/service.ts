@@ -165,7 +165,7 @@ async function alertOwners(service: Service, ch: ChannelRow, kind: 'inactive' | 
 }
 
 /** Aviso al socio del negocio, si tiene webhook. Lo despacha la corrida de cada 15 minutos. */
-async function enqueuePartnerChannelEvent(service: Service, orgId: string, event: string, payload: Record<string, unknown>) {
+export async function enqueuePartnerChannelEvent(service: Service, orgId: string, event: string, payload: Record<string, unknown>) {
   const { data: org } = await service.from('organizations').select('partner_id').eq('id', orgId).maybeSingle()
   if (!org?.partner_id) return
   const { data: partner } = await service.from('partners').select('webhook_url, status').eq('id', org.partner_id).maybeSingle()

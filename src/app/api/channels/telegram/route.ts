@@ -50,6 +50,9 @@ function tgMediaRef(
   return other ? { fileId: other.file_id, mime: other.mime_type ?? null } : null
 }
 
+/** «/id», «/id@ChatVenti_bot» (en grupos) o «/start id» (enlace directo). */
+const TG_ID_COMMAND = /^\/(?:id(?:@\w+)?|start\s+id)$/i
+
 /** Cuerpo del mensaje: texto o placeholder de media. */
 function tgExtractBody(msg: z.infer<typeof messageSchema>): string | null {
   if (msg.text) return msg.text
@@ -332,6 +335,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const fromHandle = String(msg.chat.id)
+
+  // Para dueños: «/id» (o el enlace t.me/<bot>?start=id, que llega como
+  // «/start id») contesta con el número de chat que piden las aprobaciones.
+  // No es un cliente: no se enruta ni despierta a la recepcionista.
+  if (msg.text && TG_ID_COMMAND.test(msg.text.trim())) {
+    after(() =>
+      tgSendMessage(
+        fromHandle,
+        `Tu número de chat es: ${fromHandle}\n\nCópialo y pégalo en Recepcionista IA → «Chat de Telegram para aprobaciones» y guarda. Desde entonces te llegan aquí las respuestas que esperan tu visto bueno.`
+      ).then(() => undefined)
+    )
+    return NextResponse.json({ ok: true }, { status: 200 })
+  }
 
   // Solo despertar al agente si el mensaje se insertó de verdad (ni error,
   // ni reintento del proveedor con el mismo update, ni canal no hallado).

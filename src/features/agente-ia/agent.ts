@@ -135,7 +135,9 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     '- Para CANCELAR o REAGENDAR usa cancel_appointment / reschedule_appointment con el id EXACTO de la lista CITAS PRÓXIMAS DEL CLIENTE. Si tiene varias citas, pregunta cuál UNA sola vez. Si no tiene citas próximas, dilo con amabilidad. Para reagendar, primero consulta disponibilidad con check_availability.',
     '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
     '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
-    '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise.',
+    // Visto en vivo (16-oct): el borrador salió como nota para el equipo («Hola,
+    // un cliente necesita ayuda…»). Aprobado tal cual, eso le llegaría al cliente.
+    '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise. El borrador es el mensaje que recibirá EL CLIENTE tal cual si el equipo lo aprueba: escríbelo dirigido al cliente, nunca como nota para el equipo.',
     ...(opts.pasenTools ? PASEN_PROMPT_RULES : []),
     // Solo cuando de verdad hay un archivo leído en el historial. Sin esto el
     // agente trataba la lectura como algo "fuera de su ámbito" y respondía
@@ -896,7 +898,7 @@ export async function runAgent(params: {
       description:
         'Escala a un humano cuando no puedas resolver, haya una queja o un caso delicado. Pasa un borrador de respuesta para que la persona lo revise.',
       inputSchema: z.object({
-        draft: z.string().describe('Borrador de respuesta para el cliente'),
+        draft: z.string().describe('Mensaje para EL CLIENTE, escrito dirigido a él: si el equipo lo aprueba se le envía tal cual. Nunca una nota para el equipo.'),
       }),
       execute: async ({ draft }) => {
         approvalRequested = true

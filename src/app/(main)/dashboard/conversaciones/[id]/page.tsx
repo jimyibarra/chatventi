@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { ConversationControls } from '@/features/agente-ia/components/conversation-controls'
 import { MessageComposer } from '@/features/agente-ia/components/message-composer'
+import { PendingApproval } from '@/features/agente-ia/components/pending-approval'
+import { waStatusLabel } from '@/features/agente-ia/wa-status'
 import { signInboundUrl } from '@/features/storage/inbound'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
 import { Card, Section } from '@/shared/components/ui/card'
@@ -24,7 +26,8 @@ const SENDER_LABEL: Record<string, string> = {
 const APPROVAL_CHIP: Record<string, { tone: ChipTone; label: string }> = {
   pending: { tone: 'wait', label: 'Esperando' },
   approved: { tone: 'ok', label: 'Aprobada' },
-  rejected: { tone: 'noshow', label: 'Rechazada' },
+  rejected: { tone: 'noshow', label: 'Descartada' },
+  answered: { tone: 'neutral', label: 'Respondiste tú' },
 }
 
 /** Clave de día en la hora de México, para separar el hilo por días. */
@@ -104,7 +107,7 @@ export default async function ConversacionDetallePage({
   const [{ data: messages }, { data: approvals }] = await Promise.all([
     supabase
       .from('messages')
-      .select('id, direction, sender, body, created_at, media_path, media_mime, media_text, origin')
+      .select('id, direction, sender, body, created_at, media_path, media_mime, media_text, origin, wa_status, wa_error')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true }),
     supabase
@@ -117,6 +120,8 @@ export default async function ConversacionDetallePage({
   const client = (conv.client as { name: string | null; phone: string | null } | null) ?? null
   const channel = (conv.channel as { type: string } | null) ?? null
   const name = client?.name || client?.phone || 'Cliente'
+  // La más reciente: es la que la recepcionista espera que se resuelva.
+  const pendingApproval = (approvals ?? []).find((a) => a.status === 'pending') ?? null
   const now = new Date()
 
   // Los archivos que manda el cliente viven en un bucket PRIVADO: se ven solo
@@ -154,9 +159,9 @@ export default async function ConversacionDetallePage({
         />
       </div>
 
-      {(approvals ?? []).some((a) => a.status === 'pending') && (
-        <Notice tone="action" className="mb-4" title="Hay una respuesta esperando aprobación por Telegram">
-          La recepcionista no vuelve a contestar este chat hasta que la apruebes o la rechaces.
+      {pendingApproval && (
+        <Notice tone="action" className="mb-4" title="La recepcionista espera tu visto bueno">
+          Su propuesta está abajo, junto al cuadro de mensaje: envíala tal cual, edítala o descártala. Mientras tanto no vuelve a contestar este chat.
         </Notice>
       )}
 
@@ -190,12 +195,13 @@ export default async function ConversacionDetallePage({
                     {showDay && <DaySeparator label={dayLabel(m.created_at, now)} />}
                     <div className={`flex ${out ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[85%] px-3.5 py-2.5 text-[15px] leading-relaxed md:max-w-[75%] ${bubble}`}>
-                        <p className={`mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold ${out ? 'text-white/80' : 'text-ink-muted'}`}>
+                        <p className={`mb-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11.5px] font-semibold ${out ? 'text-white/80' : 'text-ink-muted'}`}>
                           {m.sender === 'ai' && <Icon name="robot" className="h-3.5 w-3.5" />}
                           {SENDER_LABEL[m.sender] ?? m.sender}
                           {m.origin === 'business_app' && <span className="font-normal"> · desde WhatsApp Business</span>}
                           {m.origin === 'history' && <span className="font-normal"> · importado</span>}
                           <span className="font-normal tabular-nums">· {fmtTime(m.created_at)}</span>
+                          {out && <DeliveryMark status={m.wa_status} error={m.wa_error} />}
                         </p>
                         <MessageMedia
                           mime={m.media_mime}
@@ -219,6 +225,7 @@ export default async function ConversacionDetallePage({
             )}
           </div>
         </div>
+        {pendingApproval && <PendingApproval approvalId={pendingApproval.id} draft={pendingApproval.draft} />}
         <MessageComposer conversationId={conv.id} />
       </Card>
 
@@ -240,6 +247,16 @@ export default async function ConversacionDetallePage({
       )}
     </Page>
   )
+}
+
+/** Lo que Meta reportó del mensaje que salió: enviado, entregado, leído o por qué no llegó. */
+function DeliveryMark({ status, error }: { status: string | null; error: string | null }) {
+  const mark = waStatusLabel(status, error)
+  if (!mark) return null
+  if (mark.failed) {
+    return <span className="rounded-full bg-[#fde3e1] px-1.5 font-semibold text-[#a51b18]">{mark.text}</span>
+  }
+  return <span className="font-normal">· {mark.text}</span>
 }
 
 function DaySeparator({ label }: { label: string }) {

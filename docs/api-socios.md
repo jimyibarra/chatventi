@@ -239,7 +239,7 @@ Cuando el negocio conecta el número que ya usa en su app WhatsApp Business, Met
 | Evento | Cuándo |
 |---|---|
 | `channel.inactive` | Días 7, 10 y 12 sin actividad desde la app (una vez por nivel; se reinicia en cuanto hay actividad). |
-| `channel.disconnected` | Meta desconectó el número. La recepcionista deja de contestar por WhatsApp hasta reconectarlo. |
+| `channel.disconnected` | El número quedó desconectado: lo desconectó Meta o el dueño desde Conexiones. La recepcionista deja de contestar por WhatsApp hasta reconectarlo. |
 
 Cuerpo:
 
@@ -251,7 +251,7 @@ Cuerpo:
 }
 ```
 
-`level`: 1 = día 7, 2 = día 10, 3 = día 12. En `channel.disconnected`, `reason` es `meta_disconnected` y `level` es `null`. Sugerencia: con nivel 2 o 3, que alguien del equipo del socio le escriba al dueño para que abra su app.
+`level`: 1 = día 7, 2 = día 10, 3 = día 12. En `channel.disconnected`, `reason` es `meta_disconnected` (lo hizo Meta) u `owner_disconnected` (el dueño tocó «Desconectar este número» en Conexiones), y `level` es `null`. `mode` puede ser `coexistence` o `cloud_api` (número completo). Sugerencia: con nivel 2 o 3, que alguien del equipo del socio le escriba al dueño para que abra su app.
 
 ### Respuesta y reintentos
 

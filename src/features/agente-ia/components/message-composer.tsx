@@ -1,17 +1,43 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { sendManualReply } from '../actions'
 import { Button } from '@/shared/components/ui/button'
 import { Icon } from '@/shared/components/ui/icon'
 import { CONTROL } from '@/shared/components/ui/field'
 
+/**
+ * Evento con el que «Editar antes de enviar» (respuesta pendiente de la IA)
+ * pone el borrador en este cuadro. Un evento de ventana evita cablear estado
+ * entre dos componentes que viven en partes distintas de la página.
+ */
+export const COMPOSER_DRAFT_EVENT = 'cv:composer-draft'
+
 export function MessageComposer({ conversationId }: { conversationId: string }) {
   const router = useRouter()
   const [pending, startTransition] = useTransition()
   const [text, setText] = useState('')
   const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    function onDraft(e: Event) {
+      const draft = (e as CustomEvent<string>).detail
+      if (typeof draft !== 'string') return
+      setText(draft)
+      setError(null)
+      requestAnimationFrame(() => {
+        const el = inputRef.current
+        if (!el) return
+        el.focus()
+        el.setSelectionRange(draft.length, draft.length)
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      })
+    }
+    window.addEventListener(COMPOSER_DRAFT_EVENT, onDraft)
+    return () => window.removeEventListener(COMPOSER_DRAFT_EVENT, onDraft)
+  }, [])
 
   function send() {
     const value = text.trim()
@@ -43,6 +69,7 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
         <label className="min-w-0 flex-1">
           <span className="sr-only">Tu respuesta</span>
           <textarea
+            ref={inputRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -51,7 +78,7 @@ export function MessageComposer({ conversationId }: { conversationId: string }) 
                 send()
               }
             }}
-            rows={2}
+            rows={text.length > 140 ? 5 : 2}
             placeholder="Escribe una respuesta…"
             data-testid="composer-input"
             className={`${CONTROL} w-full resize-none py-2.5 leading-snug`}

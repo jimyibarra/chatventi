@@ -10,6 +10,7 @@ import { handleIncomingMedia } from '@/features/agente-ia/media'
 import { fetchWhatsAppMedia } from '@/features/agente-ia/media-fetch'
 import { parseCsatButton, csatMessage, CSAT_ALREADY, type CsatInfo } from '@/features/agente-ia/csat'
 import { alertLowCsat } from '@/features/agente-ia/csat-alert'
+import { parseWaStatuses, type WaStatus } from '@/features/agente-ia/wa-status'
 import {
   waSendMessage,
   waSendInteractiveButtons,
@@ -163,6 +164,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // agradece con texto estático, igual que "conf:" — sin despertar al LLM.
   // Cambios de coexistencia (ecos, historial, contactos, desconexiones).
   const coexChanges: CoexChange[] = []
+  // Enviado / entregado / leído / falló de lo que sale. Se aplica tras el 200.
+  const waStatuses: WaStatus[] = []
   const toCsat: {
     phoneNumberId: string
     from: string
@@ -199,6 +202,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         }
         const phoneNumberId = change.value.metadata?.phone_number_id
         if (!phoneNumberId) continue
+        waStatuses.push(...parseWaStatuses(change.value))
         for (const msg of change.value.messages ?? []) {
           const { data, error } = await supabase.rpc('route_inbound_message', {
             p_channel_type: 'whatsapp',
@@ -240,6 +244,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   } catch (err) {
     console.error('[whatsapp-webhook] error procesando', err)
+  }
+
+  if (waStatuses.length > 0) {
+    after(async () => {
+      const service = createServiceClient()
+      for (const st of waStatuses) {
+        const { error } = await service.rpc('apply_wa_status', { p_ext_id: st.extId, p_status: st.status, p_at: st.at ?? undefined, p_error: st.error ?? undefined })
+        if (error) console.error('[whatsapp-webhook] apply_wa_status', error.message)
+        else if (st.status === 'failed') console.error('[whatsapp-webhook] mensaje no entregado', st.extId, st.error)
+      }
+    })
   }
 
   // Coexistencia: ecos del dueño (pausa 30 min), historial y contactos pedidos

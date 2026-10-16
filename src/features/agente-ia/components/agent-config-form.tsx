@@ -8,6 +8,7 @@ import { Button } from '@/shared/components/ui/button'
 import { Field, Input, Select, Switch, Textarea } from '@/shared/components/ui/field'
 import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
+import { HelpStep, HelpTip } from '@/shared/components/ui/help-tip'
 
 type Config = {
   enabled: boolean
@@ -89,7 +90,27 @@ export function AgentConfigForm({ config }: { config: Config }) {
             </Select>
           </Field>
 
-          <Field label="Chat de Telegram para aprobaciones" hint="Escribe al bot desde ese chat para que pueda enviarte las aprobaciones.">
+          <Field
+            label={
+              <>
+                Chat de Telegram para aprobaciones
+                <HelpTip topic="cómo obtener tu número de chat de Telegram">
+                  <span className="block">Es opcional: también apruebas desde Chats, en el panel. Con Telegram te llegan al celular con botones para aprobar.</span>
+                  <HelpStep n={1}>
+                    En tu celular abre{' '}
+                    <a href="https://t.me/ChatVenti_bot?start=id" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+                      t.me/ChatVenti_bot
+                    </a>{' '}
+                    (o busca <b>@ChatVenti_bot</b> en Telegram) y toca «Iniciar».
+                  </HelpStep>
+                  <HelpStep n={2}>El bot te contesta con tu número de chat. Si no, escríbele <b>/id</b>.</HelpStep>
+                  <HelpStep n={3}>Copia ese número, pégalo aquí y guarda.</HelpStep>
+                  <span className="block">¿Para todo tu equipo? Agrega a @ChatVenti_bot a un grupo de Telegram y escribe /id en el grupo: usa ese número (empieza con «-»).</span>
+                </HelpTip>
+              </>
+            }
+            hint="Opcional. Ahí te llegan las respuestas que esperan tu visto bueno; toca «?» para ver cómo sacarlo."
+          >
             <Input
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}

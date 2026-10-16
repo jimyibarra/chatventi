@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { Json } from '@/lib/supabase/database.types'
-import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { managerOrgId } from '@/features/conexiones/session'
 import { managementTokens } from '@/features/agente-ia/wa-templates'
 import { metaAppForOrg } from '@/features/marca/meta-app'
 import { historyWindowOpen } from '@/features/coexistencia/parse'
@@ -19,14 +19,7 @@ export const runtime = 'nodejs'
 
 const GRAPH = 'https://graph.facebook.com/v25.0'
 
-async function ownerOrg() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
-  const { data: profile } = await supabase.from('profiles').select('organization_id, role').eq('id', user.id).maybeSingle()
-  if (!profile?.organization_id || !['owner', 'manager'].includes(profile.role)) return null
-  return profile.organization_id as string
-}
+const ownerOrg = managerOrgId
 
 async function coexChannel(orgId: string) {
   const { data } = await createServiceClient()

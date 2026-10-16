@@ -10,6 +10,7 @@ import { Field, Input } from '@/shared/components/ui/field'
 import { Icon } from '@/shared/components/ui/icon'
 import { Notice } from '@/shared/components/ui/notice'
 import { StatusChip } from '@/shared/components/ui/status-chip'
+import { HelpStep, HelpTip } from '@/shared/components/ui/help-tip'
 
 export function GoogleReviewsCard({
   reviewUrl,
@@ -108,7 +109,20 @@ export function GoogleReviewsCard({
 
       {searchAvailable && (
         <div className="mb-4">
-          <Field as="div" label="Busca tu negocio en Google">
+          <Field
+            as="div"
+            label={
+              <>
+                Busca tu negocio en Google
+                <HelpTip topic="cómo buscar tu negocio en Google">
+                  <HelpStep n={1}>Escribe el nombre de tu negocio y tu ciudad, como aparece en Google Maps. Ej.: «Estética Lumen, Guadalajara».</HelpStep>
+                  <HelpStep n={2}>Toca «Buscar» y elige tu negocio en la lista (revisa que la dirección sea la tuya).</HelpStep>
+                  <HelpStep n={3}>Listo: tomamos de Google tu enlace para pedir reseñas y, si quieres, tu horario.</HelpStep>
+                  <span className="block">¿No aparece? Quizá tu negocio aún no tiene Perfil de Negocio en Google. Lo creas gratis en google.com/business, o usa la opción de pegar tu enlace.</span>
+                </HelpTip>
+              </>
+            }
+          >
             <div className="flex gap-2">
               <Input
                 id="gr-q"
@@ -151,7 +165,22 @@ export function GoogleReviewsCard({
 
       <Field
         as="div"
-        label={searchAvailable ? 'O pega tu enlace de reseñas' : 'Pega tu enlace de reseñas'}
+        label={
+          <>
+            {searchAvailable ? 'O pega tu enlace de reseñas' : 'Pega tu enlace de reseñas'}
+            <HelpTip topic="cómo sacar tu enlace de reseñas de Google">
+              <HelpStep n={1}>
+                Entra a{' '}
+                <a href="https://business.google.com" target="_blank" rel="noopener noreferrer" className="font-semibold underline underline-offset-2">
+                  business.google.com
+                </a>{' '}
+                con la cuenta de Google dueña de tu negocio (o busca tu negocio en Google con esa cuenta abierta).
+              </HelpStep>
+              <HelpStep n={2}>Toca «Pedir opiniones» (o «Pedir reseñas»).</HelpStep>
+              <HelpStep n={3}>Copia el enlace que te da Google (empieza con https://g.page/r/…), pégalo aquí y toca «Guardar».</HelpStep>
+            </HelpTip>
+          </>
+        }
         hint="En tu Perfil de Negocio de Google: «Pedir opiniones» → copia el enlace."
       >
         <div className="flex gap-2">

@@ -397,6 +397,15 @@ npm run lint         # ESLint
 - **Detección**: invisible en typecheck/lint/build/SQL en verde y `get_advisors` no lo aísla. Se caza **llamando la RPC con la anon key** y viendo que devuelve datos en vez de `42501 permission denied`.
 - **Aplicar en**: TODA RPC nueva. Si la llama un webhook/cron/servidor, va por `service_role` y se revoca de anon; solo se deja anon si es para una página pública y está acotada por un secreto en el argumento.
 
+### 2026-10-16: cerrar una RPC a `authenticated` rompe en silencio a quien la llama con la SESIÓN
+- **Error**: el endurecimiento del 14-ago revocó `log_outbound_message` de `anon, authenticated`. Los webhooks se pasaron a `service_role`, pero `sendManualReply` (respuesta manual del dueño desde Chats) la seguía llamando con el cliente de **sesión**. El mensaje SÍ salía por WhatsApp, pero el registro fallaba con 42501 y solo quedaba un `console.error`: **durante dos meses, lo que el dueño escribía desde el panel no aparecía en el chat**. Juan creyó que no se había enviado.
+- **Fix**: registrar con `service_role` tras verificar la conversación con la sesión (RLS).
+- **Reglas**:
+  - Antes de revocar una RPC a un rol, buscar **todas** sus llamadas (`rpc('nombre'`) y mirar con QUÉ cliente se hace cada una (`createClient` de sesión vs `createServiceClient`). Revocar sin eso es tocar a ciegas.
+  - Un error de RPC tras un efecto externo (mensaje enviado, cobro) no puede morir en `console.error` sin que nadie lo vea: o se corrige ahí, o se avisa en la UI.
+- **Detección**: invisible en typecheck/lint/build. Salió porque el humano **usó el flujo real** y comparó lo que recibió con lo que mostraba el panel.
+- **Aplicar en**: toda migración que revoque permisos.
+
 ### 2026-10-03: la RLS acota FILAS, no COLUMNAS — una policy de "tu propia fila" deja escribir el rol
 - **Error**: `profile_update_self` (`id = auth.uid()`) + el `GRANT ALL` de tabla que Supabase da a `authenticated` = cualquier usuario podía hacer `PATCH /rest/v1/profiles?id=eq.<yo>` con `{"role":"super_admin"}`. **Probado en vivo: una cuenta `staff` se puso `owner` y la base lo guardó.** Mismo defecto en `organizations` (el dueño se alargaba la prueba con `trial_ends_at` y se quitaba el tope con `ai_cap_exempt`), `agent_configs` (elegía `model`, que paga ChatVenti) y `channels` (escritura a mano + todo el equipo leía el token de WhatsApp en `credentials`).
 - **Fix**: permisos por **columna** (migración `20261003090000`): `revoke update on tabla from anon, authenticated` + `grant update (col_a, col_b) ...` solo de lo que el inquilino puede decidir. Tablas que solo escribe el servidor: `revoke insert, update, delete`. Un disparador en `profiles` como segundo candado.

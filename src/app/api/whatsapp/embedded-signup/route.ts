@@ -214,7 +214,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Coexistencia: el número ya está registrado desde la app del negocio; Meta
   // prohíbe /register con PIN en ese modo. Solo se suscribe la WABA.
   const coexistence = body.coexistence === true
-  const pin = coexistence ? '' : alreadyActive && previous?.pin ? previous.pin : String(randomInt(100000, 1000000))
+  // El PIN anterior se reutiliza también al RECONECTAR (canal desconectado):
+  // Meta exige el mismo PIN de verificación en dos pasos para volver a
+  // registrar un número; uno nuevo dejaría el canal en error.
+  const pin = coexistence ? '' : previous?.pin ? previous.pin : String(randomInt(100000, 1000000))
   const subscribeErr = await subscribeAppToWaba(body.wabaId, mgmtToken)
   if (subscribeErr) console.error('[embedded-signup]', subscribeErr)
   const registerErr = alreadyActive || coexistence
@@ -230,6 +233,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     access_token: accessToken,
     pin,
     mode: coexistence ? 'coexistence' : 'cloud_api',
+    // El número tal como lo muestra Meta (+52 55 …): Conexiones lo enseña al dueño.
+    display_phone_number: phone.display_phone_number ?? null,
     obtained_at: new Date().toISOString(),
     subscribe_error: subscribeErr,
     register_error: registerErr,
@@ -252,6 +257,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         display_name: body.displayName ?? phone.verified_name ?? phone.display_phone_number ?? null,
         credentials,
         status,
+        // Reconectar limpia la desconexión anterior (por Meta o por el dueño).
+        disconnected_at: null,
+        disconnect_reason: null,
+        coexistence_alert_level: 0,
+        app_activity_at: coexistence ? new Date().toISOString() : null,
       },
       { onConflict: 'type,external_id' }
     )

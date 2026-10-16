@@ -955,6 +955,9 @@ export type Database = {
           organization_id: string
           origin: string | null
           sender: string
+          wa_error: string | null
+          wa_status: string | null
+          wa_status_at: string | null
         }
         Insert: {
           agent_id?: string | null
@@ -970,6 +973,9 @@ export type Database = {
           organization_id: string
           origin?: string | null
           sender: string
+          wa_error?: string | null
+          wa_status?: string | null
+          wa_status_at?: string | null
         }
         Update: {
           agent_id?: string | null
@@ -985,6 +991,9 @@ export type Database = {
           organization_id?: string
           origin?: string | null
           sender?: string
+          wa_error?: string | null
+          wa_status?: string | null
+          wa_status_at?: string | null
         }
         Relationships: [
           {
@@ -2159,6 +2168,15 @@ export type Database = {
       apply_deposit_requirement: {
         Args: { p_appointment_id: string }
         Returns: Json
+      }
+      apply_wa_status: {
+        Args: {
+          p_at?: string
+          p_error?: string
+          p_ext_id: string
+          p_status: string
+        }
+        Returns: boolean
       }
       assert_org_access: { Args: { p_org: string }; Returns: undefined }
       attach_message_media: {

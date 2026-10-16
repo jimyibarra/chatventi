@@ -8,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { buildSignupPrefill } from '@/features/conexiones/meta-helpers'
 import { SOCIAL_CHANNELS_ENABLED } from '@/features/conexiones/flags'
 import { HistoryButton } from '@/features/coexistencia/components/history-button'
+import { WhatsAppChannels, type WhatsAppRow } from '@/features/conexiones/components/whatsapp-channels'
 import { OWNER_PAUSE_MINUTES, historyWindowOpen } from '@/features/coexistencia/parse'
 import { getWabaHealth, wabaBillingUrl, type WabaHealth } from '@/features/conexiones/waba-health'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
@@ -95,7 +96,9 @@ type CoexRow = {
   coexistence_alert_level: number
   app_activity_at: string | null
   disconnected_at: string | null
+  disconnect_reason: string | null
   mode: string | null
+  phone: string | null
   obtained_at: string | null
   history_state: string | null
 }
@@ -107,6 +110,8 @@ function CoexistencePanel({ rows }: { rows: CoexRow[] }) {
     <div className="mb-4 space-y-3" data-testid="coex-panel">
       {rows.map((r) => {
         const name = r.display_name ?? 'tu número'
+        // Lo desconectó el dueño: la lista de arriba ya lo dice y explica qué sigue.
+        if (r.disconnect_reason === 'owner') return null
         if (r.disconnected_at) {
           return (
             <Notice key={r.id} tone="danger" title={`Meta desconectó ${name}`}>
@@ -215,16 +220,35 @@ export default async function ConexionesPage() {
       })
     : null
 
-  // Números en coexistencia (columnas que la sesión del usuario no lee: service_role acotado a su org).
-  const { data: coexData } = orgId
-    ? await service
-        .from('channels')
-        .select('id, display_name, status, coexistence_alert_level, app_activity_at, disconnected_at, mode:credentials->>mode, obtained_at:credentials->>obtained_at, history_state:credentials->>history_state')
-        .eq('organization_id', orgId as string)
-        .eq('type', 'whatsapp')
-        .eq('credentials->>mode', 'coexistence')
-    : { data: [] }
-  const coexRows = (coexData ?? []) as unknown as CoexRow[]
+  // Datos de cada WhatsApp que la sesión del usuario no lee (modo, número,
+  // coexistencia): service_role acotado a su org. Nunca el token.
+  const [{ data: waData }, { data: me }] = await Promise.all([
+    orgId
+      ? service
+          .from('channels')
+          .select('id, display_name, status, coexistence_alert_level, app_activity_at, disconnected_at, disconnect_reason, mode:credentials->>mode, phone:credentials->>display_phone_number, obtained_at:credentials->>obtained_at, history_state:credentials->>history_state')
+          .eq('organization_id', orgId as string)
+          .eq('type', 'whatsapp')
+      : Promise.resolve({ data: [] }),
+    authUser.user ? supabase.from('profiles').select('role').eq('id', authUser.user.id).maybeSingle() : Promise.resolve({ data: null }),
+  ])
+  const waExtra = new Map(((waData ?? []) as unknown as CoexRow[]).map((r) => [r.id, r]))
+  const coexRows = [...waExtra.values()].filter((r) => r.mode === 'coexistence')
+  const canManage = me?.role === 'owner' || me?.role === 'manager'
+  const waRows: WhatsAppRow[] = whatsapp.map((c) => {
+    const x = waExtra.get(c.id)
+    return {
+      id: c.id,
+      name: c.display_name,
+      phone: x?.phone ?? null,
+      mode: x?.mode === 'coexistence' ? 'coexistence' : x?.mode === 'cloud_api' ? 'cloud_api' : null,
+      externalId: c.external_id,
+      wabaId: c.waba_id,
+      status: c.status === 'disabled' && x?.disconnected_at ? { tone: 'off', label: 'Desconectado' } : statusFor(c),
+      disabled: c.status === 'disabled',
+      disconnectedByOwner: x?.disconnect_reason === 'owner',
+    }
+  })
 
   // Tarjeta en Meta de cada WhatsApp conectado (consulta con tope de 4 s por cuenta).
   const billing = await Promise.all(
@@ -266,11 +290,7 @@ export default async function ConexionesPage() {
             </ButtonLink>
           }
         >
-          <ChannelList
-            rows={whatsapp}
-            empty="Todavía no has conectado ningún WhatsApp."
-            detail={(c) => `ID: ${c.external_id}${c.waba_id ? ` · WABA ${c.waba_id}` : ''}`}
-          />
+          <WhatsAppChannels rows={waRows} canManage={canManage} />
           <CoexistencePanel rows={coexRows} />
           <WabaBilling items={billing} />
           <EmbeddedSignupButton appId={appId} configId={configId} prefill={prefill} />

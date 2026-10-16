@@ -413,8 +413,12 @@ export async function sendManualReply(
     }
   }
 
-  const [{ error: logError }, { error: pauseError }, { error: statusError }] = await Promise.all([
-    supabase.rpc('log_outbound_message', {
+  const [{ error: logError }, { error: pauseError }, { error: statusError }, { error: approvalError }] = await Promise.all([
+    // service_role: log_outbound_message es solo del servidor desde el
+    // endurecimiento del 14-ago. Con la sesión fallaba EN SILENCIO: el mensaje
+    // salía por WhatsApp pero no aparecía en el chat. La conversación ya se
+    // verificó arriba con la sesión (RLS).
+    service.rpc('log_outbound_message', {
       p_conversation_id: conversationId,
       p_body: text,
       p_sender: 'agent',
@@ -428,10 +432,18 @@ export async function sendManualReply(
     conv.status === 'pending'
       ? supabase.rpc('set_conversation_status', { p_conversation_id: conversationId, p_status: 'open' })
       : Promise.resolve({ error: null }),
+    // Si la recepcionista dejó una respuesta esperando aprobación, el equipo ya
+    // contestó: se cierra. Si quedara pendiente, la IA no volvería a contestar.
+    service
+      .from('ai_approvals')
+      .update({ status: 'answered', resolved_at: new Date().toISOString() })
+      .eq('conversation_id', conversationId)
+      .eq('status', 'pending'),
   ])
   if (logError) console.error('[sendManualReply] log_outbound_message', logError.message)
   if (pauseError) console.error('[sendManualReply] pause_ai', pauseError.message)
   if (statusError) console.error('[sendManualReply] set_conversation_status', statusError.message)
+  if (approvalError) console.error('[sendManualReply] ai_approvals', approvalError.message)
 
   revalidatePath(`/dashboard/conversaciones/${conversationId}`)
   revalidatePath('/dashboard/conversaciones')
