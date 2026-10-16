@@ -139,7 +139,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     for (const a of accounts?.data ?? []) pageIds.add(a.id)
     console.info('[connect-pages] me/accounts', (accounts?.data ?? []).length)
   }
-  if (pageIds.size === 0) return NextResponse.json({ error: 'no_pages' }, { status: 422 })
+  if (pageIds.size === 0) {
+    // Visto el 16-oct-2026 con una cuenta SIN rol en la app: Meta concede
+    // pages_messaging pero sin decir a qué página (sin target_ids) y no concede
+    // pages_show_list, así que no hay forma de saber qué página eligió. No es
+    // culpa del dueño: falta el acceso avanzado de esos permisos (App Review).
+    const grantedMessaging = (debug.data.granular_scopes ?? []).some((g) => g.scope === 'pages_messaging')
+    return NextResponse.json({ error: grantedMessaging ? 'pages_not_visible' : 'no_pages' }, { status: 422 })
+  }
 
   // 5. Cada página: token propio, Instagram enlazado, suscripción y canales.
   const connected: Connected[] = []

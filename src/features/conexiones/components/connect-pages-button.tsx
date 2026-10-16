@@ -10,6 +10,8 @@ const GRAPH_VERSION = 'v25.0'
 const SERVER_ERRORS: Record<string, string> = {
   plan_required: 'Tu plan actual no incluye Instagram ni Messenger. Revisa los planes en Facturación.',
   no_pages: 'No autorizaste ninguna página. Vuelve a intentarlo y marca la página de tu negocio.',
+  pages_not_visible:
+    'Meta todavía no nos deja ver qué página elegiste: estamos en revisión con Meta para habilitarlo. WhatsApp sí está disponible. Te avisamos en cuanto quede.',
   no_page_token: 'Meta no nos dio acceso a esa página. Debes ser administrador de la página para conectarla.',
   page_in_use: 'Esa página ya está conectada a otra cuenta.',
   token_exchange_failed: 'La autorización de Meta caducó antes de terminar. Vuelve a intentarlo.',
