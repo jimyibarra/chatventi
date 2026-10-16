@@ -206,7 +206,7 @@ ChatVenti avisa al socio cada vez que **se crea o cambia una cita** de uno de su
 
 | Cabecera | Valor |
 |---|---|
-| `X-ChatVenti-Event` | `appointment.created`, `appointment.updated`, `appointment.cancelled` o `webhook.test` |
+| `X-ChatVenti-Event` | `appointment.created`, `appointment.updated`, `appointment.cancelled`, `channel.inactive`, `channel.disconnected` o `webhook.test` |
 | `X-ChatVenti-Delivery` | id de la entrega (uuid). Si reintentamos, llega el **mismo** id: sirve para no procesar dos veces. |
 | `X-ChatVenti-Timestamp` | segundos Unix de cuando se envió |
 | `X-ChatVenti-Signature` | `v1=<hex>` = HMAC-SHA256 con tu `secret` de la cadena `"<timestamp>.<cuerpo crudo>"` |
@@ -231,6 +231,27 @@ Cuerpo:
 - `status`: `scheduled`, `confirmed`, `completed`, `cancelled`, `no_show`. `appointment.updated` llega cuando cambia el estado (salvo a `cancelled`, que es su propio evento), la fecha u hora, o el profesional. El cuerpo siempre trae la cita **como está en ese momento**, no como estaba al disparar el evento; si se borró, llega `{ "id", "status": "deleted" }`.
 - `services[].externalId` es el id con el que el socio mandó el servicio en el catálogo (`null` si lo creó el dueño en su panel).
 - `webhook.test` llega con `"test": true` y `organization: null`.
+
+### Avisos del número de WhatsApp (coexistencia)
+
+Cuando el negocio conecta el número que ya usa en su app WhatsApp Business, Meta lo desconecta si el celular pasa unos 14 días sin abrir la app. ChatVenti avisa al dueño (correo, panel y celular) y también al socio:
+
+| Evento | Cuándo |
+|---|---|
+| `channel.inactive` | Días 7, 10 y 12 sin actividad desde la app (una vez por nivel; se reinicia en cuanto hay actividad). |
+| `channel.disconnected` | Meta desconectó el número. La recepcionista deja de contestar por WhatsApp hasta reconectarlo. |
+
+Cuerpo:
+
+```json
+{
+  "id": "…", "event": "channel.inactive", "createdAt": "…", "attempt": 1,
+  "organization": { "id": "…", "externalId": "tenant-8f2a", "name": "Clínica Sonríe" },
+  "channel": { "type": "whatsapp", "mode": "coexistence", "number": "Clínica Sonríe", "level": 2, "daysIdle": 10, "reason": "app_inactive" }
+}
+```
+
+`level`: 1 = día 7, 2 = día 10, 3 = día 12. En `channel.disconnected`, `reason` es `meta_disconnected` y `level` es `null`. Sugerencia: con nivel 2 o 3, que alguien del equipo del socio le escriba al dueño para que abra su app.
 
 ### Respuesta y reintentos
 

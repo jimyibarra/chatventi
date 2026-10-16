@@ -7,6 +7,8 @@ import { brandOrigin, currentBrand } from '@/features/marca/brand'
 import { createServiceClient } from '@/lib/supabase/service'
 import { buildSignupPrefill } from '@/features/conexiones/meta-helpers'
 import { SOCIAL_CHANNELS_ENABLED } from '@/features/conexiones/flags'
+import { HistoryButton } from '@/features/coexistencia/components/history-button'
+import { OWNER_PAUSE_MINUTES, historyWindowOpen } from '@/features/coexistencia/parse'
 import { getWabaHealth, wabaBillingUrl, type WabaHealth } from '@/features/conexiones/waba-health'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { planById } from '@/features/billing/plans'
@@ -86,6 +88,51 @@ function ChannelList({ rows, empty, detail }: { rows: ChannelRow[]; empty: strin
  * los mensajes que inicia el negocio a ESA tarjeta: sin ella no salen. El
  * estado viene de health_status (error 141006 = problema con el método de pago).
  */
+type CoexRow = {
+  id: string
+  display_name: string | null
+  status: string
+  coexistence_alert_level: number
+  app_activity_at: string | null
+  disconnected_at: string | null
+  mode: string | null
+  obtained_at: string | null
+  history_state: string | null
+}
+
+/** Números en coexistencia: cómo conviven dueño y recepcionista, alertas de los 14 días e historial opcional. */
+function CoexistencePanel({ rows }: { rows: CoexRow[] }) {
+  if (rows.length === 0) return null
+  return (
+    <div className="mb-4 space-y-3" data-testid="coex-panel">
+      {rows.map((r) => {
+        const name = r.display_name ?? 'tu número'
+        if (r.disconnected_at) {
+          return (
+            <Notice key={r.id} tone="danger" title={`Meta desconectó ${name}`}>
+              Tu recepcionista ya no contesta ni salen recordatorios por ese número. Reconéctalo con «Conectar el número que ya uso en WhatsApp Business» y abre la app en tu celular al menos una vez por semana.
+            </Notice>
+          )
+        }
+        const days = r.coexistence_alert_level === 3 ? 12 : r.coexistence_alert_level === 2 ? 10 : 7
+        return (
+          <div key={r.id} className="space-y-2 rounded-[14px] bg-surface px-3.5 py-3">
+            <p className="text-[14px] text-ink-muted">
+              <span className="font-semibold text-ink">{name}</span> sigue en tu app de WhatsApp Business. Cuando escribes desde tu app, la recepcionista se pausa {OWNER_PAUSE_MINUTES} minutos en esa plática para no contestar encima de ti.
+            </p>
+            {r.coexistence_alert_level > 0 && (
+              <Notice tone="action" title="Abre tu WhatsApp Business en el celular">
+                Llevamos unos {days} días sin ver actividad desde la app. Meta desconecta el número si el celular pasa unos 14 días sin abrirla. Con abrirla basta; si ya la abriste, ignora este aviso.
+              </Notice>
+            )}
+            <HistoryButton state={r.history_state} windowOpen={historyWindowOpen(r.obtained_at)} />
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function WabaBilling({ items }: { items: { id: string; name: string; wabaId: string; health: WabaHealth }[] }) {
   if (items.length === 0) return null
   return (
@@ -168,6 +215,17 @@ export default async function ConexionesPage() {
       })
     : null
 
+  // Números en coexistencia (columnas que la sesión del usuario no lee: service_role acotado a su org).
+  const { data: coexData } = orgId
+    ? await service
+        .from('channels')
+        .select('id, display_name, status, coexistence_alert_level, app_activity_at, disconnected_at, mode:credentials->>mode, obtained_at:credentials->>obtained_at, history_state:credentials->>history_state')
+        .eq('organization_id', orgId as string)
+        .eq('type', 'whatsapp')
+        .eq('credentials->>mode', 'coexistence')
+    : { data: [] }
+  const coexRows = (coexData ?? []) as unknown as CoexRow[]
+
   // Tarjeta en Meta de cada WhatsApp conectado (consulta con tope de 4 s por cuenta).
   const billing = await Promise.all(
     whatsapp
@@ -213,6 +271,7 @@ export default async function ConexionesPage() {
             empty="Todavía no has conectado ningún WhatsApp."
             detail={(c) => `ID: ${c.external_id}${c.waba_id ? ` · WABA ${c.waba_id}` : ''}`}
           />
+          <CoexistencePanel rows={coexRows} />
           <WabaBilling items={billing} />
           <EmbeddedSignupButton appId={appId} configId={configId} prefill={prefill} />
           {coexistence && (

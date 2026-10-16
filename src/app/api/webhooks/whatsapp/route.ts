@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
 import { metaAppSecrets } from '@/features/marca/meta-app'
+import { handleCoexistenceChange, type CoexChange } from '@/features/coexistencia/service'
 import { after, NextResponse, type NextRequest } from 'next/server'
 import { z } from 'zod'
 import { createServiceClient } from '@/lib/supabase/service'
@@ -160,6 +161,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const toConfirm: { phoneNumberId: string; from: string; appointmentId: string }[] = []
   // Botón de la encuesta ("csat:<appointment_id>:<score>"): se registra y se
   // agradece con texto estático, igual que "conf:" — sin despertar al LLM.
+  // Cambios de coexistencia (ecos, historial, contactos, desconexiones).
+  const coexChanges: CoexChange[] = []
   const toCsat: {
     phoneNumberId: string
     from: string
@@ -174,17 +177,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const supabase = createServiceClient()
     for (const entry of parsed.entry ?? []) {
       for (const change of entry.changes ?? []) {
-        // Coexistencia (fase 1): todo lo que no sea `messages` se guarda tal cual
-        // para estudiarlo; todavía no tiene manejador.
+        // Coexistencia: todo lo que no sea `messages` (ecos del dueño, historial,
+        // contactos, avisos de cuenta) se guarda crudo para auditoría y se maneja
+        // después de responder 200. El historial puede ser grande: crudo solo su
+        // metadata.
         if (change.field && change.field !== 'messages') {
+          const value = change.value as Record<string, unknown>
+          const rawPayload = change.field === 'history'
+            ? { metadata: value.metadata ?? null, chunks: Array.isArray(value.history) ? value.history.length : 0 }
+            : value
           const { error: rawErr } = await supabase.from('meta_raw_events').insert({
             object: parsed.object ?? null,
             field: change.field,
             phone_number_id: change.value.metadata?.phone_number_id ?? null,
             waba_id: entry.id ?? null,
-            payload: change.value as Json,
+            payload: rawPayload as Json,
           })
           if (rawErr) console.error('[whatsapp-webhook] raw event', change.field, rawErr.message)
+          coexChanges.push({ field: change.field, value, wabaId: entry.id ?? null, phoneNumberId: change.value.metadata?.phone_number_id ?? null })
           continue
         }
         const phoneNumberId = change.value.metadata?.phone_number_id
@@ -230,6 +240,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   } catch (err) {
     console.error('[whatsapp-webhook] error procesando', err)
+  }
+
+  // Coexistencia: ecos del dueño (pausa 30 min), historial y contactos pedidos
+  // por el dueño, y desconexiones. Tras el 200, en orden de llegada.
+  if (coexChanges.length > 0) {
+    after(async () => {
+      const service = createServiceClient()
+      for (const c of coexChanges) await handleCoexistenceChange(service, c)
+    })
   }
 
   // Media: descarga del binario, aviso amable y escalamiento a humano, todo

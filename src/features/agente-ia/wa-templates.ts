@@ -19,6 +19,7 @@
 //   🔴 Cambiar el texto de una plantilla = plantilla NUEVA (sube el sufijo
 //   _vN): Meta no deja editar el cuerpo de una ya aprobada sin re-revisión.
 // =====================================================================
+import { waThrottle } from './senders'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/lib/supabase/database.types'
 
@@ -275,6 +276,7 @@ export async function waSendTemplate(
   // México: Cloud API espera 52XXXXXXXXXX (mismo criterio que waSendMessage).
   const dest = /^521\d{10}$/.test(to) ? `52${to.slice(3)}` : /^\d{10}$/.test(to) ? `52${to}` : to
 
+  await waThrottle(phoneNumberId)
   const res = await fetch(`${GRAPH}/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: { authorization: `Bearer ${channel.token}`, 'content-type': 'application/json' },

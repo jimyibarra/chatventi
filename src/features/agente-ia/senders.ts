@@ -107,6 +107,25 @@ export async function tgEditMessageText(
 //  - tras la fusión de duplicados (normalize_phone_mx), el `phone` de un cliente
 //    puede quedar en formato nacional de 10 dígitos (p.ej. 5521410491), que Cloud
 //    API rechaza por no llevar código de país.
+// Meta fija 20 mensajes por segundo por número en coexistencia (y es un tope
+// sano para cualquier número). Ventana deslizante en memoria por número: basta
+// porque los envíos masivos (recordatorios) salen de una sola corrida.
+const WA_MAX_PER_SECOND = 18
+const sentAt = new Map<string, number[]>()
+
+export async function waThrottle(phoneNumberId: string): Promise<void> {
+  for (;;) {
+    const now = Date.now()
+    const recent = (sentAt.get(phoneNumberId) ?? []).filter((t) => now - t < 1000)
+    if (recent.length < WA_MAX_PER_SECOND) {
+      recent.push(now)
+      sentAt.set(phoneNumberId, recent)
+      return
+    }
+    await new Promise((r) => setTimeout(r, 1000 - (now - recent[0]) + 5))
+  }
+}
+
 // Un número ya en 52XXXXXXXXXX (12 díg) o de otro país se deja intacto.
 function waNormalizeTo(to: string): string {
   if (/^521\d{10}$/.test(to)) return `52${to.slice(3)}`
@@ -120,6 +139,7 @@ export async function waSendMessage(
   to: string,
   text: string
 ): Promise<string | null> {
+  await waThrottle(phoneNumberId)
   const res = await fetch(
     `https://graph.facebook.com/${WA_GRAPH_VERSION}/${phoneNumberId}/messages`,
     {
@@ -156,6 +176,7 @@ export async function waSendInteractiveButtons(
   bodyText: string,
   buttons: { id: string; title: string }[]
 ): Promise<string | null> {
+  await waThrottle(phoneNumberId)
   const res = await fetch(
     `https://graph.facebook.com/${WA_GRAPH_VERSION}/${phoneNumberId}/messages`,
     {

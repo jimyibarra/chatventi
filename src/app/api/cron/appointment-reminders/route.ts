@@ -20,6 +20,7 @@ import { runColdFollowups, runDailyReports } from '@/features/agente-ia/outreach
 import { waSendTemplate, type WaTemplateKey } from '@/features/agente-ia/wa-templates'
 import { runUsageClose } from '@/features/billing/usage-close'
 import { dispatchPartnerWebhooks } from '@/features/socios/webhooks'
+import { runCoexistenceAlerts } from '@/features/coexistencia/service'
 
 export const runtime = 'nodejs'
 
@@ -368,6 +369,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   // Resumen del día anterior al correo del dueño.
   const dailyReport = await runDailyReports(service)
 
+  // Coexistencia: alertas de los días 7, 10 y 12 sin actividad de la app
+  // WhatsApp Business (Meta desconecta el número a los ~14 días).
+  const coexistence = await runCoexistenceAlerts(service).catch((err) => {
+    console.error('[cron] coexistencia', err)
+    return null
+  })
+
   // Calificación de conversaciones enfriadas. Va al FINAL a propósito: es lo
   // menos crítico de esta corrida y lo más lento (una llamada al modelo por
   // conversación). Si el tiempo de la función se agota aquí, lo que se pierde
@@ -388,6 +396,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     trial: trialSummary,
     cold,
     dailyReport,
+    coexistence,
     scoring,
     deposits,
     usage,

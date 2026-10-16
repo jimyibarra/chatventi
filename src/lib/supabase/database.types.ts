@@ -455,8 +455,12 @@ export type Database = {
       }
       channels: {
         Row: {
+          app_activity_at: string | null
+          coexistence_alert_level: number
           created_at: string
           credentials: Json | null
+          disconnect_reason: string | null
+          disconnected_at: string | null
           display_name: string | null
           external_id: string
           id: string
@@ -466,8 +470,12 @@ export type Database = {
           waba_id: string | null
         }
         Insert: {
+          app_activity_at?: string | null
+          coexistence_alert_level?: number
           created_at?: string
           credentials?: Json | null
+          disconnect_reason?: string | null
+          disconnected_at?: string | null
           display_name?: string | null
           external_id: string
           id?: string
@@ -477,8 +485,12 @@ export type Database = {
           waba_id?: string | null
         }
         Update: {
+          app_activity_at?: string | null
+          coexistence_alert_level?: number
           created_at?: string
           credentials?: Json | null
+          disconnect_reason?: string | null
+          disconnected_at?: string | null
           display_name?: string | null
           external_id?: string
           id?: string
@@ -941,6 +953,7 @@ export type Database = {
           media_path: string | null
           media_text: string | null
           organization_id: string
+          origin: string | null
           sender: string
         }
         Insert: {
@@ -955,6 +968,7 @@ export type Database = {
           media_path?: string | null
           media_text?: string | null
           organization_id: string
+          origin?: string | null
           sender: string
         }
         Update: {
@@ -969,6 +983,7 @@ export type Database = {
           media_path?: string | null
           media_text?: string | null
           organization_id?: string
+          origin?: string | null
           sender?: string
         }
         Relationships: [
@@ -2393,6 +2408,19 @@ export type Database = {
       get_my_role: { Args: never; Returns: string }
       get_public_booking_context: { Args: { p_slug: string }; Returns: Json }
       kick_partner_webhooks: { Args: never; Returns: undefined }
+      log_coexistence_message: {
+        Args: {
+          p_at?: string
+          p_body: string
+          p_customer: string
+          p_direction: string
+          p_ext_id?: string
+          p_origin?: string
+          p_pause_minutes?: number
+          p_phone_number_id: string
+        }
+        Returns: Json
+      }
       log_outbound_message: {
         Args: {
           p_body: string

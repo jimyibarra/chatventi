@@ -104,7 +104,7 @@ export default async function ConversacionDetallePage({
   const [{ data: messages }, { data: approvals }] = await Promise.all([
     supabase
       .from('messages')
-      .select('id, direction, sender, body, created_at, media_path, media_mime, media_text')
+      .select('id, direction, sender, body, created_at, media_path, media_mime, media_text, origin')
       .eq('conversation_id', id)
       .order('created_at', { ascending: true }),
     supabase
@@ -193,6 +193,8 @@ export default async function ConversacionDetallePage({
                         <p className={`mb-0.5 flex items-center gap-1.5 text-[11.5px] font-semibold ${out ? 'text-white/80' : 'text-ink-muted'}`}>
                           {m.sender === 'ai' && <Icon name="robot" className="h-3.5 w-3.5" />}
                           {SENDER_LABEL[m.sender] ?? m.sender}
+                          {m.origin === 'business_app' && <span className="font-normal"> · desde WhatsApp Business</span>}
+                          {m.origin === 'history' && <span className="font-normal"> · importado</span>}
                           <span className="font-normal tabular-nums">· {fmtTime(m.created_at)}</span>
                         </p>
                         <MessageMedia

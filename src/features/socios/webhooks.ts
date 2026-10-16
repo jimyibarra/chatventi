@@ -20,7 +20,15 @@ export { signWebhook, verifyWebhookSignature, newWebhookSecret, validateWebhookU
 type Service = SupabaseClient<Database>
 type DeliveryRow = Database['public']['Tables']['partner_webhook_deliveries']['Row']
 
-export const WEBHOOK_EVENTS = ['appointment.created', 'appointment.updated', 'appointment.cancelled', 'webhook.test'] as const
+export const WEBHOOK_EVENTS = [
+  'appointment.created',
+  'appointment.updated',
+  'appointment.cancelled',
+  // Coexistencia (16-oct-2026): el número del negocio lleva días sin uso en la app o Meta lo desconectó.
+  'channel.inactive',
+  'channel.disconnected',
+  'webhook.test',
+] as const
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
 
 const TIMEOUT_MS = 10_000
@@ -115,6 +123,17 @@ async function loadAppointment(service: Service, appointmentId: string, origin: 
 export async function buildDeliveryBody(service: Service, d: DeliveryRow, partner: Pick<Partner, 'app_domain'>): Promise<Record<string, unknown>> {
   const base = { id: d.id, event: d.event, createdAt: d.created_at, attempt: d.attempts }
   if (d.event === 'webhook.test') return { ...base, test: true, organization: null }
+  if (d.event.startsWith('channel.')) {
+    // Avisos del canal: el cuerpo ya viene armado en `payload` al encolar.
+    const { data: org } = d.organization_id
+      ? await service.from('organizations').select('id, partner_ref, name').eq('id', d.organization_id).maybeSingle()
+      : { data: null }
+    return {
+      ...base,
+      organization: org ? { id: org.id, externalId: org.partner_ref, name: org.name } : null,
+      channel: d.payload ?? null,
+    }
+  }
   const [{ data: org }, appointment] = await Promise.all([
     d.organization_id ? service.from('organizations').select('id, partner_ref, name').eq('id', d.organization_id).maybeSingle() : Promise.resolve({ data: null }),
     d.appointment_id ? loadAppointment(service, d.appointment_id, partnerAppOrigin(partner)) : Promise.resolve(null),
