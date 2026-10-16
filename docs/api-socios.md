@@ -105,6 +105,17 @@ El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tar
 }
 ```
 
+- `connections` (v2) es el estado de los canales del negocio, para mostrar su avance en el panel del socio:
+
+```json
+"connections": {
+  "whatsapp": { "status": "active", "number": "Clínica Sonríe", "mode": "cloud_api", "canSend": "BLOCKED", "paymentMethod": "missing" },
+  "messenger": { "status": "none", "name": null },
+  "instagram": { "status": "none", "name": null }
+}
+```
+
+  `status`: `active`, `pending` (conectado pero sin terminar en Meta), `disabled` o `none` (no conectado). `mode`: `cloud_api` (número nuevo) o `coexistence` (el número sigue en la app WhatsApp Business). `canSend` y `paymentMethod` vienen de Meta: `paymentMethod: "missing"` significa que Meta reporta un problema con la tarjeta del negocio y que los recordatorios no salen; el dueño lo arregla con el botón «Poner mi tarjeta en Meta» de Conexiones. `null` = sin WhatsApp o Meta no respondió.
 - `usage` es lo que ChatVenti mide y factura: respuestas de la recepcionista con IA.
 - `activity` es informativo: sirve para que el socio aplique **sus propios** topes comerciales (por ejemplo «150 citas y 300 conversaciones al mes»). ChatVenti no corta nada por esas cifras.
 - `billing.planPriceUsd` ya lleva el descuento de mayoreo del socio. **Socio interno:** `billing`

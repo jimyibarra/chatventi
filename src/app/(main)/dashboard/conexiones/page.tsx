@@ -3,7 +3,10 @@ import { createClient } from '@/lib/supabase/server'
 import { EmbeddedSignupButton } from '@/features/conexiones/components/embedded-signup-button'
 import { ConnectPagesButton } from '@/features/conexiones/components/connect-pages-button'
 import { metaAppForOrg } from '@/features/marca/meta-app'
-import { currentBrand } from '@/features/marca/brand'
+import { brandOrigin, currentBrand } from '@/features/marca/brand'
+import { createServiceClient } from '@/lib/supabase/service'
+import { buildSignupPrefill } from '@/features/conexiones/meta-helpers'
+import { getWabaHealth, wabaBillingUrl, type WabaHealth } from '@/features/conexiones/waba-health'
 import { getMySubscription, subIsActive } from '@/features/billing/gating'
 import { planById } from '@/features/billing/plans'
 import { Page, PageHeader } from '@/shared/components/ui/page-header'
@@ -77,6 +80,45 @@ function ChannelList({ rows, empty, detail }: { rows: ChannelRow[]; empty: strin
   )
 }
 
+/**
+ * Tarjeta en Meta de cada WhatsApp conectado. Meta cobra los recordatorios y
+ * los mensajes que inicia el negocio a ESA tarjeta: sin ella no salen. El
+ * estado viene de health_status (error 141006 = problema con el método de pago).
+ */
+function WabaBilling({ items }: { items: { id: string; name: string; wabaId: string; health: WabaHealth }[] }) {
+  if (items.length === 0) return null
+  return (
+    <div className="mb-4 space-y-2" data-testid="waba-billing">
+      {items.map((it) => {
+        const url = wabaBillingUrl(it.wabaId, it.health.businessId)
+        const button = (
+          <ButtonLink href={url} target="_blank" rel="noopener noreferrer" variant={it.health.payment === 'missing' ? 'primary' : 'secondary'} size="sm">
+            <Icon name="card" className="h-4 w-4" />
+            {it.health.payment === 'missing' ? 'Poner mi tarjeta en Meta' : 'Ver o cambiar mi tarjeta en Meta'}
+          </ButtonLink>
+        )
+        if (it.health.payment === 'missing') {
+          return (
+            <Notice key={it.id} tone="action" title={`Falta la tarjeta en Meta para ${it.name}`} action={button}>
+              Meta reporta un problema con el método de pago de tu cuenta de WhatsApp. Sin él no salen los recordatorios ni
+              los mensajes después de 24 horas. Las respuestas a quien te escribe sí salen. Si al abrir no ves tu cuenta,
+              elige tu cuenta de WhatsApp en la lista.
+            </Notice>
+          )
+        }
+        return (
+          <div key={it.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[14px] text-ink-muted">
+            <span>
+              Tarjeta en Meta para {it.name}: {it.health.payment === 'ok' ? 'sin problemas reportados.' : 'no pudimos consultarla ahora.'}
+            </span>
+            {button}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default async function ConexionesPage() {
   const supabase = await createClient()
 
@@ -100,6 +142,42 @@ export default async function ConexionesPage() {
   const brand = await currentBrand()
   const metaNote = brand.partnerId && !meta?.partnerId ? ` La ventana de Meta dice «ChatVenti»: es la tecnología con la que trabaja ${brand.name}.` : ''
   const coexistence = !!orgId && COEXISTENCE_ORG_IDS.has(orgId as string)
+
+  // Datos que Meta deja precargar en la ventana de WhatsApp: el dueño confirma
+  // en vez de escribir. service_role acotado a la org de la sesión.
+  const service = createServiceClient()
+  const [{ data: org }, { data: authUser }] = await Promise.all([
+    orgId
+      ? service
+          .from('organizations')
+          .select('name, phone, country, site_url, contact_email, business_type, web_slug')
+          .eq('id', orgId as string)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase.auth.getUser(),
+  ])
+  const prefill = org
+    ? buildSignupPrefill({
+        name: org.name,
+        email: org.contact_email ?? authUser.user?.email ?? null,
+        website: org.site_url ?? (org.web_slug ? `${brandOrigin(brand)}/r/${org.web_slug}` : null),
+        phone: org.phone,
+        country: org.country,
+        businessType: org.business_type,
+      })
+    : null
+
+  // Tarjeta en Meta de cada WhatsApp conectado (consulta con tope de 4 s por cuenta).
+  const billing = await Promise.all(
+    whatsapp
+      .filter((c) => c.waba_id && c.status !== 'disabled')
+      .map(async (c) => ({
+        id: c.id,
+        name: c.display_name ?? 'tu WhatsApp',
+        wabaId: c.waba_id as string,
+        health: await getWabaHealth(c.waba_id as string, meta?.systemUserToken),
+      }))
+  )
   const socialBlockedForPartner = !!brand.partnerId && !SOCIAL_FOR_PARTNER_ORGS
   const appId = meta?.appId ?? ''
   const configId = meta?.configId ?? ''
@@ -131,10 +209,11 @@ export default async function ConexionesPage() {
             empty="Todavía no has conectado ningún WhatsApp."
             detail={(c) => `ID: ${c.external_id}${c.waba_id ? ` · WABA ${c.waba_id}` : ''}`}
           />
-          <EmbeddedSignupButton appId={appId} configId={configId} />
+          <WabaBilling items={billing} />
+          <EmbeddedSignupButton appId={appId} configId={configId} prefill={prefill} />
           {coexistence && (
             <div className="mt-3 space-y-2">
-              <EmbeddedSignupButton appId={appId} configId={configId} coexistence />
+              <EmbeddedSignupButton appId={appId} configId={configId} coexistence prefill={prefill} />
               <p className="max-w-[65ch] text-[13.5px] leading-snug text-ink-muted">
                 Prueba de coexistencia: el número sigue en tu app de WhatsApp Business y la recepcionista contesta desde aquí. Necesitas la app actualizada (2.24.17 o más nueva).
               </p>

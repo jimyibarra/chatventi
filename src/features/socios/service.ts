@@ -8,6 +8,7 @@ import { consumeRateLimit } from '@/shared/security/rate-limit'
 import { EXTRA_REPLY_PRICE_USD, planById, usageOverage, type PlanId } from '@/features/billing/plans'
 import { catalogFields, hasCatalog, hoursCoverWeek, serviceIdsUnique } from './catalog-schema'
 import { applyPartnerCatalog, type CatalogResult } from './catalog'
+import { channelConnections } from '@/features/conexiones/status'
 
 // =====================================================================
 // API de socios (revendedores). PASEN es el primero.
@@ -311,7 +312,7 @@ export async function getPartnerOrganization(
   next.setUTCMonth(next.getUTCMonth() + 1)
   const to = next.toISOString()
 
-  const [{ data: usageRow }, appts, convs] = await Promise.all([
+  const [{ data: usageRow }, appts, convs, connections] = await Promise.all([
     service
       .from('usage_periods')
       .select('ai_replies, status')
@@ -330,6 +331,8 @@ export async function getPartnerOrganization(
       .eq('organization_id', orgId)
       .gte('last_message_at', from)
       .lt('last_message_at', to),
+    // Estado de WhatsApp, Messenger, Instagram y tarjeta en Meta (v2).
+    channelConnections(service, orgId),
   ])
 
   const planId = (found.sub?.plan_id ?? 'arranque') as PlanId
@@ -338,6 +341,7 @@ export async function getPartnerOrganization(
   return json({
     ...describeOrg(found.org, found.sub),
     period: month,
+    connections,
     usage: {
       aiReplies,
       includedReplies: over.included,

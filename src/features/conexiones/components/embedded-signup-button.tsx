@@ -1,5 +1,6 @@
 'use client'
 
+import type { SignupPrefill } from '../meta-helpers'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icon } from '@/shared/components/ui/icon'
@@ -78,9 +79,12 @@ export function EmbeddedSignupButton({
   appId,
   configId,
   coexistence = false,
+  prefill = null,
 }: {
   appId: string
   configId: string
+  /** Datos del negocio que Meta precarga en la ventana (extras.setup); el dueño solo confirma. */
+  prefill?: SignupPrefill | null
   /** Conectar el número que el negocio YA usa en la app WhatsApp Business (coexistencia de Meta). Fase 1: solo orgs permitidas. */
   coexistence?: boolean
 }) {
@@ -233,10 +237,12 @@ export function EmbeddedSignupButton({
         // 15-oct-2026.
         // Coexistencia: featureType pide a Meta el camino «el negocio sigue usando
         // su app». Si v4 lo ignora, se activa en el ajuste del Embedded Signup.
-        extras: coexistence ? { setup: {}, featureType: 'whatsapp_business_app_onboarding' } : { setup: {} },
+        extras: coexistence
+          ? { setup: prefill ?? {}, featureType: 'whatsapp_business_app_onboarding' }
+          : { setup: prefill ?? {} },
       }
     )
-  }, [configId, router, coexistence])
+  }, [configId, router, coexistence, prefill])
 
   const disabled = !appId || !configId || state.kind === 'loading'
 
