@@ -406,6 +406,17 @@ npm run lint         # ESLint
 - **Detección**: invisible en typecheck/lint/build. Salió porque el humano **usó el flujo real** y comparó lo que recibió con lo que mostraba el panel.
 - **Aplicar en**: toda migración que revoque permisos.
 
+### 2026-10-17: en plpgsql, `if a and b` NO corta la evaluación
+- **Error**: un disparador compartido por dos tablas hacía `if tg_table_name = 'clinical_notes' and new.appointment_id is not null …`. En la otra tabla (`clinical_profiles`, sin esa columna) Postgres evaluó `new.appointment_id` igual → `42703 record "new" has no field` → **el dueño no podía crear ninguna ficha**. El DDL se aplicó en verde.
+- **Fix**: `if` anidados (primero la tabla, dentro la columna).
+- **Detección**: solo el E2E con el navegador (y reproducir el insert con `set local role authenticated` + `request.jwt.claims` para ver el error exacto).
+- **Aplicar en**: todo disparador reutilizado en varias tablas.
+
+### 2026-10-17: `next/font/google` rompe despliegues al azar (Turbopack)
+- **Error**: Vercel falló con «next/font/google queries have exactly one entry» en un commit sin cambios de fuentes; en local, igual con caché vieja (`rm -rf .next` lo arreglaba).
+- **Fix**: Rubik desde `@fontsource-variable/rubik` + `next/font/local` (`src/shared/fonts/rubik.ts`). Nada se descarga de Google al compilar.
+- **Aplicar en**: no volver a usar `next/font/google`.
+
 ### 2026-10-03: la RLS acota FILAS, no COLUMNAS — una policy de "tu propia fila" deja escribir el rol
 - **Error**: `profile_update_self` (`id = auth.uid()`) + el `GRANT ALL` de tabla que Supabase da a `authenticated` = cualquier usuario podía hacer `PATCH /rest/v1/profiles?id=eq.<yo>` con `{"role":"super_admin"}`. **Probado en vivo: una cuenta `staff` se puso `owner` y la base lo guardó.** Mismo defecto en `organizations` (el dueño se alargaba la prueba con `trial_ends_at` y se quitaba el tope con `ai_cap_exempt`), `agent_configs` (elegía `model`, que paga ChatVenti) y `channels` (escritura a mano + todo el equipo leía el token de WhatsApp en `credentials`).
 - **Fix**: permisos por **columna** (migración `20261003090000`): `revoke update on tabla from anon, authenticated` + `grant update (col_a, col_b) ...` solo de lo que el inquilino puede decidir. Tablas que solo escribe el servidor: `revoke insert, update, delete`. Un disparador en `profiles` como segundo candado.
