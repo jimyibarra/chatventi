@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { saveService, deleteService } from '../../actions'
 import type { ServiceCatalog } from '../../types'
 import { ServiceDepositControl } from '@/features/anticipos/components/service-deposit-control'
+import { ServiceFollowupControl } from '@/features/mascotas/components/service-followup-control'
 import { CARD_SHADOW, buttonClass, CONTROL, CONTROL_H, FIELD_LABEL } from '@/shared/components/ui'
 
 export function ServiceManager({ services, lockedBy = null }: { services: ServiceCatalog[]; lockedBy?: string | null }) {
@@ -111,6 +112,7 @@ export function ServiceManager({ services, lockedBy = null }: { services: Servic
             {s.active && (
               <ServiceDepositControl serviceId={s.id} type={s.deposit_type} value={s.deposit_value} price={s.price} />
             )}
+            {s.active && <ServiceFollowupControl serviceId={s.id} days={s.followup_days ?? null} />}
             {s.active && !lockedBy && (
               <button
                 onClick={() => remove(s.id)}

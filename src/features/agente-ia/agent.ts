@@ -12,6 +12,7 @@ import { OPENROUTER_USAGE, recordAiCost } from './ai-cost'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 import { PASEN_PROMPT_RULES, buildPasenTools } from './pasen-tools'
 import { getTemplate } from './business-templates'
+import { PET_RULES, buildPetTools, linkPetToAppointment, petsPromptBlock } from '@/features/mascotas/agent-tools'
 import { NO_BOOKING_HEADER, NO_BOOKING_REPLY, offersAppointmentSlots, servicePriceLabel } from './prompt-parts'
 
 type AnyClient = SupabaseClient<Database>
@@ -23,6 +24,8 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
   const tz = ctx.branch?.timezone ?? 'America/Mexico_City'
   // ¿El giro agenda citas? (el restaurante no): define reglas y secciones del prompt.
   const books = getTemplate(ctx.business_type).bookings !== false
+  // Veterinaria: la ficha trae mascotas y la recepcionista las nombra (fase 3).
+  const isVet = ctx.business_type === 'veterinaria'
   const today = new Intl.DateTimeFormat('es-MX', {
     timeZone: tz,
     weekday: 'long',
@@ -112,6 +115,7 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ...(ctx.site_url && getTemplate(ctx.business_type).bookings === false
       ? [`- Página del negocio con su menú y carrito para pedir: ${ctx.site_url}`]
       : []),
+    ...(isVet ? PET_RULES : []),
     // PASEN manda servicios sin precio confirmado (17-oct-2026): la IA no inventa.
     '- PRECIOS: usa SOLO los de la lista de servicios, tal cual. Si un servicio dice «precio por confirmar», di que el negocio te confirma el precio; NUNCA inventes, calcules ni estimes un precio.',
     '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige. Si el cliente insiste con temas ajenos por segunda vez consecutiva, usa request_human_approval.',
@@ -184,6 +188,9 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ...(books && resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
     ...(hours ? ['HORARIO DE ATENCIÓN (si preguntan por horarios, respóndelo con esto):', hours, ''] : []),
     ...(books ? ['CITAS PRÓXIMAS DEL CLIENTE:', upcoming, ''] : []),
+    ...(isVet
+      ? ['MASCOTAS DEL CLIENTE:', petsPromptBlock(ctx.pets ?? [], fmtDay), '']
+      : []),
     ...(ctx.recent_orders?.length
       ? [
           'PEDIDOS RECIENTES DEL CLIENTE (si pregunta por su pedido, dile este estado tal cual; no inventes tiempos ni cambies nada: el equipo los mueve en su tablero):',
@@ -327,6 +334,11 @@ function conHoraPactada(startsAtUtc: string, horaOfrecida: string, tz: string): 
 }
 
 // "jueves 10 de julio, 16:00" en la zona horaria de la sucursal.
+/** Fecha sola (YYYY-MM-DD de la base) → «12 de marzo de 2027». */
+function fmtDay(ymd: string): string {
+  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${ymd}T12:00:00Z`))
+}
+
 function fmtDateTime(iso: string, tz: string): string {
   return new Intl.DateTimeFormat('es-MX', {
     timeZone: tz,
@@ -767,8 +779,9 @@ export async function runAgent(params: {
           .uuid()
           .optional()
           .describe('Id de la persona elegida (o el uuid tras la barra de la marca [slot:...|uuid])'),
+        mascota: z.string().max(60).optional().describe('Solo veterinarias: nombre de la mascota de la cita, tal como está en MASCOTAS DEL CLIENTE.'),
       }),
-      execute: async ({ service_ids, starts_at, hora_ofrecida, resource_id }) => {
+      execute: async ({ service_ids, starts_at, hora_ofrecida, resource_id, mascota }) => {
         const startsAtUtc = conHoraPactada(isoWithTz(starts_at, tz), hora_ofrecida, tz)
         // Sandbox: NO se crea la cita; solo se arma la confirmación (misma UI).
         if (sandbox) {
@@ -816,6 +829,9 @@ export async function runAgent(params: {
         // y los datos de pago los pone el CÓDIGO en la confirmación: el modelo
         // nunca escribe una cuenta bancaria.
         const deposit = data ? await applyDeposit(String(data)) : null
+        if (data && mascota) {
+          await linkPetToAppointment(supabase, { orgId: ctx.org_id, clientId: ctx.conversation.client_id, appointmentId: String(data), petName: mascota }).catch(() => undefined)
+        }
         actions.push({
           kind: 'booked',
           services: serviceNames(service_ids),
@@ -977,7 +993,11 @@ export async function runAgent(params: {
   const giroTools = getTemplate(ctx.business_type).bookings === false
     ? noBookingTools
     : { check_availability, book_appointment, cancel_appointment, reschedule_appointment, ...noBookingTools }
-  const tools = pasenTools ? { ...giroTools, ...pasenTools } : giroTools
+  const petTools =
+    ctx.business_type === 'veterinaria'
+      ? buildPetTools({ supabase, orgId: ctx.org_id, clientId: ctx.conversation.client_id, sandbox, pets: ctx.pets })
+      : {}
+  const tools = pasenTools ? { ...giroTools, ...petTools, ...pasenTools } : { ...giroTools, ...petTools }
 
   let text = ''
   try {

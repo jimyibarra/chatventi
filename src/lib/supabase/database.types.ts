@@ -233,9 +233,11 @@ export type Database = {
           manage_token: string
           notes: string | null
           organization_id: string
+          pet_id: string | null
           reminder_24h_sent_at: string | null
           reminder_2h_sent_at: string | null
           resource_id: string | null
+          service_followup_done_at: string | null
           source: string
           starts_at: string
           status: string
@@ -256,9 +258,11 @@ export type Database = {
           manage_token?: string
           notes?: string | null
           organization_id: string
+          pet_id?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
           resource_id?: string | null
+          service_followup_done_at?: string | null
           source?: string
           starts_at: string
           status?: string
@@ -279,9 +283,11 @@ export type Database = {
           manage_token?: string
           notes?: string | null
           organization_id?: string
+          pet_id?: string | null
           reminder_24h_sent_at?: string | null
           reminder_2h_sent_at?: string | null
           resource_id?: string | null
+          service_followup_done_at?: string | null
           source?: string
           starts_at?: string
           status?: string
@@ -313,6 +319,13 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
             referencedColumns: ["id"]
           },
           {
@@ -642,6 +655,10 @@ export type Database = {
           message: string
           next_due_at: string
           organization_id: string
+          pet_id: string | null
+          repeat: boolean
+          service_id: string | null
+          source: string
         }
         Insert: {
           active?: boolean
@@ -653,6 +670,10 @@ export type Database = {
           message: string
           next_due_at: string
           organization_id: string
+          pet_id?: string | null
+          repeat?: boolean
+          service_id?: string | null
+          source?: string
         }
         Update: {
           active?: boolean
@@ -664,6 +685,10 @@ export type Database = {
           message?: string
           next_due_at?: string
           organization_id?: string
+          pet_id?: string | null
+          repeat?: boolean
+          service_id?: string | null
+          source?: string
         }
         Relationships: [
           {
@@ -678,6 +703,20 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_reminders_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_reminders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalogs"
             referencedColumns: ["id"]
           },
         ]
@@ -1494,6 +1533,111 @@ export type Database = {
         }
         Relationships: []
       }
+      pet_vaccines: {
+        Row: {
+          applied_on: string
+          created_at: string
+          id: string
+          name: string
+          next_due_on: string | null
+          notes: string | null
+          organization_id: string
+          pet_id: string
+        }
+        Insert: {
+          applied_on: string
+          created_at?: string
+          id?: string
+          name: string
+          next_due_on?: string | null
+          notes?: string | null
+          organization_id: string
+          pet_id: string
+        }
+        Update: {
+          applied_on?: string
+          created_at?: string
+          id?: string
+          name?: string
+          next_due_on?: string | null
+          notes?: string | null
+          organization_id?: string
+          pet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pet_vaccines_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pet_vaccines_pet_id_fkey"
+            columns: ["pet_id"]
+            isOneToOne: false
+            referencedRelation: "pets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pets: {
+        Row: {
+          active: boolean
+          birth_date: string | null
+          breed: string | null
+          client_id: string
+          created_at: string
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          sex: string | null
+          species: string | null
+        }
+        Insert: {
+          active?: boolean
+          birth_date?: string | null
+          breed?: string | null
+          client_id: string
+          created_at?: string
+          id?: string
+          name: string
+          notes?: string | null
+          organization_id: string
+          sex?: string | null
+          species?: string | null
+        }
+        Update: {
+          active?: boolean
+          birth_date?: string | null
+          breed?: string | null
+          client_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          organization_id?: string
+          sex?: string | null
+          species?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pets_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pets_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           active: boolean
@@ -1808,6 +1952,8 @@ export type Database = {
           deposit_value: number | null
           description: string | null
           duration_minutes: number
+          followup_days: number | null
+          followup_message: string | null
           id: string
           name: string
           organization_id: string
@@ -1823,6 +1969,8 @@ export type Database = {
           deposit_value?: number | null
           description?: string | null
           duration_minutes?: number
+          followup_days?: number | null
+          followup_message?: string | null
           id?: string
           name: string
           organization_id: string
@@ -1838,6 +1986,8 @@ export type Database = {
           deposit_value?: number | null
           description?: string | null
           duration_minutes?: number
+          followup_days?: number | null
+          followup_message?: string | null
           id?: string
           name?: string
           organization_id?: string
@@ -2436,6 +2586,7 @@ export type Database = {
         }
         Returns: string
       }
+      create_service_followups: { Args: never; Returns: number }
       create_team_invitation: {
         Args: {
           p_email: string

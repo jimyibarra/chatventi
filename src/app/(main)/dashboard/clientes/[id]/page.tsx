@@ -5,6 +5,7 @@ import { ClientDetail } from '@/features/crm/components/client-detail'
 import { ClientFiles } from '@/features/expediente/components/client-files'
 import { ClientRecords } from '@/features/expediente/components/client-records'
 import { ClientReminders } from '@/features/expediente/components/client-reminders'
+import { PetsSection, type PetRow } from '@/features/mascotas/components/pets-section'
 import type {
   ClientFile,
   ClientRecord,
@@ -70,6 +71,8 @@ export default async function ClienteDetallePage({
     { data: files },
     { data: records },
     { data: reminders },
+    { data: org },
+    { data: pets },
   ] = await Promise.all([
     supabase.from('tags').select('id, name, color').order('name'),
     supabase.from('client_tags').select('tag_id').eq('client_id', id),
@@ -101,7 +104,17 @@ export default async function ClienteDetallePage({
       .select('*')
       .eq('client_id', id)
       .order('next_due_at'),
+    supabase.from('organizations').select('business_type').maybeSingle(),
+    supabase
+      .from('pets')
+      .select('id, name, species, breed, sex, birth_date, vaccines:pet_vaccines(id, name, applied_on, next_due_on)')
+      .eq('client_id', id)
+      .eq('active', true)
+      .order('created_at'),
   ])
+  // Fase 3: las veterinarias (o cualquier negocio que ya registró mascotas) ven la sección.
+  const petRows = (pets ?? []) as unknown as PetRow[]
+  const showPets = org?.business_type === 'veterinaria' || petRows.length > 0
 
   const assignedIds = ((assigned as { tag_id: string }[] | null) ?? []).map((a) => a.tag_id)
 
@@ -218,6 +231,8 @@ export default async function ClienteDetallePage({
         </div>
 
         <div className="min-w-0 space-y-4 [grid-area:main]">
+          {showPets && <PetsSection clientId={id} pets={petRows} />}
+
           <ClientRecords clientId={id} records={(records as ClientRecord[] | null) ?? []} />
 
           <ClientReminders

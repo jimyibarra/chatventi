@@ -352,6 +352,10 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
   // Recordatorios recurrentes del expediente ("vuelve a cortarte", "limpieza
   // dental cada 6 meses"). Independientes de las citas.
+  // Fase 3 (17-oct-2026): las citas que terminaron dejan su recordatorio de
+  // servicio («vacuna → en 365 días») ANTES de mandar los que ya vencieron.
+  const { data: serviceFollowups, error: followupErr } = await service.rpc('create_service_followups')
+  if (followupErr) console.error('[cron] create_service_followups', followupErr.message)
   const recurring = await runClientReminders(service)
 
   // Funnel de la prueba gratis: recordatorio → bloqueo → aviso → borrado.
@@ -393,6 +397,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     ok: true,
     summary,
     recurring,
+    serviceFollowups: serviceFollowups ?? null,
     trial: trialSummary,
     cold,
     dailyReport,

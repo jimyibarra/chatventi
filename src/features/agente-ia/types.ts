@@ -4,6 +4,13 @@ export type AgentContext = {
   // Giro y página del negocio (17-oct-2026). Opcionales: sin la migración llegan undefined.
   business_type?: string | null
   site_url?: string | null
+  // Mascotas del cliente (fase 3, veterinarias). Opcional: sin la migración, undefined.
+  pets?: {
+    name: string
+    species: string | null
+    breed: string | null
+    next_vaccine: { name: string; due_on: string } | null
+  }[]
   // Pedidos de los últimos 3 días del cliente (fase 2). Opcional: sin la migración, undefined.
   recent_orders?: {
     status: string
