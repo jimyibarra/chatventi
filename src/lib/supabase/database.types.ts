@@ -789,6 +789,127 @@ export type Database = {
           },
         ]
       }
+      clinical_notes: {
+        Row: {
+          appointment_id: string | null
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          next_control_on: string | null
+          note: string
+          occurred_on: string
+          organization_id: string
+        }
+        Insert: {
+          appointment_id?: string | null
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          next_control_on?: string | null
+          note: string
+          occurred_on?: string
+          organization_id: string
+        }
+        Update: {
+          appointment_id?: string | null
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          next_control_on?: string | null
+          note?: string
+          occurred_on?: string
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_notes_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_notes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_notes_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clinical_profiles: {
+        Row: {
+          allergies: string | null
+          client_id: string
+          conditions: string | null
+          consent_at: string
+          consent_by: string | null
+          consent_method: string
+          created_at: string
+          id: string
+          medications: string | null
+          notes: string | null
+          organization_id: string
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          allergies?: string | null
+          client_id: string
+          conditions?: string | null
+          consent_at: string
+          consent_by?: string | null
+          consent_method: string
+          created_at?: string
+          id?: string
+          medications?: string | null
+          notes?: string | null
+          organization_id: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allergies?: string | null
+          client_id?: string
+          conditions?: string | null
+          consent_at?: string
+          consent_by?: string | null
+          consent_method?: string
+          created_at?: string
+          id?: string
+          medications?: string | null
+          notes?: string | null
+          organization_id?: string
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clinical_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: true
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clinical_profiles_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           ai_enabled: boolean

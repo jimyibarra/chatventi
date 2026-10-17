@@ -170,6 +170,7 @@ export function ClientReminders({
                   {r.source === 'vaccine' && <StatusChip tone="brand">Vacuna · automático</StatusChip>}
                   {r.source === 'service' && <StatusChip tone="brand">Tras su servicio · automático</StatusChip>}
                   {r.source === 'membership' && <StatusChip tone="brand">Membresía · automático</StatusChip>}
+                  {r.source === 'clinical' && <StatusChip tone="brand">Control · automático</StatusChip>}
                   {r.repeat ? <span>Cada {r.interval_days} días</span> : <span>Una vez</span>}
                   <span>· Próximo: {dateLabel(r.next_due_at)}</span>
                   {r.last_sent_at && <span>· Último: {dateLabel(r.last_sent_at)}</span>}

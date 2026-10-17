@@ -9,6 +9,10 @@ import { PetsSection, type PetRow } from '@/features/mascotas/components/pets-se
 import { MembershipSection, type MembershipRow } from '@/features/membresias/components/membership-section'
 import type { PlanOption } from '@/features/membresias/view'
 import { todayMx } from '@/features/membresias/logic'
+import { ClinicalSection, type ClinicalNote, type ClinicalProfile } from '@/features/ficha-clinica/components/clinical-section'
+
+// Giros con ficha clínica (fase 5). Solo dueño y gerente la ven (RLS y aquí).
+const CLINICAL_GIROS = ['dental', 'medico', 'nutricion', 'psicologia', 'dermatologia']
 import type {
   ClientFile,
   ClientRecord,
@@ -78,6 +82,9 @@ export default async function ClienteDetallePage({
     { data: pets },
     { data: plans },
     { data: memberships },
+    { data: clinical },
+    { data: clinicalNotes },
+    { data: { user } },
   ] = await Promise.all([
     supabase.from('tags').select('id, name, color').order('name'),
     supabase.from('client_tags').select('tag_id').eq('client_id', id),
@@ -123,6 +130,10 @@ export default async function ClienteDetallePage({
       .eq('client_id', id)
       .order('ends_on', { ascending: false })
       .limit(24),
+    // Con rol de recepción la RLS devuelve vacío: la sección no se muestra.
+    supabase.from('clinical_profiles').select('reason, allergies, conditions, medications, notes, consent_at, consent_method').eq('client_id', id).maybeSingle(),
+    supabase.from('clinical_notes').select('id, occurred_on, note, next_control_on, created_at').eq('client_id', id).order('occurred_on', { ascending: false }).order('created_at', { ascending: false }).limit(100),
+    supabase.auth.getUser(),
   ])
   // Fase 3: las veterinarias (o cualquier negocio que ya registró mascotas) ven la sección.
   const petRows = (pets ?? []) as unknown as PetRow[]
@@ -130,6 +141,9 @@ export default async function ClienteDetallePage({
   // Fase 4: gimnasios y estudios (o quien ya registró membresías) ven la sección.
   const membershipRows = (memberships ?? []) as unknown as MembershipRow[]
   const showMembership = ['gimnasio', 'yoga_pilates'].includes(org?.business_type ?? '') || membershipRows.length > 0
+  const { data: me } = user ? await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle() : { data: null }
+  const canSeeClinical = me?.role === 'owner' || me?.role === 'manager'
+  const showClinical = canSeeClinical && (CLINICAL_GIROS.includes(org?.business_type ?? '') || !!clinical)
 
   const assignedIds = ((assigned as { tag_id: string }[] | null) ?? []).map((a) => a.tag_id)
 
@@ -246,6 +260,14 @@ export default async function ClienteDetallePage({
         </div>
 
         <div className="min-w-0 space-y-4 [grid-area:main]">
+          {showClinical && (
+            <ClinicalSection
+              clientId={id}
+              profile={(clinical as ClinicalProfile | null) ?? null}
+              notes={(clinicalNotes ?? []) as ClinicalNote[]}
+              today={todayMx()}
+            />
+          )}
           {showPets && <PetsSection clientId={id} pets={petRows} />}
           {showMembership && (
             <MembershipSection clientId={id} plans={(plans ?? []) as PlanOption[]} memberships={membershipRows} today={todayMx()} />
