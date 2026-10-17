@@ -12,7 +12,7 @@ import { OPENROUTER_USAGE, recordAiCost } from './ai-cost'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 import { PASEN_PROMPT_RULES, buildPasenTools } from './pasen-tools'
 import { getTemplate } from './business-templates'
-import { servicePriceLabel } from './prompt-parts'
+import { NO_BOOKING_HEADER, NO_BOOKING_REPLY, offersAppointmentSlots, servicePriceLabel } from './prompt-parts'
 
 type AnyClient = SupabaseClient<Database>
 
@@ -99,6 +99,9 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
   )
 
   return [
+    // Giro sin agenda: el aviso va ANTES que las instrucciones del dueño, que
+    // pueden venir de una plantilla de citas (negocios dados de alta como genérico).
+    ...(books ? [] : [NO_BOOKING_HEADER, '']),
     ctx.config?.system_prompt?.trim() ||
       'Eres el recepcionista virtual de un negocio de servicios. Ayudas a los clientes a agendar, reagendar o cancelar citas y respondes dudas sobre el negocio.',
     ...(voiceBlock ? ['', voiceBlock] : []),
@@ -961,6 +964,10 @@ export async function runAgent(params: {
       stopWhen: stepCountIs(6),
     })
     text = result.text?.trim() ?? ''
+    // Candado de código (17-oct-2026): en un giro sin agenda, una respuesta que
+    // ofrece horarios para una cita se reemplaza. Probado en vivo: la IA los
+    // copiaba de pláticas viejas aunque no tuviera herramientas de agenda.
+    if (getTemplate(ctx.business_type).bookings === false && offersAppointmentSlots(text)) text = NO_BOOKING_REPLY
     await recordAiCost({ orgId: ctx.org_id, source: sandbox ? 'prueba' : 'agente' }, result)
   } catch (err) {
     console.error('[agent] generateText error', err)

@@ -9,7 +9,7 @@ import { EXTRA_REPLY_PRICE_USD, planById, usageOverage, type PlanId } from '@/fe
 import { catalogFields, hasCatalog, hoursCoverWeek, serviceIdsUnique } from './catalog-schema'
 import { applyPartnerCatalog, type CatalogResult } from './catalog'
 import { channelConnections } from '@/features/conexiones/status'
-import { normalizeBusinessType } from '@/features/agente-ia/business-templates'
+import { getTemplate, normalizeBusinessType } from '@/features/agente-ia/business-templates'
 
 // =====================================================================
 // API de socios (revendedores). PASEN es el primero.
@@ -381,6 +381,7 @@ export async function updatePartnerOrganization(
   const found = await loadOrg(service, partner.id, { id: orgId })
   if (!found) return apiError('not_found', 404)
 
+  if (input.businessType) await refreshTemplatePrompt(service, orgId, normalizeBusinessType(input.businessType) ?? 'generico')
   if (input.siteUrl !== undefined || input.businessType) {
     const { error } = await service
       .from('organizations')
@@ -409,6 +410,22 @@ export async function updatePartnerOrganization(
 
   const fresh = await loadOrg(service, partner.id, { id: orgId })
   return fresh ? json(describeOrg(fresh.org, fresh.sub)) : apiError('not_found', 404)
+}
+
+/**
+ * Al cambiar de giro, las instrucciones de la recepcionista pasan a las del
+ * giro nuevo SOLO si siguen siendo la plantilla del giro anterior tal cual: lo
+ * que el dueño escribió no se toca. (Un restaurante dado de alta como genérico
+ * traía «ayudas a agendar citas».)
+ */
+async function refreshTemplatePrompt(service: Service, orgId: string, nextType: string) {
+  const [{ data: org }, { data: cfg }] = await Promise.all([
+    service.from('organizations').select('name, business_type').eq('id', orgId).maybeSingle(),
+    service.from('agent_configs').select('system_prompt').eq('organization_id', orgId).maybeSingle(),
+  ])
+  if (!org || !cfg || org.business_type === nextType) return
+  const untouched = !cfg.system_prompt?.trim() || cfg.system_prompt.trim() === getTemplate(org.business_type).prompt(org.name).trim()
+  if (untouched) await service.from('agent_configs').update({ system_prompt: getTemplate(nextType).prompt(org.name) }).eq('organization_id', orgId)
 }
 
 // ---------------------------------------------------------------------

@@ -70,3 +70,16 @@ describe('catálogo del socio: reviewUrl', () => {
     expect(catalogSchema.safeParse({}).success).toBe(false)
   })
 })
+
+describe('candado de giro sin agenda', () => {
+  it('detecta una oferta de horarios para cita', async () => {
+    const { offersAppointmentSlots } = await import('./prompt-parts')
+    expect(offersAppointmentSlots('No agendamos citas. Sin embargo, puedo ofrecerle:\n- 9:00 am\n- 4:30 pm')).toBe(true)
+    expect(offersAppointmentSlots('Tengo estos horarios disponibles: 12:45 pm')).toBe(true)
+  })
+  it('deja pasar el horario del negocio y respuestas sin horas', async () => {
+    const { offersAppointmentSlots } = await import('./prompt-parts')
+    expect(offersAppointmentSlots('Abrimos de lunes a sábado de 9:00 a 18:00.')).toBe(false)
+    expect(offersAppointmentSlots('Aquí no agendamos citas, pero te ayudo con tu pedido.')).toBe(false)
+  })
+})
