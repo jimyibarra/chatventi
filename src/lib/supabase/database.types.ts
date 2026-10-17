@@ -979,6 +979,156 @@ export type Database = {
           },
         ]
       }
+      membership_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string | null
+          id: string
+          membership_id: string
+          method: string
+          organization_id: string
+          paid_on: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          membership_id: string
+          method?: string
+          organization_id: string
+          paid_on?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          membership_id?: string
+          method?: string
+          organization_id?: string
+          paid_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_payments_membership_id_fkey"
+            columns: ["membership_id"]
+            isOneToOne: false
+            referencedRelation: "memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_payments_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_plans: {
+        Row: {
+          active: boolean
+          created_at: string
+          duration_days: number
+          id: string
+          name: string
+          organization_id: string
+          price: number | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          duration_days: number
+          id?: string
+          name: string
+          organization_id: string
+          price?: number | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          duration_days?: number
+          id?: string
+          name?: string
+          organization_id?: string
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_plans_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          cancelled_at: string | null
+          client_id: string
+          created_at: string
+          ends_on: string
+          id: string
+          notes: string | null
+          organization_id: string
+          plan_id: string | null
+          plan_name: string
+          price: number | null
+          starts_on: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          client_id: string
+          created_at?: string
+          ends_on: string
+          id?: string
+          notes?: string | null
+          organization_id: string
+          plan_id?: string | null
+          plan_name: string
+          price?: number | null
+          starts_on: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          client_id?: string
+          created_at?: string
+          ends_on?: string
+          id?: string
+          notes?: string | null
+          organization_id?: string
+          plan_id?: string | null
+          plan_name?: string
+          price?: number | null
+          starts_on?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memberships_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memberships_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "membership_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           agent_id: string | null

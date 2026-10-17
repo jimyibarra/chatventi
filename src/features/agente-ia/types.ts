@@ -11,6 +11,8 @@ export type AgentContext = {
     breed: string | null
     next_vaccine: { name: string; due_on: string } | null
   }[]
+  // Membresía más reciente del cliente (fase 4). Opcional.
+  membership?: { plan_name: string; starts_on: string; ends_on: string; cancelled: boolean } | null
   // Pedidos de los últimos 3 días del cliente (fase 2). Opcional: sin la migración, undefined.
   recent_orders?: {
     status: string

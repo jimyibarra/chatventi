@@ -57,6 +57,8 @@ const SECONDARY: NavItem[] = [
 
 // Restaurante (17-oct-2026): no usa citas; su «agenda» es el tablero de pedidos.
 const ORDERS_ITEM: NavItem = { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'bag', tile: '#2a1a5e' }
+// Gimnasio y estudios (fase 4): sus membresías, en «Más».
+const MEMBERSHIPS_ITEM: NavItem = { href: '/dashboard/membresias', label: 'Membresías', icon: 'card' }
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard'
@@ -92,6 +94,7 @@ export function DashboardNav({
   brandName = 'ChatVenti',
   iconUrl = '/brand/chatventi-icon.png',
   orders = false,
+  memberships = false,
 }: {
   role: string
   badges?: { agenda: number; chats: number; orders?: number }
@@ -99,11 +102,15 @@ export function DashboardNav({
   iconUrl?: string
   /** Giro con pedidos (restaurante): «Pedidos» en lugar de «Agenda»; la Agenda pasa a «Más». */
   orders?: boolean
+  /** Giro con membresías (gimnasio, yoga y pilates): «Membresías» en «Más». */
+  memberships?: boolean
 }) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
   const primary = orders ? PRIMARY.map((i) => (i.href === '/dashboard/agenda' ? ORDERS_ITEM : i)) : PRIMARY
-  const secondary = [...(orders ? [{ ...PRIMARY[1], tile: undefined }] : []), ...SECONDARY].filter((i) => !i.roles || i.roles.includes(role))
+  const secondary = [...(orders ? [{ ...PRIMARY[1], tile: undefined }] : []), ...(memberships ? [MEMBERSHIPS_ITEM] : []), ...SECONDARY].filter(
+    (i) => !i.roles || i.roles.includes(role)
+  )
   const moreActive = secondary.some((i) => isActive(pathname, i.href))
   const counts: Record<string, number | undefined> = {
     '/dashboard/agenda': badges?.agenda,

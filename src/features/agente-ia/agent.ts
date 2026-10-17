@@ -13,6 +13,7 @@ import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 import { PASEN_PROMPT_RULES, buildPasenTools } from './pasen-tools'
 import { getTemplate } from './business-templates'
 import { PET_RULES, buildPetTools, linkPetToAppointment, petsPromptBlock } from '@/features/mascotas/agent-tools'
+import { STATE_LABEL, membershipState, todayMx } from '@/features/membresias/logic'
 import { NO_BOOKING_HEADER, NO_BOOKING_REPLY, offersAppointmentSlots, servicePriceLabel } from './prompt-parts'
 
 type AnyClient = SupabaseClient<Database>
@@ -190,6 +191,13 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ...(books ? ['CITAS PRÓXIMAS DEL CLIENTE:', upcoming, ''] : []),
     ...(isVet
       ? ['MASCOTAS DEL CLIENTE:', petsPromptBlock(ctx.pets ?? [], fmtDay), '']
+      : []),
+    ...(ctx.membership
+      ? [
+          'MEMBRESÍA DEL CLIENTE (si pregunta, dile su estado y fecha tal cual; para renovar o pagar, el equipo lo atiende en recepción: no la des por renovada ni cobres):',
+          `- ${ctx.membership.plan_name}: ${STATE_LABEL[membershipState({ starts_on: ctx.membership.starts_on, ends_on: ctx.membership.ends_on, cancelled: ctx.membership.cancelled }, todayMx())].toLowerCase()}, del ${fmtDay(ctx.membership.starts_on)} al ${fmtDay(ctx.membership.ends_on)}`,
+          '',
+        ]
       : []),
     ...(ctx.recent_orders?.length
       ? [

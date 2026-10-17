@@ -80,12 +80,13 @@ export default async function MainLayout({
   ])
   // Restaurante (no agenda citas): su sección principal es Pedidos.
   const ordersMode = !giroBooks(org?.business_type)
+  const membershipsMode = ['gimnasio', 'yoga_pilates'].includes(org?.business_type ?? '')
   const issue = paymentIssue(sub)
 
   return (
     <BrandProvider brand={brand}>
     <div className={`${rubik.variable} cv-panel min-h-screen bg-surface font-sans text-ink`} style={brandStyle(brand)}>
-      <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0, orders: newOrders.count ?? 0 }} brandName={brand.name} iconUrl={brand.iconUrl} orders={ordersMode} />
+      <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0, orders: newOrders.count ?? 0 }} brandName={brand.name} iconUrl={brand.iconUrl} orders={ordersMode} memberships={membershipsMode} />
       {/* El riel ocupa 84px a la izquierda (≥md) y la barra 72px abajo (<md). */}
       <div className="pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[84px]">
         <header className="flex items-center justify-between gap-3 bg-brand-500 px-4 py-2 text-white md:justify-end md:bg-transparent md:px-6 md:pb-0 md:pt-3 md:text-ink-muted">

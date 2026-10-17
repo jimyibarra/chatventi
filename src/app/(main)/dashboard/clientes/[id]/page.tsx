@@ -6,6 +6,9 @@ import { ClientFiles } from '@/features/expediente/components/client-files'
 import { ClientRecords } from '@/features/expediente/components/client-records'
 import { ClientReminders } from '@/features/expediente/components/client-reminders'
 import { PetsSection, type PetRow } from '@/features/mascotas/components/pets-section'
+import { MembershipSection, type MembershipRow } from '@/features/membresias/components/membership-section'
+import type { PlanOption } from '@/features/membresias/view'
+import { todayMx } from '@/features/membresias/logic'
 import type {
   ClientFile,
   ClientRecord,
@@ -73,6 +76,8 @@ export default async function ClienteDetallePage({
     { data: reminders },
     { data: org },
     { data: pets },
+    { data: plans },
+    { data: memberships },
   ] = await Promise.all([
     supabase.from('tags').select('id, name, color').order('name'),
     supabase.from('client_tags').select('tag_id').eq('client_id', id),
@@ -111,10 +116,20 @@ export default async function ClienteDetallePage({
       .eq('client_id', id)
       .eq('active', true)
       .order('created_at'),
+    supabase.from('membership_plans').select('id, name, duration_days, price').eq('active', true).order('duration_days'),
+    supabase
+      .from('memberships')
+      .select('id, plan_name, price, starts_on, ends_on, cancelled_at, payments:membership_payments(id, amount, method, paid_on)')
+      .eq('client_id', id)
+      .order('ends_on', { ascending: false })
+      .limit(24),
   ])
   // Fase 3: las veterinarias (o cualquier negocio que ya registró mascotas) ven la sección.
   const petRows = (pets ?? []) as unknown as PetRow[]
   const showPets = org?.business_type === 'veterinaria' || petRows.length > 0
+  // Fase 4: gimnasios y estudios (o quien ya registró membresías) ven la sección.
+  const membershipRows = (memberships ?? []) as unknown as MembershipRow[]
+  const showMembership = ['gimnasio', 'yoga_pilates'].includes(org?.business_type ?? '') || membershipRows.length > 0
 
   const assignedIds = ((assigned as { tag_id: string }[] | null) ?? []).map((a) => a.tag_id)
 
@@ -232,6 +247,9 @@ export default async function ClienteDetallePage({
 
         <div className="min-w-0 space-y-4 [grid-area:main]">
           {showPets && <PetsSection clientId={id} pets={petRows} />}
+          {showMembership && (
+            <MembershipSection clientId={id} plans={(plans ?? []) as PlanOption[]} memberships={membershipRows} today={todayMx()} />
+          )}
 
           <ClientRecords clientId={id} records={(records as ClientRecord[] | null) ?? []} />
 
