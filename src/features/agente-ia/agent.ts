@@ -21,6 +21,8 @@ type AnyClient = SupabaseClient<Database>
 // -------------------------------------------------------------------
 function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {}): string {
   const tz = ctx.branch?.timezone ?? 'America/Mexico_City'
+  // ¿El giro agenda citas? (el restaurante no): define reglas y secciones del prompt.
+  const books = getTemplate(ctx.business_type).bookings !== false
   const today = new Intl.DateTimeFormat('es-MX', {
     timeZone: tz,
     weekday: 'long',
@@ -33,9 +35,9 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ? ctx.services
         .map(
           (s) =>
-            `- ${s.name} — id: ${s.id} (${s.duration_minutes} min, ${servicePriceLabel(s)})${
-              s.description ? `: ${s.description}` : ''
-            }`
+            (books
+              ? `- ${s.name} — id: ${s.id} (${s.duration_minutes} min, ${servicePriceLabel(s)})`
+              : `- ${s.name} (${servicePriceLabel(s)})`) + (s.description ? `: ${s.description}` : '')
         )
         .join('\n')
     : '(sin servicios configurados)'
@@ -123,27 +125,36 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     '- Escribe en TEXTO PLANO. El mensaje se envía TAL CUAL a WhatsApp, Instagram y Messenger, que NO entienden markdown: NUNCA uses **negritas**, __ o _cursivas_, # títulos, `código`, ni tablas — esos símbolos se ven literales. Para separar ideas usa saltos de línea; si enumeras algo, cada punto en su propia línea. Emojis con moderación.',
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
     '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
-    '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
-    // Cada turno de menos ahorra IA y tiempo del cliente (responder es gratis en
-    // Meta dentro de 24 h). Un turno de "¿qué día te viene bien?" son dos mensajes que se ahorran
-    // consultando disponibilidad de una vez y ofreciendo huecos concretos.
-    '- AHORRA TURNOS: si ya sabes qué servicio quiere (o el negocio tiene uno solo) y el cliente no dijo fecha, NO preguntes "¿qué día te viene bien?". Llama check_availability para hoy o mañana y ofrece esos horarios de una vez, cerrando con "¿o prefieres otro día?". Resuelve en el menor número de mensajes posible.',
-    '- Algunos servicios piden ANTICIPO para apartar la cita. Si book_appointment devuelve `deposit`, la cita queda APARTADA (no confirmada) hasta que llegue el comprobante: dilo así ("te la aparto"), y NO escribas montos, cuentas ni CLABE; el sistema añade los datos de pago y el plazo debajo de tu mensaje. Si el cliente manda una foto del comprobante, el sistema la registra solo.',
-    '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
-    '- 🔴 Si TÚ ofreciste una hora y el cliente acepta sin repetirla ("sí", "va", "perfecto"), eligió ESA hora, la de tu mensaje anterior. NO tomes otra de la lista de disponibilidad (ni la primera): reservar a una hora distinta de la pactada hace que el cliente se presente cuando no le toca.',
-    '- En book_appointment y reschedule_appointment, `hora_ofrecida` es la hora que le dijiste al cliente, copiada tal cual de tu mensaje (ej. "16:30" o "4:30 pm"). Es la que manda: si no coincide con el instante que pasas, el sistema reserva la que prometiste.',
-    '- Si el mensaje del cliente contiene una marca [slot:<instante>], eligió ese horario: pasa a book_appointment/reschedule_appointment el instante EXACTO que sigue a "slot:" sin modificarlo.',
-    '- Si la marca es [slot:<instante>|<uuid>], el uuid tras la barra es el resource_id de ESE horario: pásalo tal cual a book_appointment. No lo omitas ni lo cambies, o reservarías con otra persona.',
-    ...(resources
+    // Reglas de agenda: solo si el giro agenda citas (17-oct-2026). Un
+    // restaurante no las recibe: con ellas la IA ofrecía horarios aunque no
+    // tuviera herramientas (los copiaba de pláticas viejas).
+    ...(books
       ? [
-          '- Si el cliente pide a alguien concreto, pasa su resource_id a check_availability y a book_appointment. Si NO lo pide y hay varias personas que prestan el servicio, pregunta con quién UNA sola vez; si le da igual, omite resource_id y el sistema asigna a quien esté libre.',
-          '- NUNCA ofrezcas a alguien que no preste el servicio pedido (mira la lista de quién presta qué).',
+      '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
+      // Cada turno de menos ahorra IA y tiempo del cliente (responder es gratis en
+      // Meta dentro de 24 h). Un turno de "¿qué día te viene bien?" son dos mensajes que se ahorran
+      // consultando disponibilidad de una vez y ofreciendo huecos concretos.
+      '- AHORRA TURNOS: si ya sabes qué servicio quiere (o el negocio tiene uno solo) y el cliente no dijo fecha, NO preguntes "¿qué día te viene bien?". Llama check_availability para hoy o mañana y ofrece esos horarios de una vez, cerrando con "¿o prefieres otro día?". Resuelve en el menor número de mensajes posible.',
+      '- Algunos servicios piden ANTICIPO para apartar la cita. Si book_appointment devuelve `deposit`, la cita queda APARTADA (no confirmada) hasta que llegue el comprobante: dilo así ("te la aparto"), y NO escribas montos, cuentas ni CLABE; el sistema añade los datos de pago y el plazo debajo de tu mensaje. Si el cliente manda una foto del comprobante, el sistema la registra solo.',
+      '- Confirma con el cliente antes de reservar. Reserva con book_appointment SOLO cuando el cliente eligió un horario concreto. Si el cliente ya fue explícito con servicio y horario, reserva directo sin re-preguntar.',
+      '- 🔴 Si TÚ ofreciste una hora y el cliente acepta sin repetirla ("sí", "va", "perfecto"), eligió ESA hora, la de tu mensaje anterior. NO tomes otra de la lista de disponibilidad (ni la primera): reservar a una hora distinta de la pactada hace que el cliente se presente cuando no le toca.',
+      '- En book_appointment y reschedule_appointment, `hora_ofrecida` es la hora que le dijiste al cliente, copiada tal cual de tu mensaje (ej. "16:30" o "4:30 pm"). Es la que manda: si no coincide con el instante que pasas, el sistema reserva la que prometiste.',
+      '- Si el mensaje del cliente contiene una marca [slot:<instante>], eligió ese horario: pasa a book_appointment/reschedule_appointment el instante EXACTO que sigue a "slot:" sin modificarlo.',
+      '- Si la marca es [slot:<instante>|<uuid>], el uuid tras la barra es el resource_id de ESE horario: pásalo tal cual a book_appointment. No lo omitas ni lo cambies, o reservarías con otra persona.',
+      ...(resources
+        ? [
+            '- Si el cliente pide a alguien concreto, pasa su resource_id a check_availability y a book_appointment. Si NO lo pide y hay varias personas que prestan el servicio, pregunta con quién UNA sola vez; si le da igual, omite resource_id y el sistema asigna a quien esté libre.',
+            '- NUNCA ofrezcas a alguien que no preste el servicio pedido (mira la lista de quién presta qué).',
+          ]
+        : []),
+      '- Si vas a reservar y NO tienes el instante ISO exacto (devuelto por check_availability en este turno o en una marca [slot:...]), vuelve a llamar check_availability y usa el ISO cuya hora coincida con la que pidió el cliente. NUNCA construyas el instante tú mismo.',
+      '- Para CANCELAR o REAGENDAR usa cancel_appointment / reschedule_appointment con el id EXACTO de la lista CITAS PRÓXIMAS DEL CLIENTE. Si tiene varias citas, pregunta cuál UNA sola vez. Si no tiene citas próximas, dilo con amabilidad. Para reagendar, primero consulta disponibilidad con check_availability.',
+      '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
+      '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
         ]
-      : []),
-    '- Si vas a reservar y NO tienes el instante ISO exacto (devuelto por check_availability en este turno o en una marca [slot:...]), vuelve a llamar check_availability y usa el ISO cuya hora coincida con la que pidió el cliente. NUNCA construyas el instante tú mismo.',
-    '- Para CANCELAR o REAGENDAR usa cancel_appointment / reschedule_appointment con el id EXACTO de la lista CITAS PRÓXIMAS DEL CLIENTE. Si tiene varias citas, pregunta cuál UNA sola vez. Si no tiene citas próximas, dilo con amabilidad. Para reagendar, primero consulta disponibilidad con check_availability.',
-    '- Si el cliente cambia de opinión a mitad del proceso, simplemente continúa con lo nuevo; no lo hagas repetir todo.',
-    '- Cuando una herramienta de reservar/cancelar/reagendar tenga ÉXITO, tu texto final debe ser UNA frase corta y cálida SIN repetir fecha ni hora (el sistema envía la confirmación exacta por ti).',
+      : [
+          '- Este negocio NO agenda citas y tú NO tienes acceso a ninguna agenda: nunca ofrezcas, propongas ni confirmes horarios, aunque en mensajes anteriores se hayan ofrecido. Si piden una cita o un horario, explica con amabilidad que aquí no se agendan citas y ofrece lo que sí puedes resolver.',
+        ]),
     // Visto en vivo (16-oct): el borrador salió como nota para el equipo («Hola,
     // un cliente necesita ayuda…»). Aprobado tal cual, eso le llegaría al cliente.
     '- Si no puedes resolver algo o hay una queja/caso delicado, usa request_human_approval con un borrador de respuesta para que un humano lo revise. El borrador es el mensaje que recibirá EL CLIENTE tal cual si el equipo lo aprueba: escríbelo dirigido al cliente, nunca como nota para el equipo.',
@@ -164,14 +175,12 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     '',
     `NOMBRE DEL CLIENTE: ${ctx.conversation?.client_name?.trim() || '(desconocido)'}`,
     '',
-    `SERVICIOS DEL NEGOCIO${ctx.branch ? ` (sucursal ${ctx.branch.name})` : ''}:`,
+    `${books ? 'SERVICIOS DEL NEGOCIO' : 'MENÚ / PRODUCTOS DEL NEGOCIO'}${ctx.branch ? ` (sucursal ${ctx.branch.name})` : ''}:`,
     services,
     '',
-    ...(resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
+    ...(books && resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
     ...(hours ? ['HORARIO DE ATENCIÓN (si preguntan por horarios, respóndelo con esto):', hours, ''] : []),
-    'CITAS PRÓXIMAS DEL CLIENTE:',
-    upcoming,
-    '',
+    ...(books ? ['CITAS PRÓXIMAS DEL CLIENTE:', upcoming, ''] : []),
     'BASE DE CONOCIMIENTO:',
     knowledge,
   ].join('\n')
