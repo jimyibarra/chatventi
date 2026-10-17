@@ -84,9 +84,12 @@ begin
   if not exists (select 1 from public.clients c where c.id = new.client_id and c.organization_id = new.organization_id) then
     raise exception 'clinical_client_org_mismatch';
   end if;
-  if tg_table_name = 'clinical_notes' and new.appointment_id is not null
-     and not exists (select 1 from public.appointments a where a.id = new.appointment_id and a.organization_id = new.organization_id and a.client_id = new.client_id) then
-    raise exception 'clinical_appointment_mismatch';
+  -- IF anidado: plpgsql no corta la evaluación, y clinical_profiles no tiene appointment_id.
+  if tg_table_name = 'clinical_notes' then
+    if new.appointment_id is not null
+       and not exists (select 1 from public.appointments a where a.id = new.appointment_id and a.organization_id = new.organization_id and a.client_id = new.client_id) then
+      raise exception 'clinical_appointment_mismatch';
+    end if;
   end if;
   return new;
 end $$;
