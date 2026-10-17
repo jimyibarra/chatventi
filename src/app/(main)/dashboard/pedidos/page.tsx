@@ -140,7 +140,15 @@ function OrderCard({ o }: { o: Row }) {
         {o.delivery_mode === 'delivery' ? <>🛵 A domicilio: {o.address}</> : <>🛍️ Pasa a recogerlo</>}
       </p>
       {o.notes && <p className="mt-1 rounded-[10px] bg-surface px-2.5 py-1.5 text-[13.5px] text-ink">Notas: {o.notes}</p>}
-      {o.status === 'ready' && o.ready_notified_at && <p className="mt-1.5 text-[12.5px] text-ink-muted">Cliente avisado ✓</p>}
+      {/* Del dato guardado, no del mensaje del botón: al cambiar de columna la tarjeta se vuelve a crear. */}
+      {o.status === 'ready' &&
+        (o.ready_notified_at ? (
+          <p className="mt-1.5 text-[12.5px] text-ink-muted">Cliente avisado por WhatsApp ✓</p>
+        ) : (
+          <p className="mt-1.5 rounded-[10px] bg-[#fff2cf] px-2.5 py-1.5 text-[13px] leading-snug text-ink" data-testid="order-not-notified">
+            No pudimos avisarle por WhatsApp (si pasaron más de 24 horas desde su último mensaje, Meta no deja escribirle). Avísale por otro medio.
+          </p>
+        ))}
       <OrderActions orderId={o.id} status={o.status} />
       {o.conversation_id && (
         <Link href={`/dashboard/conversaciones/${o.conversation_id}`} className="mt-2 inline-flex min-h-[40px] items-center text-[13.5px] font-semibold text-brand-800 underline underline-offset-2">
