@@ -240,14 +240,9 @@ export const META_RATE_USD: Record<string, number> = {
 }
 export const META_RATE_FALLBACK_USD = 0.02
 
-/**
- * Mensajes de servicio que Meta NO cobra cada mes, POR NÚMERO de teléfono
- * (vigente desde el 1-oct-2026; no se acumulan de un mes a otro). Agotado el
- * cupo, Meta solo sigue entregando si la cuenta de WhatsApp tiene método de pago.
- * Es ahorro nuestro, no del cliente: lo que se repercute sigue saliendo de
- * conversationCostUsd(), así que este cupo es margen adicional.
- */
-export const META_FREE_SERVICE_MESSAGES_PER_NUMBER = 1000
+// Responder dentro de las 24 h es gratis y SIN tope («All non-template messages
+// are free», doc de precios de Meta; verificado el 17-oct-2026). Meta cobra
+// solo las plantillas, por mensaje. No existe un cupo de 1,000 al mes.
 
 export function metaRateUsd(countryCode: string | null | undefined): number {
   return META_RATE_USD[countryCode ?? ''] ?? META_RATE_FALLBACK_USD

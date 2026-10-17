@@ -43,7 +43,7 @@ const faq = (b: string, support: string): { q: string; a: ReactNode }[] => [
   },
   {
     q: '¿Cuánto cuestan los mensajes?',
-    a: `Meta los cobra directo a la cuenta de WhatsApp de tu negocio: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe). Los recordatorios sí los cobra Meta, por mensaje y según tu país. ${b} no les añade nada.`,
+    a: `Meta los cobra directo a la cuenta de WhatsApp de tu negocio. Responder a quien te escribe es gratis dentro de las 24 horas de su último mensaje; los recordatorios (plantillas) Meta los cobra por mensaje y según tu país. ${b} no les añade nada.`,
   },
 ]
 
@@ -138,7 +138,7 @@ export default async function GuiaWhatsAppPage() {
             />
           </Station>
 
-          <Station n={4} id="paso-4" title="Agrega tu forma de pago en Meta" lead="Las respuestas a quien te escribe tienen 1,000 mensajes gratis al mes por número; los recordatorios los cobra Meta por mensaje. Para que salgan, tu cuenta de WhatsApp necesita una tarjeta.">
+          <Station n={4} id="paso-4" title="Agrega tu forma de pago en Meta" lead="Responder a quien te escribe es gratis dentro de las 24 horas de su último mensaje; los recordatorios (plantillas) Meta los cobra por mensaje. Para que salgan, tu cuenta de WhatsApp necesita una tarjeta.">
             <Steps
               items={[
                 'Entra a business.facebook.com con el mismo Facebook y abre el Administrador de WhatsApp.',

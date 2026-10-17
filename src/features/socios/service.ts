@@ -9,6 +9,7 @@ import { EXTRA_REPLY_PRICE_USD, planById, usageOverage, type PlanId } from '@/fe
 import { catalogFields, hasCatalog, hoursCoverWeek, serviceIdsUnique } from './catalog-schema'
 import { applyPartnerCatalog, type CatalogResult } from './catalog'
 import { channelConnections } from '@/features/conexiones/status'
+import { normalizeBusinessType } from '@/features/agente-ia/business-templates'
 
 // =====================================================================
 // API de socios (revendedores). PASEN es el primero.
@@ -211,7 +212,8 @@ export async function createPartnerOrganization(
       p_plan: input.plan,
       p_web_slug: slugFor(input.name),
       p_owner_name: input.ownerName,
-      p_business_type: input.businessType,
+      // Acepta la clave de ChatVenti o el nombre del giro en el socio (p. ej. restaurante-fruteria).
+      p_business_type: normalizeBusinessType(input.businessType),
       p_country: input.country?.toUpperCase(),
       p_city: input.city,
       p_phone: input.phone,
@@ -249,7 +251,7 @@ export async function createPartnerOrganization(
   let catalog: CatalogResult | null = null
   if (hasCatalog(input)) {
     try {
-      catalog = await applyPartnerCatalog(service, orgId, { services: input.services, hours: input.hours, brandColor: input.brandColor })
+      catalog = await applyPartnerCatalog(service, orgId, { services: input.services, hours: input.hours, brandColor: input.brandColor, reviewUrl: input.reviewUrl })
       if (input.services) await service.from('service_catalogs').delete().eq('organization_id', orgId).is('partner_ref', null)
     } catch (err) {
       console.error('[socios] catálogo en el alta', err instanceof Error ? err.message : err)
@@ -364,8 +366,10 @@ export const updateOrgSchema = z
     plan: z.enum(PLAN_IDS).optional(),
     /** Página web del negocio; `null` la quita. */
     siteUrl: z.string().trim().url().max(300).nullable().optional(),
+    /** Giro (17-oct-2026): la clave de ChatVenti o el nombre del giro en el socio. */
+    businessType: z.string().trim().min(1).max(40).optional(),
   })
-  .refine((v) => v.status || v.plan || v.siteUrl !== undefined, 'Indica status, plan o siteUrl')
+  .refine((v) => v.status || v.plan || v.siteUrl !== undefined || v.businessType, 'Indica status, plan, siteUrl o businessType')
 
 export async function updatePartnerOrganization(
   service: Service,
@@ -377,8 +381,15 @@ export async function updatePartnerOrganization(
   const found = await loadOrg(service, partner.id, { id: orgId })
   if (!found) return apiError('not_found', 404)
 
-  if (input.siteUrl !== undefined) {
-    const { error } = await service.from('organizations').update({ site_url: input.siteUrl }).eq('id', orgId)
+  if (input.siteUrl !== undefined || input.businessType) {
+    const { error } = await service
+      .from('organizations')
+      .update({
+        ...(input.siteUrl !== undefined ? { site_url: input.siteUrl } : {}),
+        // Cambia las reglas del giro de inmediato (p. ej. un restaurante deja de agendar citas).
+        ...(input.businessType ? { business_type: normalizeBusinessType(input.businessType) } : {}),
+      })
+      .eq('id', orgId)
     if (error) return apiError('update_failed', 500)
   }
   if (input.status || input.plan) {

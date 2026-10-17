@@ -1,6 +1,9 @@
 // Estructura que devuelve la RPC get_agent_context (jsonb).
 export type AgentContext = {
   org_id: string
+  // Giro y página del negocio (17-oct-2026). Opcionales: sin la migración llegan undefined.
+  business_type?: string | null
+  site_url?: string | null
   conversation: {
     id: string
     status: string
@@ -44,6 +47,8 @@ export type AgentContext = {
     name: string
     duration_minutes: number
     price: number | null
+    /** Precio como lo escribió el dueño en el socio («Desde $250»); manda sobre price. */
+    price_text?: string | null
     description: string | null
   }[]
   knowledge: string[]

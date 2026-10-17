@@ -49,11 +49,11 @@ repositorio. Si se pierde o se filtra, se suspende el socio y se crea otro.
 | `name` | sí | 2–80 caracteres. |
 | `ownerEmail` | sí | Debe ser un correo **sin cuenta previa** en ChatVenti (`409 owner_email_in_use` si ya existe). Se compara sin «+etiqueta» y, en Gmail, sin puntos: `ana+pasen@x.com` cuenta como `ana@x.com`. |
 | `plan` | no | `arranque` (por defecto), `negocio`, `profesional` o `multisede`. |
-| `businessType` | no | Plantilla del agente: `barberia_estetica`, `dental`, `veterinaria`, `spa_unas`, `medico`, `generico`. |
+| `businessType` | no | Giro (plantilla de la recepcionista y servicios de ejemplo): `barberia_estetica`, `spa_unas`, `dental`, `medico`, `dermatologia`, `nutricion`, `psicologia`, `veterinaria`, `restaurante`, `gimnasio`, `yoga_pilates`, `taller_mecanico`, `despacho_contable`, `despacho_juridico`, `generico`. **Desde el 17-oct-2026 también acepta el slug del giro en ¡Pasen!** (`restaurante-fruteria`, `estetica-spa`, `dentista`, `consultorio-medico`, `taller-mecanico`…). Uno desconocido queda como `generico`. Un `restaurante` **no agenda citas**: su recepcionista atiende menú y pedidos. |
 | `country` | no | Código de dos letras (`MX`, `US`, `ES`…). |
 | `ownerName`, `city`, `phone` | no | |
 | `siteUrl` | no | La página web del negocio en el sistema del socio (`https://…`, máx. 300). Con ella, ChatVenti le dice al dueño que sus reservas viven en esa página y deja de ofrecerle el enlace `chatventi.com/r/…` como principal. |
-| `services`, `hours`, `brandColor` | no | **v2.** El catálogo del negocio, con el mismo formato que `PUT /organizations/{id}/catalog` (abajo). Si vienen, el negocio nace con esos servicios, ese horario y ese color en vez de los de ejemplo, y queda administrado por el socio desde el primer día. La respuesta añade `catalog: { services: [{ externalId, id }], hoursUpdated }`. |
+| `services`, `hours`, `brandColor`, `reviewUrl` | no | **v2.** El catálogo del negocio, con el mismo formato que `PUT /organizations/{id}/catalog` (abajo). Si vienen, el negocio nace con esos servicios, ese horario y ese color en vez de los de ejemplo, y queda administrado por el socio desde el primer día. La respuesta añade `catalog: { services: [{ externalId, id }], hoursUpdated }`. |
 
 Respuesta `201`:
 
@@ -127,7 +127,7 @@ El negocio nace con el plan activo: no tiene periodo de prueba ni se le pide tar
 
 ## Suspender, reactivar o cambiar de plan
 
-`PATCH /organizations/{id}` con `{ "status": "suspended" }`, `{ "status": "active" }`, `{ "plan": "profesional" }` o `{ "siteUrl": "https://…" }` (`null` la quita). Se pueden combinar.
+`PATCH /organizations/{id}` con `{ "status": "suspended" }`, `{ "status": "active" }`, `{ "plan": "profesional" }`, `{ "siteUrl": "https://…" }` (`null` la quita) o `{ "businessType": "restaurante-fruteria" }` (17-oct-2026: cambia el giro y sus reglas de inmediato; no reescribe las instrucciones de la recepcionista ni los servicios). Se pueden combinar.
 
 Un negocio suspendido pierde el acceso al panel y su recepcionista deja de responder; **sus datos se conservan**. Al dueño se le dice que escriba a su proveedor, no se le ofrece contratar directo con ChatVenti.
 
@@ -164,7 +164,9 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
 }
 ```
 
-- Las tres llaves son opcionales: sin `services` no se tocan los servicios; sin `hours`, no se toca el horario; sin `brandColor`, no se toca el color.
+- Las cuatro llaves son opcionales: sin `services` no se tocan los servicios; sin `hours`, no se toca el horario; sin `brandColor`, no se toca el color; sin `reviewUrl`, no se toca el enlace de reseñas.
+- `reviewUrl` (17-oct-2026, `https://…`, máx. 500; `null` lo borra) es el enlace para dejar reseña en Google. Se guarda en `organizations.google_review_url` y enciende la encuesta «Pregunta qué tal fue»: tras cada cita el cliente califica y, al terminar, recibe el enlace. Se manda a todos por igual (Google no permite pedir reseñas solo a los contentos).
+- Un servicio con `price: null` y `priceText: null` es «precio por confirmar»: la recepcionista dice que el negocio confirma el precio y nunca lo inventa. Con `priceText` (p. ej. «Desde $250»), lo dice tal cual.
 - `brandColor` (`#rrggbb`) es el color de la página del negocio: tiñe su agenda pública (`/r/<slug>`), botones y acentos. Se guarda en `organizations.branding.primary_color` sin tocar el resto de la marca del negocio (logo, descripción).
 - `services` es la lista completa (máximo 100; nombre de 1 a 120, descripción hasta 600, `durationMinutes` de 5 a 600). Se crea o actualiza por `externalId`; lo que ya no venga queda **inactivo** (no se borra: tiene citas). `price` en MXN o `null`; `priceText` es el precio tal como lo escribió el dueño y manda al mostrarlo.
 - `hours` trae los 7 días (`weekday` 0–6, domingo = 0), un tramo por día, `HH:MM` con `opens < closes`; `closed: true` lleva `opens` y `closes` en `null`. Se escribe en la sucursal principal. Si el negocio solo tiene el profesional que sembró el alta y nadie le editó su horario, ese horario se alinea al nuevo.
@@ -174,11 +176,11 @@ Los mensajes de WhatsApp se los cobra **Meta directamente a la cuenta de WhatsAp
 
 ## Pase de entrada (el dueño entra desde el socio, sin contraseña)
 
-`POST /organizations/{id}/login-link` (cuerpo vacío) → `200 { "url", "expiresAt" }`.
+`POST /organizations/{id}/login-link` (cuerpo vacío, o `{ "next": "/dashboard/conexiones" }`) → `200 { "url", "expiresAt" }`.
 
 - Solo lo pide el socio cuando **el dueño**, ya identificado en el sistema del socio, toca «Mi agenda»; el socio redirige el navegador a `url`. El personal del socio nunca recibe pases.
 - La `url` lleva un ticket de **un solo uso, válido 60 segundos**, ligado al dueño de esa organización. Se guarda solo su huella. El canje crea la sesión del lado del servidor; ningún token de Supabase viaja en la URL. Si el navegador traía la sesión de otra persona, se cierra antes.
-- La `url` apunta al dominio del panel del socio (`app_domain`, p. ej. `https://agenda.pasen.mx/…`) o, si no tiene, a `https://www.chatventi.com/…`. Se puede pedir `?next=` con `/dashboard`, `/dashboard/agenda` o `/dashboard/conexiones`.
+- La `url` apunta al dominio del panel del socio (`app_domain`, p. ej. `https://agenda.pasen.mx/…`) o, si no tiene, a `https://www.chatventi.com/…`. El destino se pide con `?next=` en la URL o `next` en el cuerpo: `/dashboard`, `/dashboard/agenda` o `/dashboard/conexiones` (cualquier otro → `/dashboard`). Corregido el 17-oct-2026: antes la ruta lo ignoraba.
 - La respuesta va con `Cache-Control: no-store` y `Referrer-Policy: no-referrer`. No guardes ni registres la `url`.
 - Errores: `404 not_found`, `409 suspended` (negocio suspendido), `429 rate_limited` (más de 10 pases por minuto por negocio).
 - Los dueños de negocios de socio no necesitan contraseña; `setPasswordUrl` del alta sigue existiendo para socios externos.

@@ -11,6 +11,8 @@ import { salesReply, type SalesTurn } from '@/features/ventas-agente/brain'
 import { OPENROUTER_USAGE, recordAiCost } from './ai-cost'
 import type { AgentContext, AgentSenders, RunAgentResult } from './types'
 import { PASEN_PROMPT_RULES, buildPasenTools } from './pasen-tools'
+import { getTemplate } from './business-templates'
+import { servicePriceLabel } from './prompt-parts'
 
 type AnyClient = SupabaseClient<Database>
 
@@ -31,9 +33,9 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ? ctx.services
         .map(
           (s) =>
-            `- ${s.name} — id: ${s.id} (${s.duration_minutes} min${
-              s.price != null ? `, $${s.price}` : ''
-            })${s.description ? `: ${s.description}` : ''}`
+            `- ${s.name} — id: ${s.id} (${s.duration_minutes} min, ${servicePriceLabel(s)})${
+              s.description ? `: ${s.description}` : ''
+            }`
         )
         .join('\n')
     : '(sin servicios configurados)'
@@ -100,6 +102,13 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ...(voiceBlock ? ['', voiceBlock] : []),
     '',
     'REGLAS IMPORTANTES:',
+    // Reglas del giro (17-oct-2026): van primero y mandan sobre las generales.
+    ...(getTemplate(ctx.business_type).rules ?? []),
+    ...(ctx.site_url && getTemplate(ctx.business_type).bookings === false
+      ? [`- Página del negocio con su menú y carrito para pedir: ${ctx.site_url}`]
+      : []),
+    // PASEN manda servicios sin precio confirmado (17-oct-2026): la IA no inventa.
+    '- PRECIOS: usa SOLO los de la lista de servicios, tal cual. Si un servicio dice «precio por confirmar», di que el negocio te confirma el precio; NUNCA inventes, calcules ni estimes un precio.',
     '- Responde SOLO sobre este negocio: sus servicios, citas, horarios y la información de la base de conocimiento. Si te preguntan algo ajeno al negocio, decláralo con amabilidad y redirige. Si el cliente insiste con temas ajenos por segunda vez consecutiva, usa request_human_approval.',
     // El tono estaba mezclado con la disciplina en esta línea. "UNA sola
     // pregunta por mensaje" ES disciplina y se queda siempre; "cálido y breve"
@@ -115,8 +124,8 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     '- NUNCA re-preguntes datos que ya están en el historial (servicio, fecha, nombre): úsalos directamente.',
     '- Nombre del cliente: si ya lo conoces (aparece abajo), salúdalo por su nombre y NO lo vuelvas a pedir. Si NO lo conoces y el cliente lo comparte —o cuando estés por agendar—, guárdalo con save_client_name. Pídelo UNA sola vez, con amabilidad, y no insistas si prefiere no darlo.',
     '- Para agendar necesitas: el/los servicio(s) y una fecha. Usa la herramienta check_availability para ofrecer horarios reales; nunca inventes disponibilidad. Ofrece MÁXIMO 3 horarios por mensaje. Al llamar las herramientas, usa el id EXACTO del servicio (el uuid mostrado en la lista de servicios).',
-    // Cada mensaje de menos es dinero: desde oct-2026 Meta cobra cada respuesta.
-    // Un turno de "¿qué día te viene bien?" son dos mensajes que se ahorran
+    // Cada turno de menos ahorra IA y tiempo del cliente (responder es gratis en
+    // Meta dentro de 24 h). Un turno de "¿qué día te viene bien?" son dos mensajes que se ahorran
     // consultando disponibilidad de una vez y ofreciendo huecos concretos.
     '- AHORRA TURNOS: si ya sabes qué servicio quiere (o el negocio tiene uno solo) y el cliente no dijo fecha, NO preguntes "¿qué día te viene bien?". Llama check_availability para hoy o mañana y ofrece esos horarios de una vez, cerrando con "¿o prefieres otro día?". Resuelve en el menor número de mensajes posible.',
     '- Algunos servicios piden ANTICIPO para apartar la cita. Si book_appointment devuelve `deposit`, la cita queda APARTADA (no confirmada) hasta que llegue el comprobante: dilo así ("te la aparto"), y NO escribas montos, cuentas ni CLABE; el sistema añade los datos de pago y el plazo debajo de tu mensaje. Si el cliente manda una foto del comprobante, el sistema la registra solo.',
@@ -925,7 +934,13 @@ export async function runAgent(params: {
       approvalRequested = true
     },
   })
-  const tools = pasenTools ? { ...baseTools, ...pasenTools } : baseTools
+  // Un giro que no agenda (restaurante) no recibe las herramientas de agenda:
+  // así la IA no puede "reservar" un platillo del menú como si fuera una cita.
+  const { check_availability, book_appointment, cancel_appointment, reschedule_appointment, ...noBookingTools } = baseTools
+  const giroTools = getTemplate(ctx.business_type).bookings === false
+    ? noBookingTools
+    : { check_availability, book_appointment, cancel_appointment, reschedule_appointment, ...noBookingTools }
+  const tools = pasenTools ? { ...giroTools, ...pasenTools } : giroTools
 
   let text = ''
   try {

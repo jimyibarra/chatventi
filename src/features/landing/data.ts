@@ -144,7 +144,7 @@ export const FAQS = [
   },
   {
     q: '¿Cuánto cuestan los mensajes de WhatsApp?',
-    a: 'Los cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: cada número tiene 1,000 mensajes de servicio gratis al mes (las respuestas a quien te escribe), así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
+    a: 'Los cobra Meta, directo a la cuenta de WhatsApp de tu negocio y sin intermediarios: responder a quien te escribe es gratis dentro de las 24 horas de su último mensaje, así que a un negocio pequeño puede no costarle nada. Los recordatorios automáticos (plantillas) sí los cobra Meta, por mensaje y según tu país. Tu tarjeta la pones en Meta, no en ChatVenti.',
   },
   {
     q: '¿Qué pasa si la IA no sabe responder algo?',

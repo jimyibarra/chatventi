@@ -32,6 +32,19 @@ export const catalogFields = {
   hours: z.array(hourSchema).length(7).optional(),
   /** Color de la página del negocio (#rrggbb): tiñe su agenda pública. */
   brandColor: z.string().regex(/^#[0-9a-fA-F]{6}$/, 'brandColor debe ser #rrggbb').optional(),
+  /**
+   * Enlace para dejar reseña en Google (17-oct-2026, pedido de PASEN). Se
+   * guarda en organizations.google_review_url y la encuesta tras la cita lo
+   * manda a todos. null lo borra.
+   */
+  reviewUrl: z
+    .string()
+    .trim()
+    .url('reviewUrl debe ser un enlace')
+    .max(500)
+    .refine((u) => u.startsWith('https://'), 'reviewUrl debe empezar con https://')
+    .nullable()
+    .optional(),
 }
 
 type CatalogLike = { services?: z.infer<typeof serviceSchema>[]; hours?: z.infer<typeof hourSchema>[] }
@@ -43,9 +56,12 @@ export const serviceIdsUnique = (c: CatalogLike) =>
 /** PUT /catalog: al menos una de las tres llaves. */
 export const catalogSchema = z
   .object(catalogFields)
-  .refine((c) => c.services || c.hours || c.brandColor, 'Manda services, hours, brandColor o varios')
+  .refine((c) => hasCatalog(c), 'Manda services, hours, brandColor, reviewUrl o varios')
   .refine(hoursCoverWeek, 'hours debe traer los 7 días, sin repetir')
   .refine(serviceIdsUnique, 'externalId repetido')
 
 export type CatalogInput = z.infer<typeof catalogSchema>
-export const hasCatalog = (c: Partial<CatalogInput>): boolean => !!(c.services || c.hours || c.brandColor)
+// Tipo estructural (no CatalogInput): el esquema la usa en su propio refine.
+export function hasCatalog(c: { services?: unknown; hours?: unknown; brandColor?: unknown; reviewUrl?: unknown }): boolean {
+  return !!(c.services || c.hours || c.brandColor || c.reviewUrl !== undefined)
+}

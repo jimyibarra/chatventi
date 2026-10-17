@@ -181,7 +181,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const service = createServiceClient()
   const { data: existing, error: existingErr } = await service
     .from('channels')
-    .select('organization_id, status, credentials')
+    .select('id, organization_id, status, credentials')
     .eq('type', 'whatsapp')
     .eq('external_id', body.phoneNumberId)
     .maybeSingle()
@@ -190,15 +190,22 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     console.error('[embedded-signup] lookup channel error', existingErr.message)
     return NextResponse.json({ error: 'channel_lookup_failed' }, { status: 500 })
   }
-  if (existing && existing.organization_id !== profile.organization_id) {
+  // Un número ACTIVO en otro negocio nunca se reasigna. Uno DESCONECTADO allá
+  // (p. ej. se usó en una prueba y luego «Desconectar este número») sí se puede
+  // conectar aquí: Meta ya comprobó arriba que es de quien autorizó.
+  const movedFrom = existing && existing.organization_id !== profile.organization_id ? existing : null
+  if (movedFrom && movedFrom.status !== 'disabled') {
     return NextResponse.json({ error: 'number_in_use' }, { status: 409 })
   }
-  const previous = (existing?.credentials ?? null) as {
+  const previousCreds = (existing?.credentials ?? null) as {
     access_token?: string
     pin?: string
     obtained_at?: string
   } | null
-  const alreadyActive = existing?.status === 'active'
+  // Del otro negocio solo se hereda el PIN (Meta lo pide para registrar de
+  // nuevo el número); su token no viaja a esta organización.
+  const previous: typeof previousCreds = movedFrom ? (previousCreds?.pin ? { pin: previousCreds.pin } : null) : previousCreds
+  const alreadyActive = !movedFrom && existing?.status === 'active'
 
   // 6. Token de gestión para llamar a la Graph API en nombre del cliente.
   //    Preferimos el token del System User de nuestro Tech Provider (permanente,
@@ -245,6 +252,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Con Embedded Signup v4 puede llegar un número aún sin verificar: si el
   // registro falla, el canal NO está listo para enviar.
   const status = subscribeErr || registerErr ? 'pending' : 'active'
+
+  // Se archiva la conexión vieja del otro negocio: sus pláticas se quedan allá
+  // (apuntan a esa fila) y el número queda libre para la fila nueva de aquí.
+  if (movedFrom) {
+    const { error: archiveErr } = await service
+      .from('channels')
+      .update({ external_id: `${body.phoneNumberId}~archivado~${movedFrom.id}` })
+      .eq('id', movedFrom.id)
+    if (archiveErr) {
+      console.error('[embedded-signup] archivar canal anterior', archiveErr.message)
+      return NextResponse.json({ error: 'channel_persist_failed' }, { status: 500 })
+    }
+  }
 
   const { data: channel, error } = await service
     .from('channels')

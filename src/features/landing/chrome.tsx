@@ -142,7 +142,7 @@ export function AllIn() {
   return (
     <div className="allin">
       <div><b>En todos los planes:</b> WhatsApp, Telegram, tu página de reservas, recordatorios y la ficha de cada cliente.</div>
-      <div><b>Sobre WhatsApp:</b> Meta cobra sus mensajes aparte y regala 1,000 de servicio al mes por número. Tu tarjeta la pones en Meta, no en ChatVenti.</div>
+      <div><b>Sobre WhatsApp:</b> responder a quien te escribe es gratis dentro de las 24 horas; los recordatorios Meta los cobra aparte, por mensaje. Tu tarjeta la pones en Meta, no en ChatVenti.</div>
     </div>
   )
 }

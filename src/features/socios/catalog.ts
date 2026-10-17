@@ -111,8 +111,14 @@ export async function applyPartnerCatalog(service: Service, orgId: string, input
     const current = org?.branding && typeof org.branding === 'object' && !Array.isArray(org.branding) ? org.branding : {}
     patch.branding = { ...current, primary_color: input.brandColor.toLowerCase() }
   }
-  const { error } = await service.from('organizations').update(patch).eq('id', orgId)
+  const { error } = await service
+    .from('organizations')
+    .update(input.reviewUrl !== undefined ? { ...patch, google_review_url: input.reviewUrl } : patch)
+    .eq('id', orgId)
   if (error) throw new Error(error.message)
+  // Con enlace, se enciende «Pregunta qué tal fue»: el mensaje de después de la
+  // cita ya sale; solo suma los botones y, tras calificar, el enlace de Google.
+  if (input.reviewUrl) await service.from('agent_configs').update({ cap_csat: true }).eq('organization_id', orgId)
   return { services, hoursUpdated: !!input.hours }
 }
 

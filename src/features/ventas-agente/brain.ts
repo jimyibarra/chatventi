@@ -12,7 +12,6 @@ import { generateText } from 'ai'
 import { createOpenRouter } from '@openrouter/ai-sdk-provider'
 import { OPENROUTER_USAGE, recordAiCost, type AiCostTag } from '@/features/agente-ia/ai-cost'
 import {
-  META_FREE_SERVICE_MESSAGES_PER_NUMBER,
   META_RATE_USD,
   PLANS,
   TRIAL_DAYS,
@@ -66,7 +65,7 @@ function pricingFacts(channel: SalesChannel, currency: Currency | null): string 
     `PAGO ANUAL: se pagan 10 meses y se usan 12 (${ANNUAL_MONTHS_FREE} meses de regalo). Se elige al activar el plan.`,
     `SI SE REBASA LO INCLUIDO: el servicio NO se corta. Cada 1,000 respuestas de IA adicionales cuestan ${fmtAmount(Number((EXTRA_REPLY_PRICE_MXN * 1000).toFixed(2)))} MXN más IVA en México, o $${(EXTRA_REPLY_PRICE_USD * 1000).toFixed(2)} USD fuera, y se suman a la siguiente factura. El consumo se ve en el panel.`,
     `COSTO DE LOS MENSAJES (lo cobra Meta, nunca ChatVenti):
-- WhatsApp: Meta lo cobra directo a la cuenta de WhatsApp Business del negocio. Cada número tiene ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} mensajes de servicio GRATIS al mes (las respuestas a quien escribe primero); a un negocio pequeño puede no costarle nada. Los recordatorios automáticos sí los cobra Meta por mensaje; en México, alrededor de ${META_RATE_USD.MX} USD cada uno. En otros países depende de la tarifa de Meta: no inventes cifras.
+- WhatsApp: Meta lo cobra directo a la cuenta de WhatsApp Business del negocio. Responder a quien le escribe es GRATIS y sin límite dentro de las 24 horas de su último mensaje; a un negocio pequeño puede no costarle nada. Los recordatorios automáticos (plantillas) sí los cobra Meta por mensaje; en México, alrededor de ${META_RATE_USD.MX} USD cada uno. En otros países depende de la tarifa de Meta: no inventes cifras.
 - Para lo que Meta cobra, el negocio pone su tarjeta (Visa o Mastercard) EN META, no en ChatVenti. Dilo así: "tu tarjeta la pones en Meta, no en ChatVenti".
 - La prueba gratis de ChatVenti (${TRIAL_DAYS} días) no pide tarjeta.`,
     `CÓMO SE CONECTA WHATSAPP (contesta con estos pasos, no con generalidades):
@@ -76,7 +75,7 @@ function pricingFacts(channel: SalesChannel, currency: Currency | null): string 
 4. Elegir o crear la cuenta de WhatsApp Business y escribir el número.
 5. Meta manda un código por SMS o llamada para verificar el número.
 6. Escribir el nombre que verán los clientes.
-7. Para los mensajes que cobra Meta (recordatorios, o pasar los ${META_FREE_SERVICE_MESSAGES_PER_NUMBER.toLocaleString('en-US')} gratis), agregar la tarjeta en el administrador de WhatsApp de Meta.
+7. Para los mensajes que cobra Meta (los recordatorios), agregar la tarjeta en el administrador de WhatsApp de Meta.
 REQUISITOS que hay que decir siempre que pregunten por WhatsApp:
 - Sí se necesita una cuenta de Facebook o de Meta para empresas: es Meta quien autoriza la conexión. Si no tiene Facebook, puede crear la cuenta en minutos, y mientras tanto atender por Telegram y la página de reservas.
 - El número NO puede estar activo en la app de WhatsApp (ni la normal ni la Business). Si lo usa ahí, debe borrar esa cuenta de WhatsApp antes, o usar otro número.

@@ -63,6 +63,13 @@ const VERTICAL: Record<string, string> = {
   spa_unas: 'BEAUTY',
   dental: 'HEALTH',
   medico: 'HEALTH',
+  nutricion: 'HEALTH',
+  psicologia: 'HEALTH',
+  dermatologia: 'HEALTH',
+  restaurante: 'RESTAURANT',
+  taller_mecanico: 'AUTO',
+  despacho_contable: 'PROF_SERVICES',
+  despacho_juridico: 'PROF_SERVICES',
 }
 
 const COUNTRY_CODE: Record<string, number> = { MX: 52, US: 1, CO: 57, AR: 54, CL: 56, PE: 51, ES: 34 }
