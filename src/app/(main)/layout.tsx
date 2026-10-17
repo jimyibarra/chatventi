@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { Rubik } from 'next/font/google'
+import { rubikPanel } from '@/shared/fonts/rubik'
 import { createClient } from '@/lib/supabase/server'
 import { LogoutButton } from '@/features/auth/components/logout-button'
 import { DashboardNav } from '@/shared/components/dashboard-nav'
@@ -10,11 +10,12 @@ import { PaymentIssueBanner } from '@/features/billing/components/payment-issue-
 import { brandStyle, currentBrand } from '@/features/marca/brand'
 import { BrandProvider } from '@/features/marca/brand-context'
 import { brandMetadata } from '@/features/marca/brand-shared'
+import { giroBooks } from '@/features/agente-ia/business-templates'
 import type { Metadata } from 'next'
 import '@/shared/components/ui/panel.css'
 
 // Tipografía del diseño «Líneas». Solo se carga dentro del panel.
-const rubik = Rubik({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-rubik' })
+const rubik = rubikPanel
 
 /** Título, ícono y nombre de app con la marca del socio cuando el negocio es suyo. */
 export async function generateMetadata(): Promise<Metadata> {
@@ -63,7 +64,7 @@ export default async function MainLayout({
   const now = new Date()
   const endOfDay = dayRangeUtc(ymdInTz(now, branch?.timezone ?? 'America/Mexico_City'), branch?.timezone ?? 'America/Mexico_City').to
   const brand = await currentBrand()
-  const [unconfirmed, passed, sub] = await Promise.all([
+  const [unconfirmed, passed, sub, { data: org }, newOrders] = await Promise.all([
     supabase
       .from('appointments')
       .select('id', { count: 'exact', head: true })
@@ -74,13 +75,17 @@ export default async function MainLayout({
     // Solo dueño y gerente leen la suscripción (RLS): el aviso de cobro les
     // llega a quienes pueden pagar; al personal no.
     getMySubscription(),
+    supabase.from('organizations').select('business_type').maybeSingle(),
+    supabase.from('orders').select('id', { count: 'exact', head: true }).eq('status', 'new'),
   ])
+  // Restaurante (no agenda citas): su sección principal es Pedidos.
+  const ordersMode = !giroBooks(org?.business_type)
   const issue = paymentIssue(sub)
 
   return (
     <BrandProvider brand={brand}>
     <div className={`${rubik.variable} cv-panel min-h-screen bg-surface font-sans text-ink`} style={brandStyle(brand)}>
-      <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0 }} brandName={brand.name} iconUrl={brand.iconUrl} />
+      <DashboardNav role={role} badges={{ agenda: unconfirmed.count ?? 0, chats: passed.count ?? 0, orders: newOrders.count ?? 0 }} brandName={brand.name} iconUrl={brand.iconUrl} orders={ordersMode} />
       {/* El riel ocupa 84px a la izquierda (≥md) y la barra 72px abajo (<md). */}
       <div className="pb-[calc(76px+env(safe-area-inset-bottom))] md:pb-0 md:pl-[84px]">
         <header className="flex items-center justify-between gap-3 bg-brand-500 px-4 py-2 text-white md:justify-end md:bg-transparent md:px-6 md:pb-0 md:pt-3 md:text-ink-muted">

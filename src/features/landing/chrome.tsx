@@ -1,7 +1,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Rubik } from 'next/font/google'
+import { rubikLanding } from '@/shared/fonts/rubik'
 import { LEGAL } from '@/shared/constants/legal'
 import { VERTICALS } from '@/features/verticales/data'
 import { FOUNDERS, TRIAL_DAYS } from './data'
@@ -12,7 +12,7 @@ import { Check } from './check'
 // `base` = '' en la home (anclas locales) o '/' fuera de ella (anclas de la home).
 
 /** Rubik con el 800 de los titulares; la variable la lee `--ff` en .lx. */
-export const lxFont = Rubik({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'], variable: '--font-lx' })
+export const lxFont = rubikLanding
 
 export const CTA = `Prueba gratis ${TRIAL_DAYS} días`
 

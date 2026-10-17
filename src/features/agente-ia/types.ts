@@ -4,6 +4,15 @@ export type AgentContext = {
   // Giro y página del negocio (17-oct-2026). Opcionales: sin la migración llegan undefined.
   business_type?: string | null
   site_url?: string | null
+  // Pedidos de los últimos 3 días del cliente (fase 2). Opcional: sin la migración, undefined.
+  recent_orders?: {
+    status: string
+    items: { qty: number; name: string }[]
+    total_text: string | null
+    delivery_mode: string
+    eta_minutes: number | null
+    created_at: string
+  }[]
   conversation: {
     id: string
     status: string

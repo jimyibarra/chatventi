@@ -27,6 +27,9 @@ export const WEBHOOK_EVENTS = [
   // Coexistencia (16-oct-2026): el número del negocio lleva días sin uso en la app o Meta lo desconectó.
   'channel.inactive',
   'channel.disconnected',
+  // Pedidos por WhatsApp (17-oct-2026): restaurantes con el carrito del socio.
+  'order.created',
+  'order.updated',
   'webhook.test',
 ] as const
 export type WebhookEvent = (typeof WEBHOOK_EVENTS)[number]
@@ -123,6 +126,35 @@ async function loadAppointment(service: Service, appointmentId: string, origin: 
 export async function buildDeliveryBody(service: Service, d: DeliveryRow, partner: Pick<Partner, 'app_domain'>): Promise<Record<string, unknown>> {
   const base = { id: d.id, event: d.event, createdAt: d.created_at, attempt: d.attempts }
   if (d.event === 'webhook.test') return { ...base, test: true, organization: null }
+  if (d.event.startsWith('order.')) {
+    // Estado ACTUAL del pedido, sin datos personales (nombre, teléfono,
+    // dirección): al socio le basta para contar pedidos en su reporte.
+    const orderId = (d.payload as { orderId?: string } | null)?.orderId ?? null
+    const [{ data: org }, { data: o }] = await Promise.all([
+      d.organization_id ? service.from('organizations').select('id, partner_ref, name').eq('id', d.organization_id).maybeSingle() : Promise.resolve({ data: null }),
+      orderId
+        ? service.from('orders').select('id, status, items, total_text, delivery_mode, created_at, updated_at').eq('id', orderId).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ])
+    const items = Array.isArray(o?.items) ? (o.items as { qty?: number }[]) : []
+    return {
+      ...base,
+      organization: org ? { id: org.id, externalId: org.partner_ref, name: org.name } : null,
+      order: o
+        ? {
+            id: o.id,
+            status: o.status,
+            itemsCount: items.reduce((n, i) => n + (Number(i.qty) || 0), 0),
+            totalText: o.total_text,
+            mode: o.delivery_mode,
+            createdAt: o.created_at,
+            updatedAt: o.updated_at,
+          }
+        : orderId
+          ? { id: orderId, status: 'deleted' }
+          : null,
+    }
+  }
   if (d.event.startsWith('channel.')) {
     // Avisos del canal: el cuerpo ya viene armado en `payload` al encolar.
     const { data: org } = d.organization_id

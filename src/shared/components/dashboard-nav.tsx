@@ -28,6 +28,7 @@ const ICONS = {
   badge: 'M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5.5 21v-1.5A4.5 4.5 0 0 1 10 15h4a4.5 4.5 0 0 1 4.5 4.5V21',
   team: 'M17 20h5v-1a3 3 0 0 0-3-3h-1M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20v-1a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v1M16.5 5.5a3 3 0 0 1 0 5.6',
   dots: 'M5 12h.01M12 12h.01M19 12h.01',
+  bag: 'M6 8h12l-1 12H7L6 8ZM9 8V6.5a3 3 0 0 1 6 0V8',
 } as const
 
 function Icon({ name, className = 'h-5 w-5' }: { name: keyof typeof ICONS; className?: string }) {
@@ -53,6 +54,9 @@ const SECONDARY: NavItem[] = [
   { href: '/dashboard/conexiones', label: 'Conexiones', icon: 'plug', roles: ['owner'] },
   { href: '/dashboard/facturacion', label: 'Facturación', icon: 'card', roles: ['owner'] },
 ]
+
+// Restaurante (17-oct-2026): no usa citas; su «agenda» es el tablero de pedidos.
+const ORDERS_ITEM: NavItem = { href: '/dashboard/pedidos', label: 'Pedidos', icon: 'bag', tile: '#2a1a5e' }
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/dashboard') return pathname === '/dashboard'
@@ -82,14 +86,29 @@ function Tile({ item, active, count }: { item: Pick<NavItem, 'icon' | 'tile'>; a
   )
 }
 
-export function DashboardNav({ role, badges, brandName = 'ChatVenti', iconUrl = '/brand/chatventi-icon.png' }: { role: string; badges?: { agenda: number; chats: number }; brandName?: string; iconUrl?: string }) {
+export function DashboardNav({
+  role,
+  badges,
+  brandName = 'ChatVenti',
+  iconUrl = '/brand/chatventi-icon.png',
+  orders = false,
+}: {
+  role: string
+  badges?: { agenda: number; chats: number; orders?: number }
+  brandName?: string
+  iconUrl?: string
+  /** Giro con pedidos (restaurante): «Pedidos» en lugar de «Agenda»; la Agenda pasa a «Más». */
+  orders?: boolean
+}) {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
-  const secondary = SECONDARY.filter((i) => !i.roles || i.roles.includes(role))
+  const primary = orders ? PRIMARY.map((i) => (i.href === '/dashboard/agenda' ? ORDERS_ITEM : i)) : PRIMARY
+  const secondary = [...(orders ? [{ ...PRIMARY[1], tile: undefined }] : []), ...SECONDARY].filter((i) => !i.roles || i.roles.includes(role))
   const moreActive = secondary.some((i) => isActive(pathname, i.href))
   const counts: Record<string, number | undefined> = {
     '/dashboard/agenda': badges?.agenda,
     '/dashboard/conversaciones': badges?.chats,
+    '/dashboard/pedidos': badges?.orders,
   }
 
   useEffect(() => {
@@ -109,7 +128,7 @@ export function DashboardNav({ role, badges, brandName = 'ChatVenti', iconUrl = 
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={iconUrl} alt="" className="h-12 w-12 rounded-[14px] bg-white p-1.5" />
         </Link>
-        {PRIMARY.map((item) => {
+        {primary.map((item) => {
           const active = isActive(pathname, item.href)
           return (
             <Link

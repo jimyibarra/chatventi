@@ -1082,6 +1082,98 @@ export type Database = {
         }
         Relationships: []
       }
+      orders: {
+        Row: {
+          address: string | null
+          client_id: string | null
+          conversation_id: string | null
+          created_at: string
+          customer_name: string | null
+          delivered_at: string | null
+          delivery_mode: string
+          eta_minutes: number | null
+          id: string
+          items: Json
+          notes: string | null
+          organization_id: string
+          ready_at: string | null
+          ready_notified_at: string | null
+          source_message_id: string | null
+          status: string
+          total_text: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          client_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          delivered_at?: string | null
+          delivery_mode?: string
+          eta_minutes?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          organization_id: string
+          ready_at?: string | null
+          ready_notified_at?: string | null
+          source_message_id?: string | null
+          status?: string
+          total_text?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          client_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          customer_name?: string | null
+          delivered_at?: string | null
+          delivery_mode?: string
+          eta_minutes?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          organization_id?: string
+          ready_at?: string | null
+          ready_notified_at?: string | null
+          source_message_id?: string | null
+          status?: string
+          total_text?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_source_message_id_fkey"
+            columns: ["source_message_id"]
+            isOneToOne: true
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           agent_mode: string
@@ -1104,6 +1196,7 @@ export type Database = {
           id: string
           name: string
           onboarding_email_sent_at: string | null
+          order_eta_minutes: number
           partner_id: string | null
           partner_ref: string | null
           phone: string | null
@@ -1140,6 +1233,7 @@ export type Database = {
           id?: string
           name: string
           onboarding_email_sent_at?: string | null
+          order_eta_minutes?: number
           partner_id?: string | null
           partner_ref?: string | null
           phone?: string | null
@@ -1176,6 +1270,7 @@ export type Database = {
           id?: string
           name?: string
           onboarding_email_sent_at?: string | null
+          order_eta_minutes?: number
           partner_id?: string | null
           partner_ref?: string | null
           phone?: string | null

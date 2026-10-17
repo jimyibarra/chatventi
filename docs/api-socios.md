@@ -208,7 +208,7 @@ ChatVenti avisa al socio cada vez que **se crea o cambia una cita** de uno de su
 
 | Cabecera | Valor |
 |---|---|
-| `X-ChatVenti-Event` | `appointment.created`, `appointment.updated`, `appointment.cancelled`, `channel.inactive`, `channel.disconnected` o `webhook.test` |
+| `X-ChatVenti-Event` | `appointment.created`, `appointment.updated`, `appointment.cancelled`, `channel.inactive`, `channel.disconnected`, `order.created`, `order.updated` o `webhook.test` |
 | `X-ChatVenti-Delivery` | id de la entrega (uuid). Si reintentamos, llega el **mismo** id: sirve para no procesar dos veces. |
 | `X-ChatVenti-Timestamp` | segundos Unix de cuando se envió |
 | `X-ChatVenti-Signature` | `v1=<hex>` = HMAC-SHA256 con tu `secret` de la cadena `"<timestamp>.<cuerpo crudo>"` |
@@ -241,6 +241,8 @@ Cuando el negocio conecta el número que ya usa en su app WhatsApp Business, Met
 | Evento | Cuándo |
 |---|---|
 | `channel.inactive` | Días 7, 10 y 12 sin actividad desde la app (una vez por nivel; se reinicia en cuanto hay actividad). |
+| `order.created` | (17-oct-2026) Llegó un pedido del carrito de la página del negocio por WhatsApp y la recepcionista lo guardó. |
+| `order.updated` | El negocio movió el pedido en su tablero (`preparing`, `ready`, `delivered` o `cancelled`). |
 | `channel.disconnected` | El número quedó desconectado: lo desconectó Meta o el dueño desde Conexiones. La recepcionista deja de contestar por WhatsApp hasta reconectarlo. |
 
 Cuerpo:
@@ -323,3 +325,29 @@ Sin alguna de las cuatro, las herramientas no existen y el asistente sigue manda
 ## Lo que todavía no cubre esta API
 
 Profesionales por API (hoy los captura el dueño en su panel) y avisos de otros objetos que no sean citas (conversaciones, clientes). Si los necesitas, pídelos.
+
+
+## Pedidos por WhatsApp (restaurantes, 17-oct-2026)
+
+El carrito de la página del negocio manda el pedido al WhatsApp del negocio con un formato FIJO (el de ¡Pasen!):
+
+```
+Hola, soy <nombre>. Quiero hacer un pedido:
+• 2 × Comida del día ($110)
+• 1 × Jugos y licuados
+Total: $265            («$240 aprox.», «… + precio por confirmar», «por confirmar»)
+Para entrega a domicilio en: <dirección>      (o «Paso a recogerlo.»)
+Notas: <texto>          (opcional)
+```
+
+- Lo reconoce el **código** (no la IA): guarda el pedido, le confirma al cliente con el tiempo estimado del negocio (configurable en el tablero, 30 min por omisión) y avisa al equipo. Si la recepcionista está apagada o pausada en esa plática, se guarda igual pero no se contesta solo.
+- Si el mensaje no cuadra (el cliente lo editó), sigue la plática normal con la recepcionista.
+- **Contrato:** no cambien la primera línea (`Hola, soy … Quiero hacer un pedido:`), las viñetas `• N × Nombre (precio)`, `Total:`, `Para entrega a domicilio en:` / `Paso a recogerlo.` ni `Notas:` sin avisar: el reconocimiento depende de ellas.
+- Tablero en `/dashboard/pedidos` (en un `restaurante` sustituye a «Agenda»): nuevo → en preparación → listo → entregado (o cancelado). Al marcar «Listo» el cliente recibe el aviso por WhatsApp (gratis dentro de las 24 h de su último mensaje).
+- Avisos: `order.created` y `order.updated` con el estado ACTUAL y **sin datos personales**:
+
+```json
+{ "id": "…", "event": "order.updated", "createdAt": "…", "attempt": 1,
+  "organization": { "id": "…", "externalId": "…", "name": "…" },
+  "order": { "id": "…", "status": "ready", "itemsCount": 3, "totalText": "$265", "mode": "delivery", "createdAt": "…", "updatedAt": "…" } }
+```

@@ -184,9 +184,34 @@ function buildSystemPrompt(ctx: AgentContext, opts: { pasenTools?: boolean } = {
     ...(books && resources ? ['QUIÉN ATIENDE (usa el id EXACTO al llamar las herramientas):', resources, ''] : []),
     ...(hours ? ['HORARIO DE ATENCIÓN (si preguntan por horarios, respóndelo con esto):', hours, ''] : []),
     ...(books ? ['CITAS PRÓXIMAS DEL CLIENTE:', upcoming, ''] : []),
+    ...(ctx.recent_orders?.length
+      ? [
+          'PEDIDOS RECIENTES DEL CLIENTE (si pregunta por su pedido, dile este estado tal cual; no inventes tiempos ni cambies nada: el equipo los mueve en su tablero):',
+          recentOrdersBlock(ctx.recent_orders, tz),
+          '',
+        ]
+      : []),
     'BASE DE CONOCIMIENTO:',
     knowledge,
   ].join('\n')
+}
+
+const ORDER_STATUS_ES: Record<string, string> = {
+  new: 'recibido, aún no empiezan a prepararlo',
+  preparing: 'en preparación',
+  ready: 'listo',
+  delivered: 'entregado',
+  cancelled: 'cancelado',
+}
+
+function recentOrdersBlock(orders: NonNullable<AgentContext['recent_orders']>, tz: string): string {
+  return orders
+    .map((o) => {
+      const items = (o.items ?? []).map((i) => `${i.qty} × ${i.name}`).join(', ')
+      const eta = o.eta_minutes ? `, tiempo estimado ${o.eta_minutes} min desde que llegó` : ''
+      return `- ${fmtDateTime(o.created_at, tz)}: ${items} — estado: ${ORDER_STATUS_ES[o.status] ?? o.status}${eta}${o.delivery_mode === 'delivery' ? ', a domicilio' : ', para recoger'}`
+    })
+    .join('\n')
 }
 
 // Historial -> mensajes del modelo (contact=user, ai/agent=assistant).

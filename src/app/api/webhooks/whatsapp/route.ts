@@ -11,6 +11,8 @@ import { fetchWhatsAppMedia } from '@/features/agente-ia/media-fetch'
 import { parseCsatButton, csatMessage, CSAT_ALREADY, type CsatInfo } from '@/features/agente-ia/csat'
 import { alertLowCsat } from '@/features/agente-ia/csat-alert'
 import { parseWaStatuses, type WaStatus } from '@/features/agente-ia/wa-status'
+import { parseOrderMessage, type ParsedOrder } from '@/features/pedidos/parse'
+import { handleIncomingOrder } from '@/features/pedidos/service'
 import {
   waSendMessage,
   waSendInteractiveButtons,
@@ -148,6 +150,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // Mensajes de texto a responder por el agente (fuera del ciclo de la request).
   const toAnswer: { phoneNumberId: string; from: string }[] = []
+  // Pedidos del carrito de ¡Pasen! (formato fijo): los guarda y confirma el código, sin LLM.
+  const toOrder: { phoneNumberId: string; from: string; messageId: string; order: ParsedOrder }[] = []
   // Media entrante: descarga del binario + aviso estatico + escalamiento (sin LLM).
   // `messageId` es el que devuelve route_inbound_message: sin el, no hay a que
   // anclar el archivo.
@@ -229,6 +233,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             toConfirm.push({ phoneNumberId, from: msg.from, appointmentId: confirmId })
           } else if (csat) {
             toCsat.push({ phoneNumberId, from: msg.from, ...csat })
+          } else if (msg.text && parseOrderMessage(msg.text.body)) {
+            toOrder.push({ phoneNumberId, from: msg.from, messageId: routed.message_id, order: parseOrderMessage(msg.text.body) as ParsedOrder })
           } else if (msg.text || msg.interactive?.button_reply || msg.button) {
             toAnswer.push({ phoneNumberId, from: msg.from })
           } else if (msg.image || msg.audio || msg.document || msg.video) {
@@ -244,6 +250,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
   } catch (err) {
     console.error('[whatsapp-webhook] error procesando', err)
+  }
+
+  if (toOrder.length > 0) {
+    after(async () => {
+      const service = createServiceClient()
+      for (const o of toOrder) await handleIncomingOrder(service, o)
+    })
   }
 
   if (waStatuses.length > 0) {

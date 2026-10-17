@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next'
-import { Rubik } from 'next/font/google'
+import { rubikPanel } from '@/shared/fonts/rubik'
 import './globals.css'
 import '@/shared/components/ui/panel.css'
 import { LEGAL } from '@/shared/constants/legal'
@@ -14,12 +14,7 @@ const DESCRIPTION = 'Agenda + recepcionista IA para tu negocio, por WhatsApp, Te
 // su propia Rubik con el 800 (`--font-lx`, landing/chrome.tsx), así que no
 // usan esta: por eso `preload: false` (precargarla ahí sería una descarga que
 // nadie usa y Chrome la marca en consola).
-const rubik = Rubik({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-rubik',
-  preload: false,
-})
+const rubik = rubikPanel
 
 export const metadata: Metadata = {
   // metadataBase es OBLIGATORIO para que Next resuelva a absolutas las URLs de
