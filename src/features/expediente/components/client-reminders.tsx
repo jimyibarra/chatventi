@@ -165,10 +165,11 @@ export function ClientReminders({
               <div className="min-w-0 flex-1 basis-[14rem]">
                 <p className={`text-[15px] leading-snug ${r.active ? 'text-ink' : 'text-ink-muted line-through'}`}>{r.message}</p>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] text-ink-muted">
-                  <StatusChip tone={r.active ? 'ok' : 'off'}>{r.active ? 'Activo' : r.repeat ? 'Pausado' : 'Enviado'}</StatusChip>
+                  <StatusChip tone={r.active ? 'ok' : 'off'}>{r.active ? 'Activo' : !r.repeat && r.last_sent_at ? 'Enviado' : 'Pausado'}</StatusChip>
                   {/* Automáticos (fase 3): se mandan UNA vez y no si ya tiene cita próxima. */}
                   {r.source === 'vaccine' && <StatusChip tone="brand">Vacuna · automático</StatusChip>}
                   {r.source === 'service' && <StatusChip tone="brand">Tras su servicio · automático</StatusChip>}
+                  {r.source === 'membership' && <StatusChip tone="brand">Membresía · automático</StatusChip>}
                   {r.repeat ? <span>Cada {r.interval_days} días</span> : <span>Una vez</span>}
                   <span>· Próximo: {dateLabel(r.next_due_at)}</span>
                   {r.last_sent_at && <span>· Último: {dateLabel(r.last_sent_at)}</span>}
