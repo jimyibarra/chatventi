@@ -16,7 +16,7 @@ import { Notice } from '@/shared/components/ui/notice'
 import { StatusChip } from '@/shared/components/ui/status-chip'
 
 function dateLabel(iso: string): string {
-  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'long' }).format(new Date(iso))
+  return new Intl.DateTimeFormat('es-MX', { dateStyle: 'long', timeZone: 'America/Mexico_City' }).format(new Date(iso))
 }
 
 function inDaysValue(days: number): string {
